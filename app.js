@@ -37,6 +37,10 @@ function saveEntries() {
 // 모든 내역을 담아 두는 배열 (페이지가 열리면 저장된 내역을 불러옴)
 let entries = loadEntries();
 
+// 지금 화면에 보여 주는 연도와 월 (처음에는 이번 달)
+let currentYear = new Date().getFullYear();
+let currentMonth = new Date().getMonth() + 1; // 1~12
+
 // =============================================
 // 화면 요소 찾기
 // (HTML에서 id로 붙인 이름표로 요소를 찾아 변수에 담아 둠)
@@ -50,10 +54,27 @@ const categorySelect = document.getElementById("category");
 const typeRadios = document.querySelectorAll('input[name="type"]');
 const entryList = document.getElementById("entry-list");
 const emptyMessage = document.getElementById("empty-message");
+const prevMonthBtn = document.getElementById("prev-month");
+const nextMonthBtn = document.getElementById("next-month");
+const currentMonthLabel = document.getElementById("current-month");
 
 // =============================================
 // 3. 계산
 // =============================================
+
+// 지금 보고 있는 달을 "2026-10" 모양의 글자로 돌려줌
+function getMonthKey() {
+  return currentYear + "-" + String(currentMonth).padStart(2, "0");
+}
+
+// 지금 보고 있는 달의 내역만 골라 돌려줌
+function getEntriesOfMonth() {
+  const monthKey = getMonthKey();
+  // 날짜 "2026-10-16"이 "2026-10"으로 시작하면 10월 내역
+  return entries.filter(function (entry) {
+    return entry.date.startsWith(monthKey);
+  });
+}
 
 // 내역을 최신순으로 정렬한 새 배열을 돌려줌 (원래 배열은 그대로 둠)
 function sortByNewest(list) {
@@ -99,9 +120,14 @@ function createListItem(entry) {
   return li;
 }
 
-// 목록 전체를 다시 그림
+// 월 표시 글자를 바꿈 (예: "2026년 10월")
+function renderMonth() {
+  currentMonthLabel.textContent = currentYear + "년 " + currentMonth + "월";
+}
+
+// 지금 보고 있는 달의 목록을 다시 그림
 function renderList() {
-  const sorted = sortByNewest(entries);
+  const sorted = sortByNewest(getEntriesOfMonth());
 
   // 기존 목록을 비우고 처음부터 다시 채움
   entryList.innerHTML = "";
@@ -154,6 +180,32 @@ typeRadios.forEach(function (radio) {
   radio.addEventListener("change", updateCategoryOptions);
 });
 
+// 화면 전체를 다시 그림 (월 표시 + 목록)
+function render() {
+  renderMonth();
+  renderList();
+}
+
+// 이전 달로 이동 (1월에서 누르면 작년 12월로)
+prevMonthBtn.addEventListener("click", function () {
+  currentMonth = currentMonth - 1;
+  if (currentMonth < 1) {
+    currentMonth = 12;
+    currentYear = currentYear - 1;
+  }
+  render();
+});
+
+// 다음 달로 이동 (12월에서 누르면 내년 1월로)
+nextMonthBtn.addEventListener("click", function () {
+  currentMonth = currentMonth + 1;
+  if (currentMonth > 12) {
+    currentMonth = 1;
+    currentYear = currentYear + 1;
+  }
+  render();
+});
+
 // 폼을 처음 상태로 되돌림 (입력칸 비우기 + 오늘 날짜 + 카테고리 다시 채우기)
 function resetForm() {
   form.reset();
@@ -178,7 +230,11 @@ form.addEventListener("submit", function (event) {
 
   entries.push(entry);
   saveEntries();
-  renderList();
+
+  // 방금 입력한 내역이 있는 달로 화면을 옮김 (다른 달 날짜를 입력해도 바로 보이게)
+  currentYear = Number(entry.date.slice(0, 4));
+  currentMonth = Number(entry.date.slice(5, 7));
+  render();
   resetForm();
 });
 
@@ -187,4 +243,4 @@ form.addEventListener("submit", function (event) {
 // =============================================
 
 resetForm();
-renderList();
+render();
