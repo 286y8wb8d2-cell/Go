@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <!-- 한글이 깨지지 않게 문자 인코딩을 지정 -->
+  <meta charset="UTF-8">
+  <!-- 휴대폰에서 화면 폭에 맞춰 보이게 하는 설정 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>나의 가계부</title>
+  <!-- 디자인 파일 연결 (9단계에서 채울 예정) -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>나의 가계부</h1>
+  </header>
+
+  <main>
+    <!-- ① 입력 폼: 수입/지출 한 건을 입력하는 곳 -->
+    <section id="form-section">
+      <h2>내역 입력</h2>
+      <form id="entry-form">
+        <!-- 날짜 -->
+        <label for="date">날짜</label>
+        <input type="date" id="date" required>
+
+        <!-- 구분: 수입 또는 지출 중 하나만 선택 (name이 같으면 하나만 고를 수 있음) -->
+        <fieldset>
+          <legend>구분</legend>
+          <label>
+            <input type="radio" name="type" value="expense" checked> 지출
+          </label>
+          <label>
+            <input type="radio" name="type" value="income"> 수입
+          </label>
+        </fieldset>
+
+        <!-- 카테고리: 선택지는 2단계에서 JavaScript로 채울 예정 -->
+        <label for="category">카테고리</label>
+        <select id="category" required>
+          <option value="">-- 선택 --</option>
+        </select>
+
+        <!-- 금액: 1원 이상만 입력 가능 -->
+        <label for="amount">금액(원)</label>
+        <input type="number" id="amount" min="1" placeholder="예: 12000" required>
+
+        <!-- 메모: 선택 사항 -->
+        <label for="memo">메모</label>
+        <input type="text" id="memo" placeholder="예: 점심 식사">
+
+        <button type="submit" id="submit-btn">추가</button>
+      </form>
+    </section>
+
+    <!-- ② 월 선택 + 요약: 선택한 달의 총수입/총지출/잔액 -->
+    <section id="summary-section">
+      <div id="month-nav">
+        <button type="button" id="prev-month">◀</button>
+        <span id="current-month">2026년 10월</span>
+        <button type="button" id="next-month">▶</button>
+      </div>
+
+      <div id="summary">
+        <div class="summary-card">
+          <p>총수입</p>
+          <p id="total-income">0원</p>
+        </div>
+        <div class="summary-card">
+          <p>총지출</p>
+          <p id="total-expense">0원</p>
+        </div>
+        <div class="summary-card">
+          <p>잔액</p>
+          <p id="balance">0원</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ③ 내역 목록: 4단계에서 JavaScript로 항목을 채울 예정 -->
+    <section id="list-section">
+      <h2>내역</h2>
+      <ul id="entry-list"></ul>
+      <p id="empty-message">이 달의 내역이 없습니다.</p>
+    </section>
+  </main>
+
+  <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠 -->
+  <script src="app.js"></script>
+</body>
+</html>
