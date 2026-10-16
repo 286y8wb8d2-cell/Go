@@ -6,7 +6,7 @@
   <!-- 휴대폰에서 화면 폭에 맞춰 보이게 하는 설정 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>나의 가계부</title>
-  <!-- 디자인 파일 연결 (9단계에서 채울 예정) -->
+  <!-- 디자인 파일 연결 -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -34,15 +34,15 @@
           </label>
         </fieldset>
 
-        <!-- 카테고리: 선택지는 2단계에서 JavaScript로 채울 예정 -->
+        <!-- 카테고리: 선택지는 app.js가 구분에 맞게 채움 -->
         <label for="category">카테고리</label>
         <select id="category" required>
           <option value="">-- 선택 --</option>
         </select>
 
-        <!-- 금액: 1원 이상만 입력 가능 -->
+        <!-- 금액: 1원 ~ 10억 원, 정수만 입력 가능 (inputmode: 휴대폰에서 숫자 키패드가 뜸) -->
         <label for="amount">금액(원)</label>
-        <input type="number" id="amount" min="1" placeholder="예: 12000" required>
+        <input type="number" id="amount" min="1" max="1000000000" step="1" inputmode="numeric" placeholder="예: 12000" required>
 
         <!-- 메모: 선택 사항 -->
         <label for="memo">메모</label>
@@ -78,7 +78,7 @@
       </div>
     </section>
 
-    <!-- ③ 내역 목록: 4단계에서 JavaScript로 항목을 채울 예정 -->
+    <!-- ③ 내역 목록: 항목은 app.js가 채움 -->
     <section id="list-section">
       <h2>내역</h2>
       <ul id="entry-list"></ul>

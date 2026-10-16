@@ -11,6 +11,9 @@ const CATEGORIES = {
 // localStorage에 저장할 때 쓰는 이름(열쇠)
 const STORAGE_KEY = "household-entries";
 
+// 한 번에 입력할 수 있는 최대 금액 (10억 원)
+const MAX_AMOUNT = 1000000000;
+
 // =============================================
 // 2. 저장/불러오기 (localStorage)
 // =============================================
@@ -23,7 +26,9 @@ function loadEntries() {
   }
   // 저장된 글자가 깨져 있어도 앱이 멈추지 않게 try/catch로 감쌈
   try {
-    return JSON.parse(saved);
+    const parsed = JSON.parse(saved);
+    // 배열이 아닌 이상한 값이 저장돼 있으면 빈 배열로 시작
+    return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
     return [];
   }
@@ -121,11 +126,16 @@ function sortByNewest(list) {
 // 4. 화면 그리기
 // =============================================
 
+// 숫자를 "3,000,000원" 모양으로 바꿔 줌 (음수면 "-50,000원")
+function formatMoney(amount) {
+  return amount.toLocaleString("ko-KR") + "원";
+}
+
 // 내역 한 건으로 목록의 한 줄(<li>)을 만들어 돌려줌
 function createListItem(entry) {
   const li = document.createElement("li");
-  li.className = "entry " + entry.type; // 예: "entry expense" (9단계에서 색을 다르게 줄 때 사용)
-  // 지금 수정 중인 줄이면 표시를 붙여 둠 (9단계에서 강조할 때 사용)
+  li.className = "entry " + entry.type; // 예: "entry expense" (style.css에서 수입/지출 색을 다르게 줌)
+  // 지금 수정 중인 줄이면 표시를 붙여 둠 (style.css에서 배경색으로 강조)
   if (entry.id === editingId) {
     li.classList.add("editing");
   }
@@ -146,7 +156,7 @@ function createListItem(entry) {
   const amountSpan = document.createElement("span");
   amountSpan.className = "entry-amount";
   const sign = entry.type === "income" ? "+" : "-";
-  amountSpan.textContent = sign + entry.amount + "원";
+  amountSpan.textContent = sign + formatMoney(entry.amount);
 
   // 수정 버튼: 누르면 위쪽 입력 폼에 이 내역의 값을 채움
   const editBtn = document.createElement("button");
@@ -163,7 +173,7 @@ function createListItem(entry) {
   deleteBtn.className = "delete-btn";
   deleteBtn.textContent = "삭제";
   deleteBtn.addEventListener("click", function () {
-    const message = entry.date + " " + entry.category + " " + entry.amount + "원\n이 내역을 삭제할까요?";
+    const message = entry.date + " " + entry.category + " " + formatMoney(entry.amount) + "\n이 내역을 삭제할까요?";
     if (confirm(message)) {
       deleteEntry(entry.id);
     }
@@ -181,9 +191,9 @@ function renderMonth() {
 // 지금 보고 있는 달의 총수입, 총지출, 잔액을 보여 줌
 function renderSummary() {
   const summary = calculateSummary(getEntriesOfMonth());
-  totalIncomeText.textContent = summary.income + "원";
-  totalExpenseText.textContent = summary.expense + "원";
-  balanceText.textContent = summary.balance + "원";
+  totalIncomeText.textContent = formatMoney(summary.income);
+  totalExpenseText.textContent = formatMoney(summary.expense);
+  balanceText.textContent = formatMoney(summary.balance);
 }
 
 // 지금 보고 있는 달의 목록을 다시 그림
@@ -306,6 +316,24 @@ cancelBtn.addEventListener("click", function () {
   render(); // 수정 중인 줄 표시를 지움
 });
 
+// 입력한 내역에 문제가 있으면 안내 문구를, 문제가 없으면 빈 글자("")를 돌려줌
+// (브라우저도 required, min, max로 검사하지만, 한 번 더 확인하는 안전장치)
+function validateEntry(entry) {
+  if (entry.date === "") {
+    return "날짜를 입력해 주세요.";
+  }
+  if (entry.category === "") {
+    return "카테고리를 선택해 주세요.";
+  }
+  if (!Number.isInteger(entry.amount) || entry.amount <= 0) {
+    return "금액은 1원 이상의 정수로 입력해 주세요.";
+  }
+  if (entry.amount > MAX_AMOUNT) {
+    return "금액은 " + formatMoney(MAX_AMOUNT) + " 이하로 입력해 주세요.";
+  }
+  return "";
+}
+
 // "추가" 또는 "수정 완료" 버튼을 누르면 (폼이 제출되면) 실행
 form.addEventListener("submit", function (event) {
   // 폼의 기본 동작(페이지 새로고침)을 막음
@@ -321,6 +349,13 @@ form.addEventListener("submit", function (event) {
     category: categorySelect.value,
     memo: memoInput.value.trim(), // 앞뒤 공백 제거
   };
+
+  // 문제가 있으면 안내하고 저장하지 않음
+  const error = validateEntry(entry);
+  if (error !== "") {
+    alert(error);
+    return;
+  }
 
   if (editingId === null) {
     // 새로 추가
