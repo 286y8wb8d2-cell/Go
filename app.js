@@ -41,6 +41,9 @@ let entries = loadEntries();
 let currentYear = new Date().getFullYear();
 let currentMonth = new Date().getMonth() + 1; // 1~12
 
+// 지금 수정 중인 내역의 id (수정 중이 아니면 null)
+let editingId = null;
+
 // =============================================
 // 화면 요소 찾기
 // (HTML에서 id로 붙인 이름표로 요소를 찾아 변수에 담아 둠)
@@ -51,6 +54,8 @@ const dateInput = document.getElementById("date");
 const amountInput = document.getElementById("amount");
 const memoInput = document.getElementById("memo");
 const categorySelect = document.getElementById("category");
+const submitBtn = document.getElementById("submit-btn");
+const cancelBtn = document.getElementById("cancel-btn");
 const typeRadios = document.querySelectorAll('input[name="type"]');
 const entryList = document.getElementById("entry-list");
 const emptyMessage = document.getElementById("empty-message");
@@ -120,6 +125,10 @@ function sortByNewest(list) {
 function createListItem(entry) {
   const li = document.createElement("li");
   li.className = "entry " + entry.type; // 예: "entry expense" (9단계에서 색을 다르게 줄 때 사용)
+  // 지금 수정 중인 줄이면 표시를 붙여 둠 (9단계에서 강조할 때 사용)
+  if (entry.id === editingId) {
+    li.classList.add("editing");
+  }
 
   const dateSpan = document.createElement("span");
   dateSpan.className = "entry-date";
@@ -139,6 +148,15 @@ function createListItem(entry) {
   const sign = entry.type === "income" ? "+" : "-";
   amountSpan.textContent = sign + entry.amount + "원";
 
+  // 수정 버튼: 누르면 위쪽 입력 폼에 이 내역의 값을 채움
+  const editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "edit-btn";
+  editBtn.textContent = "수정";
+  editBtn.addEventListener("click", function () {
+    startEdit(entry);
+  });
+
   // 삭제 버튼: 누르면 확인 창을 띄우고, "확인"을 누를 때만 지움
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
@@ -151,7 +169,7 @@ function createListItem(entry) {
     }
   });
 
-  li.append(dateSpan, categorySpan, memoSpan, amountSpan, deleteBtn);
+  li.append(dateSpan, categorySpan, memoSpan, amountSpan, editBtn, deleteBtn);
   return li;
 }
 
@@ -250,21 +268,53 @@ nextMonthBtn.addEventListener("click", function () {
   render();
 });
 
-// 폼을 처음 상태로 되돌림 (입력칸 비우기 + 오늘 날짜 + 카테고리 다시 채우기)
+// 폼을 처음 상태로 되돌림 (입력칸 비우기 + 오늘 날짜 + 카테고리 다시 채우기 + 수정 모드 끝내기)
 function resetForm() {
   form.reset();
   dateInput.value = getToday();
   updateCategoryOptions();
+
+  editingId = null;
+  submitBtn.textContent = "추가";
+  cancelBtn.hidden = true;
 }
 
-// "추가" 버튼을 누르면 (폼이 제출되면) 실행
+// 수정 시작: 내역의 값을 폼에 채우고 "수정 모드"로 바꿈
+function startEdit(entry) {
+  editingId = entry.id;
+
+  dateInput.value = entry.date;
+  // 구분 라디오 버튼 중 이 내역의 구분과 같은 것을 선택
+  document.querySelector('input[name="type"][value="' + entry.type + '"]').checked = true;
+  // 구분이 바뀌었을 수 있으니 카테고리 선택지를 먼저 다시 채운 뒤 값을 고름
+  updateCategoryOptions();
+  categorySelect.value = entry.category;
+  amountInput.value = entry.amount;
+  memoInput.value = entry.memo;
+
+  submitBtn.textContent = "수정 완료";
+  cancelBtn.hidden = false;
+
+  render(); // 수정 중인 줄 표시를 반영
+  // 휴대폰에서는 폼이 화면 밖에 있을 수 있으니 폼이 보이게 스크롤
+  form.scrollIntoView({ behavior: "smooth" });
+}
+
+// 취소 버튼: 수정을 그만두고 폼을 비움
+cancelBtn.addEventListener("click", function () {
+  resetForm();
+  render(); // 수정 중인 줄 표시를 지움
+});
+
+// "추가" 또는 "수정 완료" 버튼을 누르면 (폼이 제출되면) 실행
 form.addEventListener("submit", function (event) {
   // 폼의 기본 동작(페이지 새로고침)을 막음
   event.preventDefault();
 
   // 입력값을 모아 내역 한 건을 만듦
   const entry = {
-    id: String(Date.now()), // 지금 시각(밀리초)을 고유번호로 사용
+    // 수정 중이면 원래 id를 그대로 쓰고, 새로 추가면 지금 시각(밀리초)을 고유번호로 사용
+    id: editingId !== null ? editingId : String(Date.now()),
     date: dateInput.value,
     amount: Number(amountInput.value), // 글자 "12000"을 숫자 12000으로 바꿈
     type: getSelectedType(),
@@ -272,14 +322,23 @@ form.addEventListener("submit", function (event) {
     memo: memoInput.value.trim(), // 앞뒤 공백 제거
   };
 
-  entries.push(entry);
+  if (editingId === null) {
+    // 새로 추가
+    entries.push(entry);
+  } else {
+    // 수정: 같은 id를 가진 내역을 찾아 새 값으로 바꿔 끼움
+    const index = entries.findIndex(function (item) {
+      return item.id === editingId;
+    });
+    entries[index] = entry;
+  }
   saveEntries();
 
   // 방금 입력한 내역이 있는 달로 화면을 옮김 (다른 달 날짜를 입력해도 바로 보이게)
   currentYear = Number(entry.date.slice(0, 4));
   currentMonth = Number(entry.date.slice(5, 7));
+  resetForm(); // 수정 모드도 여기서 끝남
   render();
-  resetForm();
 });
 
 // id가 같은 내역 하나를 지우고 저장한 뒤 화면을 다시 그림
@@ -289,6 +348,10 @@ function deleteEntry(id) {
     return entry.id !== id;
   });
   saveEntries();
+  // 수정 중이던 내역을 지웠다면 수정 모드도 끝냄
+  if (id === editingId) {
+    resetForm();
+  }
   render();
 }
 
