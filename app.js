@@ -57,6 +57,9 @@ const emptyMessage = document.getElementById("empty-message");
 const prevMonthBtn = document.getElementById("prev-month");
 const nextMonthBtn = document.getElementById("next-month");
 const currentMonthLabel = document.getElementById("current-month");
+const totalIncomeText = document.getElementById("total-income");
+const totalExpenseText = document.getElementById("total-expense");
+const balanceText = document.getElementById("balance");
 
 // =============================================
 // 3. 계산
@@ -74,6 +77,26 @@ function getEntriesOfMonth() {
   return entries.filter(function (entry) {
     return entry.date.startsWith(monthKey);
   });
+}
+
+// 내역 목록의 총수입, 총지출, 잔액을 계산해 돌려줌
+function calculateSummary(list) {
+  let income = 0;
+  let expense = 0;
+
+  list.forEach(function (entry) {
+    if (entry.type === "income") {
+      income = income + entry.amount;
+    } else {
+      expense = expense + entry.amount;
+    }
+  });
+
+  return {
+    income: income,
+    expense: expense,
+    balance: income - expense,
+  };
 }
 
 // 내역을 최신순으로 정렬한 새 배열을 돌려줌 (원래 배열은 그대로 둠)
@@ -123,6 +146,14 @@ function createListItem(entry) {
 // 월 표시 글자를 바꿈 (예: "2026년 10월")
 function renderMonth() {
   currentMonthLabel.textContent = currentYear + "년 " + currentMonth + "월";
+}
+
+// 지금 보고 있는 달의 총수입, 총지출, 잔액을 보여 줌
+function renderSummary() {
+  const summary = calculateSummary(getEntriesOfMonth());
+  totalIncomeText.textContent = summary.income + "원";
+  totalExpenseText.textContent = summary.expense + "원";
+  balanceText.textContent = summary.balance + "원";
 }
 
 // 지금 보고 있는 달의 목록을 다시 그림
@@ -180,9 +211,10 @@ typeRadios.forEach(function (radio) {
   radio.addEventListener("change", updateCategoryOptions);
 });
 
-// 화면 전체를 다시 그림 (월 표시 + 목록)
+// 화면 전체를 다시 그림 (월 표시 + 요약 + 목록)
 function render() {
   renderMonth();
+  renderSummary();
   renderList();
 }
 
