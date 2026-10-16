@@ -1,1 +1,332 @@
-/* 디자인은 9단계에서 작성합니다. */
+/* =============================================
+   0. 색상 모음
+   (자주 쓰는 색에 이름을 붙여 두고 var(--이름)으로 꺼내 씀.
+    색을 바꾸고 싶으면 여기만 고치면 됨)
+   ============================================= */
+:root {
+  --bg: #f4f5f7;          /* 페이지 배경 */
+  --card: #ffffff;        /* 카드(흰 상자) 배경 */
+  --text: #222222;        /* 기본 글자 */
+  --text-light: #777777;  /* 흐린 글자 (날짜, 메모 등) */
+  --border: #dddddd;      /* 테두리 */
+  --primary: #3b6ef5;     /* 주요 버튼 */
+  --income: #2563eb;      /* 수입 (파랑) */
+  --expense: #dc2626;     /* 지출 (빨강) */
+  --editing: #fff7d6;     /* 수정 중인 줄 배경 (연노랑) */
+}
+
+/* =============================================
+   1. 기본 설정
+   ============================================= */
+
+/* 너비 계산에 테두리와 안쪽 여백을 포함시킴 (크기 맞추기가 쉬워짐) */
+* {
+  box-sizing: border-box;
+}
+
+/* hidden 속성이 붙은 요소는 무조건 숨김
+   (아래에서 버튼 등에 display를 지정하면 hidden이 무시되는 걸 막음) */
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  line-height: 1.5;
+}
+
+/* 내용 전체 폭: 휴대폰에서는 화면에 꽉 차고, 넓은 화면에서도 600px까지만 */
+header,
+main {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 20px 0 12px;
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin: 0 0 12px;
+}
+
+/* 세 구역(입력, 요약, 목록)을 흰 카드로 */
+section {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* =============================================
+   2. 입력 폼
+   ============================================= */
+
+/* 글자(label)는 입력칸 위에 한 줄로 */
+#entry-form label {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--text-light);
+  margin-bottom: 4px;
+}
+
+/* 입력칸은 가로로 꽉 차게, 손가락으로 누르기 쉬운 높이로
+   (글자 크기 16px 이상: 아이폰에서 입력할 때 화면이 확대되는 걸 막음) */
+#entry-form input[type="date"],
+#entry-form input[type="number"],
+#entry-form input[type="text"],
+#entry-form select {
+  display: block;
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  margin-bottom: 14px;
+  font-size: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--text);
+}
+
+/* 구분(수입/지출) 묶음 */
+#entry-form fieldset {
+  border: none;
+  padding: 0;
+  margin: 0 0 14px;
+}
+
+#entry-form legend {
+  font-size: 0.9rem;
+  color: var(--text-light);
+  margin-bottom: 4px;
+  padding: 0;
+}
+
+/* 라디오 버튼은 나란히, 글자와 함께 누르기 쉽게 */
+#entry-form fieldset label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 20px;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+#entry-form input[type="radio"] {
+  width: 18px;
+  height: 18px;
+}
+
+/* 추가/수정 완료 버튼과 취소 버튼 */
+#submit-btn,
+#cancel-btn {
+  width: 100%;
+  height: 46px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+#submit-btn {
+  border: none;
+  background: var(--primary);
+  color: #ffffff;
+}
+
+#cancel-btn {
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--text);
+}
+
+/* =============================================
+   3. 월 선택 + 요약
+   ============================================= */
+
+/* ◀ 2026년 10월 ▶ 을 가운데에 나란히 */
+#month-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+#current-month {
+  font-size: 1.15rem;
+  font-weight: bold;
+  min-width: 120px;
+  text-align: center;
+}
+
+#month-nav button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: #ffffff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* 총수입/총지출/잔액 세 칸을 가로로 똑같은 너비로 */
+#summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.summary-card {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 10px 4px;
+  text-align: center;
+}
+
+/* 카드 안의 두 줄: 위는 제목, 아래는 금액 */
+.summary-card p {
+  margin: 0;
+}
+
+.summary-card p:first-child {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.summary-card p:last-child {
+  font-size: 0.9rem;
+  font-weight: bold;
+  overflow-wrap: anywhere; /* 금액이 길면 칸 밖으로 넘치지 않게 줄바꿈 */
+}
+
+#total-income {
+  color: var(--income);
+}
+
+#total-expense {
+  color: var(--expense);
+}
+
+/* =============================================
+   4. 내역 목록
+   ============================================= */
+
+#entry-list {
+  list-style: none; /* 앞의 점(•) 없애기 */
+  margin: 0;
+  padding: 0;
+}
+
+/* 한 줄을 두 줄짜리 칸으로 배치
+   첫째 줄: 카테고리 ............ 금액
+   둘째 줄: 날짜  메모 ...... 수정 삭제 */
+.entry {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  grid-template-areas:
+    "category category amount amount"
+    "date     memo     edit   delete";
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.entry:last-child {
+  border-bottom: none;
+}
+
+/* 수정 중인 줄은 연노랑 배경으로 강조 */
+.entry.editing {
+  background: var(--editing);
+  border-radius: 8px;
+}
+
+.entry-category {
+  grid-area: category;
+  font-weight: bold;
+}
+
+.entry-amount {
+  grid-area: amount;
+  text-align: right;
+  font-weight: bold;
+}
+
+.entry.income .entry-amount {
+  color: var(--income);
+}
+
+.entry.expense .entry-amount {
+  color: var(--expense);
+}
+
+.entry-date {
+  grid-area: date;
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
+
+/* 메모가 길면 한 줄로 자르고 끝에 … 표시 */
+.entry-memo {
+  grid-area: memo;
+  font-size: 0.85rem;
+  color: var(--text-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.edit-btn {
+  grid-area: edit;
+}
+
+.delete-btn {
+  grid-area: delete;
+}
+
+.edit-btn,
+.delete-btn {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.delete-btn {
+  color: var(--expense);
+}
+
+/* 내역이 없을 때 안내 문구 */
+#empty-message {
+  margin: 8px 0;
+  text-align: center;
+  color: var(--text-light);
+}
+
+/* =============================================
+   5. 넓은 화면 (태블릿·PC, 600px 이상)
+   ============================================= */
+@media (min-width: 600px) {
+  h1 {
+    font-size: 1.8rem;
+  }
+
+  /* 칸이 넓어지니 요약 금액을 조금 더 크게 */
+  .summary-card p:last-child {
+    font-size: 1.1rem;
+  }
+}
