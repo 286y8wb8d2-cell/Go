@@ -48,6 +48,70 @@ const amountInput = document.getElementById("amount");
 const memoInput = document.getElementById("memo");
 const categorySelect = document.getElementById("category");
 const typeRadios = document.querySelectorAll('input[name="type"]');
+const entryList = document.getElementById("entry-list");
+const emptyMessage = document.getElementById("empty-message");
+
+// =============================================
+// 3. 계산
+// =============================================
+
+// 내역을 최신순으로 정렬한 새 배열을 돌려줌 (원래 배열은 그대로 둠)
+function sortByNewest(list) {
+  return list.slice().sort(function (a, b) {
+    // 날짜가 다르면 날짜가 늦은 쪽이 앞으로
+    // ("2026-10-16" 같은 글자는 글자 순서가 곧 날짜 순서라서 바로 비교할 수 있음)
+    if (a.date !== b.date) {
+      return a.date < b.date ? 1 : -1;
+    }
+    // 날짜가 같으면 나중에 입력한 쪽(id가 큰 쪽)이 앞으로
+    return Number(b.id) - Number(a.id);
+  });
+}
+
+// =============================================
+// 4. 화면 그리기
+// =============================================
+
+// 내역 한 건으로 목록의 한 줄(<li>)을 만들어 돌려줌
+function createListItem(entry) {
+  const li = document.createElement("li");
+  li.className = "entry " + entry.type; // 예: "entry expense" (9단계에서 색을 다르게 줄 때 사용)
+
+  const dateSpan = document.createElement("span");
+  dateSpan.className = "entry-date";
+  dateSpan.textContent = entry.date;
+
+  const categorySpan = document.createElement("span");
+  categorySpan.className = "entry-category";
+  categorySpan.textContent = entry.category;
+
+  const memoSpan = document.createElement("span");
+  memoSpan.className = "entry-memo";
+  memoSpan.textContent = entry.memo;
+
+  // 수입은 +, 지출은 - 를 붙여 보여 줌
+  const amountSpan = document.createElement("span");
+  amountSpan.className = "entry-amount";
+  const sign = entry.type === "income" ? "+" : "-";
+  amountSpan.textContent = sign + entry.amount + "원";
+
+  li.append(dateSpan, categorySpan, memoSpan, amountSpan);
+  return li;
+}
+
+// 목록 전체를 다시 그림
+function renderList() {
+  const sorted = sortByNewest(entries);
+
+  // 기존 목록을 비우고 처음부터 다시 채움
+  entryList.innerHTML = "";
+  sorted.forEach(function (entry) {
+    entryList.appendChild(createListItem(entry));
+  });
+
+  // 내역이 하나도 없을 때만 안내 문구를 보여 줌
+  emptyMessage.hidden = sorted.length > 0;
+}
 
 // =============================================
 // 5. 이벤트 처리
@@ -114,6 +178,7 @@ form.addEventListener("submit", function (event) {
 
   entries.push(entry);
   saveEntries();
+  renderList();
   resetForm();
 });
 
@@ -122,3 +187,4 @@ form.addEventListener("submit", function (event) {
 // =============================================
 
 resetForm();
+renderList();
