@@ -139,7 +139,19 @@ function createListItem(entry) {
   const sign = entry.type === "income" ? "+" : "-";
   amountSpan.textContent = sign + entry.amount + "원";
 
-  li.append(dateSpan, categorySpan, memoSpan, amountSpan);
+  // 삭제 버튼: 누르면 확인 창을 띄우고, "확인"을 누를 때만 지움
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "delete-btn";
+  deleteBtn.textContent = "삭제";
+  deleteBtn.addEventListener("click", function () {
+    const message = entry.date + " " + entry.category + " " + entry.amount + "원\n이 내역을 삭제할까요?";
+    if (confirm(message)) {
+      deleteEntry(entry.id);
+    }
+  });
+
+  li.append(dateSpan, categorySpan, memoSpan, amountSpan, deleteBtn);
   return li;
 }
 
@@ -269,6 +281,16 @@ form.addEventListener("submit", function (event) {
   render();
   resetForm();
 });
+
+// id가 같은 내역 하나를 지우고 저장한 뒤 화면을 다시 그림
+function deleteEntry(id) {
+  // id가 다른 것만 남김 = id가 같은 것만 빠짐
+  entries = entries.filter(function (entry) {
+    return entry.id !== id;
+  });
+  saveEntries();
+  render();
+}
 
 // =============================================
 // 시작: 페이지가 열리면 한 번 실행
