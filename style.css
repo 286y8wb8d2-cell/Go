@@ -1697,6 +1697,89 @@ footer {
   color: var(--text-light);
 }
 
+/* 공포·탐욕 지수: 반원 게이지 + 아래에 점수 */
+.btc-fng-top {
+  position: relative;
+  max-width: 260px;
+  margin: 0 auto 12px;
+  text-align: center;
+}
+
+.btc-fng-gauge {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.btc-fng-band {
+  fill: none;
+  stroke-width: 16;
+}
+
+.btc-fng-needle {
+  stroke: var(--text);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.btc-fng-hub {
+  fill: var(--text);
+}
+
+/* 점수는 게이지 바로 아래에 */
+.btc-fng-value {
+  margin: 4px 0 0;
+}
+
+.btc-fng-label {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: bold;
+}
+
+/* 어제 · 지난주 · 지난달 3칸 */
+.btc-fng-compare {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.btc-fng-card {
+  padding: 8px 4px;
+  border-radius: 8px;
+  background: var(--bg);
+  text-align: center;
+}
+
+.btc-fng-card p {
+  margin: 0;
+}
+
+.btc-fng-card-name,
+.btc-fng-card-label {
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+.btc-fng-card-value {
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.btc-fng-bars {
+  display: block;
+  width: 100%;
+  height: 60px;
+}
+
+.btc-fng-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .btc-block-new { animation: none; }
 }
