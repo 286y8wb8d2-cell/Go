@@ -2512,3 +2512,378 @@ footer {
   margin: 12px 0;
   text-align: left;
 }
+
+/* =============================================
+   가계부 탭 (budget.js)
+   ============================================= */
+
+/* 위쪽: 순자산 목표 고리 + 큰 숫자 */
+.budget-hero {
+  text-align: center;
+}
+
+.budget-ring {
+  position: relative;
+  width: 140px;
+  margin: 0 auto 8px;
+}
+
+.budget-ring svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  transform: rotate(-90deg); /* 12시 방향부터 채움 */
+}
+
+.budget-ring circle {
+  fill: none;
+  stroke-width: 10;
+}
+
+.budget-ring-track {
+  stroke: var(--bg);
+}
+
+.budget-ring-bar {
+  stroke: var(--primary);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease;
+}
+
+.budget-ring-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.budget-ring-text strong {
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-ring-text small {
+  font-size: 0.7rem;
+  color: var(--text-light);
+}
+
+.budget-net {
+  margin: 0 0 12px;
+  font-size: 1.6rem;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.budget-kpi {
+  padding: 8px 4px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.budget-kpi p {
+  margin: 0;
+}
+
+.budget-kpi-value {
+  font-size: 0.95rem;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 이번 달 흐름: 월급 = 막대 전체 */
+.budget-flow-bar {
+  display: flex;
+  gap: 2px;
+  height: 18px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.budget-flow-bar span {
+  min-width: 2px;
+}
+
+.budget-note {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #ecfdf3;
+  color: #0b6b3a;
+  font-size: 0.85rem;
+  word-break: keep-all;
+}
+
+.budget-note.warn {
+  background: #fff4e5;
+  color: #9a4b00;
+}
+
+.budget-note:empty {
+  display: none;
+}
+
+/* 여유돈 계단 */
+.budget-steps,
+.budget-ladder,
+.budget-events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.budget-step {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 64px;
+  grid-template-areas:
+    "month label value"
+    "month track value";
+  align-items: center;
+  gap: 2px 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.budget-step:last-child {
+  border-bottom: none;
+}
+
+.budget-step-month {
+  grid-area: month;
+  color: var(--text-light);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-step-label {
+  grid-area: label;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.budget-step-track {
+  grid-area: track;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.budget-step-fill {
+  display: block;
+  height: 100%;
+  background: #008300;
+}
+
+.budget-step-value {
+  grid-area: value;
+  text-align: right;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 부채 */
+.budget-debt-kpis .summary-card:first-child {
+  grid-column: auto; /* 4칸 모두 같은 크기 */
+}
+
+.budget-debt-kpis .summary-card:first-child p.btc-card-sub {
+  font-size: 0.75rem; /* 첫 칸만 크게 하는 규칙 되돌리기 */
+}
+
+.budget-ladder-row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 0.85rem;
+}
+
+.budget-ladder-name,
+.budget-ladder-end {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.budget-ladder-name small,
+.budget-ladder-end small {
+  font-size: 0.7rem;
+  color: var(--text-light);
+}
+
+.budget-ladder-end {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-ladder-track {
+  position: relative;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--bg);
+}
+
+.budget-ladder-fill {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  border-radius: 4px;
+}
+
+.budget-ladder-track em {
+  position: absolute;
+  top: 50%;
+  left: 6px;
+  transform: translateY(-50%);
+  font-style: normal;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: var(--text);
+  paint-order: stroke;
+  stroke: #ffffff;
+  -webkit-text-stroke: 0;
+  text-shadow: 0 0 3px #ffffff, 0 0 3px #ffffff;
+}
+
+/* 미래 */
+.budget-line-base {
+  stroke-width: 3;
+}
+
+.budget-pjs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.budget-pj {
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.budget-pj h3 {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+}
+
+.budget-pj-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 2px 0;
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+.budget-pj-row strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.budget-row-now th,
+.budget-row-now td {
+  background: #eef4ff;
+}
+
+/* 이벤트 타임라인 */
+.budget-event {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.budget-event:last-child {
+  border-bottom: none;
+}
+
+.budget-event.past {
+  opacity: 0.45;
+}
+
+.budget-event > span:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+}
+
+.budget-event small {
+  width: 100%;
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.budget-event small.profit-up {
+  color: #0b6b3a; /* 여유가 늘어남 = 좋은 일 (초록) */
+}
+
+.budget-event-date {
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-event-date.next {
+  color: var(--primary);
+  font-weight: bold;
+}
+
+.budget-dday {
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+/* 편집 목록 한 줄 */
+.budget-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.budget-edit-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.budget-edit-text strong {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.budget-edit-text small {
+  font-size: 0.75rem;
+  word-break: keep-all;
+}
+
+.budget-edit-amount {
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
