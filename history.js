@@ -15,7 +15,7 @@ const HISTORY_STORAGE_KEY = "household-history";
 const HISTORY_SERIES = [
   { key: "total", name: "총 자산", className: "series-1" },
   { key: "assets", name: "금융자산", className: "series-2" },
-  { key: "crypto", name: "가상자산", className: "series-3" },
+  { key: "crypto", name: "비트코인", className: "series-3" },
 ];
 
 // 그래프 크기 (SVG 안의 좌표 단위. 실제 화면에서는 폭에 맞춰 늘어나거나 줄어듦)
@@ -380,7 +380,7 @@ function readHistoryNumber(input) {
   return input.value.trim() === "" ? 0 : Number(input.value);
 }
 
-// 금융자산 + 가상자산 = 총 자산 미리 보기
+// 금융자산 + 비트코인 = 총 자산 미리 보기
 function updateHistoryTotalPreview() {
   const total = readHistoryNumber(historyAssetsInput) + readHistoryNumber(historyCryptoInput);
   historyTotalPreview.textContent = Number.isFinite(total) ? "총 자산 " + formatMoney(total) : "";
@@ -421,7 +421,7 @@ function validateHistoryInput(month, assetsValue, cryptoValue) {
   }
   const values = [
     { value: assetsValue, label: "금융자산" },
-    { value: cryptoValue, label: "가상자산" },
+    { value: cryptoValue, label: "비트코인" },
   ];
   for (const item of values) {
     if (!Number.isFinite(item.value) || item.value < 0) {
@@ -432,7 +432,7 @@ function validateHistoryInput(month, assetsValue, cryptoValue) {
     }
   }
   if (assetsValue + cryptoValue <= 0) {
-    return "금융자산이나 가상자산 중 하나는 입력해 주세요.";
+    return "금융자산이나 비트코인 중 하나는 입력해 주세요.";
   }
   return "";
 }
@@ -517,7 +517,7 @@ historyChart.addEventListener("keydown", function (event) {
 // 5. 이벤트 처리
 // =============================================
 
-// 금융자산이나 가상자산이 저장되면 이번 달 기록을 갱신
+// 금융자산이나 비트코인이 저장되면 이번 달 기록을 갱신
 document.addEventListener("data-saved", function (event) {
   if (event.detail.key === ASSET_STORAGE_KEY || event.detail.key === CRYPTO_STORAGE_KEY) {
     recordThisMonth();

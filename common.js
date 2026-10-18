@@ -3,7 +3,7 @@
 // 이 파일은 index.html에서 다른 JS 파일보다 먼저 불러옴
 //
 // ※ 규칙: 여러 JS 파일이 이름을 함께 쓰기 때문에,
-//   파일마다 겹치지 않는 이름을 써야 함 (예: 금융자산은 asset~, 가상자산은 crypto~)
+//   파일마다 겹치지 않는 이름을 써야 함 (예: 금융자산은 asset~, 비트코인은 crypto~)
 // =============================================
 
 // ---------------------------------------------
@@ -122,7 +122,7 @@ function getToday() {
 }
 
 // ---------------------------------------------
-// 비중 막대 + 범례 그리기 (금융자산·가상자산·전체 자산에서 같이 씀)
+// 비중 막대 + 범례 그리기 (금융자산·비트코인·전체 자산에서 같이 씀)
 // ---------------------------------------------
 
 // bar: 막대를 넣을 칸, legend: 범례 목록(<ul>)
@@ -182,7 +182,7 @@ function renderAllocation(bar, legend, items) {
 const tabButtons = document.querySelectorAll(".tab-btn");
 const tabPanels = document.querySelectorAll(".tab-panel");
 
-// 탭 순서 (버튼 순서 그대로): ["home", "ledger", "assets", "crypto", "scenario"]
+// 탭 순서 (버튼 순서 그대로): ["home", "assets", "crypto", "scenario"]
 const TAB_ORDER = Array.from(tabButtons).map(function (button) {
   return button.dataset.tab;
 });
@@ -193,7 +193,7 @@ let currentTab = null;
 // 사용자가 "움직임 줄이기"를 켜 두었는지 (켜져 있으면 미끄러지는 효과를 끔)
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// tabName(예: "ledger")에 해당하는 탭만 보이고 나머지는 숨김
+// tabName(예: "assets")에 해당하는 탭만 보이고 나머지는 숨김
 function showTab(tabName) {
   // 옆으로 넘어가는 방향 (다음 탭이면 오른쪽에서, 이전 탭이면 왼쪽에서 들어옴)
   const fromIndex = TAB_ORDER.indexOf(currentTab);

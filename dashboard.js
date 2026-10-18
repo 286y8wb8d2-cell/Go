@@ -31,8 +31,8 @@ const dashProfitText = document.getElementById("dash-profit");
 const dashProfitSub = document.getElementById("dash-profit-sub");
 const dashDividendText = document.getElementById("dash-dividend");
 const dashDividendSub = document.getElementById("dash-dividend-sub");
-const dashBalanceText = document.getElementById("dash-balance");
-const dashBalanceSub = document.getElementById("dash-balance-sub");
+const dashCryptoProfitText = document.getElementById("dash-crypto-profit");
+const dashCryptoProfitSub = document.getElementById("dash-crypto-profit-sub");
 const dashCryptoShareText = document.getElementById("dash-crypto-share");
 const dashCryptoShareSub = document.getElementById("dash-crypto-share-sub");
 const dashTopList = document.getElementById("dash-top-list");
@@ -47,7 +47,7 @@ function formatDashMoney(amount) {
   return Math.abs(amount) < 1000000 ? formatMoney(amount) : formatKoreanUnit(amount);
 }
 
-// 금융자산과 가상자산을 한 목록으로 모아 평가금액이 큰 순서로
+// 금융자산과 비트코인을 한 목록으로 모아 평가금액이 큰 순서로
 // 결과: [{ name, group: "국내주식", value }]
 function getDashHoldings() {
   const list = [];
@@ -55,7 +55,7 @@ function getDashHoldings() {
     list.push({ name: asset.name, group: ASSET_KINDS[asset.kind] || "기타", value: calculateAsset(asset).value });
   });
   cryptos.forEach(function (crypto) {
-    list.push({ name: crypto.name, group: "가상자산", value: calculateCrypto(crypto).value });
+    list.push({ name: crypto.name, group: "비트코인", value: calculateCrypto(crypto).value });
   });
   return list
     .filter(function (item) {
@@ -150,20 +150,13 @@ function renderDashKpis(networth, portfolio) {
   dashDividendText.textContent = formatDashMoney(portfolio.annualDividend);
   dashDividendSub.textContent = "월평균 " + formatDashMoney(portfolio.annualDividend / 12);
 
-  // ③ 이번 달 가계부 잔액 (수입 - 지출)과 저축률
-  const monthKey = getToday().slice(0, 7);
-  const summary = calculateSummary(
-    entries.filter(function (entry) {
-      return entry.date.startsWith(monthKey);
-    })
-  );
-  dashBalanceText.textContent = (summary.balance > 0 ? "+" : "") + formatDashMoney(summary.balance);
-  dashBalanceSub.textContent =
-    summary.income > 0
-      ? "저축률 " + Math.round((summary.balance / summary.income) * 100) + "%"
-      : "이번 달 수입 없음";
+  // ③ 비트코인 손익과 수익률
+  const cryptoTotal = calculateCryptoTotal(cryptos); // crypto.js
+  dashCryptoProfitText.textContent = (cryptoTotal.profit > 0 ? "+" : "") + formatDashMoney(cryptoTotal.profit);
+  dashCryptoProfitText.className = "dash-kpi-value " + getProfitClass(cryptoTotal.profit);
+  dashCryptoProfitSub.textContent = "수익률 " + formatPercent(cryptoTotal.rate);
 
-  // ④ 가상자산 비중
+  // ④ 비트코인 비중
   const cryptoShare = networth.value > 0 ? (networth.cryptoValue / networth.value) * 100 : 0;
   dashCryptoShareText.textContent = formatShare(cryptoShare);
   dashCryptoShareSub.textContent = formatDashMoney(networth.cryptoValue);

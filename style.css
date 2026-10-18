@@ -10,7 +10,6 @@
   --text-light: #777777;  /* 흐린 글자 (날짜, 메모 등) */
   --border: #dddddd;      /* 테두리 */
   --primary: #3b6ef5;     /* 주요 버튼 */
-  --income: #2563eb;      /* 수입 (파랑) */
   --expense: #dc2626;     /* 지출 (빨강) */
   --editing: #fff7d6;     /* 수정 중인 줄 배경 (연노랑) */
   --up: #dc2626;          /* 투자 수익(+) — 한국 증권 관례대로 빨강 */
@@ -182,35 +181,6 @@ main {
   color: var(--text);
 }
 
-/* 구분(수입/지출) 묶음 */
-.card-form fieldset {
-  border: none;
-  padding: 0;
-  margin: 0 0 14px;
-}
-
-.card-form legend {
-  font-size: 0.9rem;
-  color: var(--text-light);
-  margin-bottom: 4px;
-  padding: 0;
-}
-
-/* 라디오 버튼은 나란히, 글자와 함께 누르기 쉽게 */
-.card-form fieldset label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-right: 20px;
-  font-size: 1rem;
-  color: var(--text);
-}
-
-.card-form input[type="radio"] {
-  width: 18px;
-  height: 18px;
-}
-
 /* 아이폰 사파리의 날짜 칸 바로잡기
    (기본 모양을 끄지 않으면 칸이 카드 밖으로 넘치고, 글자가 가운데 위쪽에 붙음) */
 .card-form input[type="date"] {
@@ -265,42 +235,8 @@ main {
 }
 
 /* =============================================
-   3. 월 선택 + 요약
+   3. 요약 카드
    ============================================= */
-
-/* ◀ 2026년 10월 ▶ 을 가운데에 나란히 */
-#month-nav {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 14px;
-}
-
-#current-month {
-  font-size: 1.15rem;
-  font-weight: bold;
-  min-width: 120px;
-  text-align: center;
-}
-
-#month-nav button {
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  background: #ffffff;
-  color: var(--text); /* 아이폰에서 버튼 글자가 파랗게 나오는 것 막기 */
-  font-size: 14px;
-  cursor: pointer;
-}
-
-/* 총수입/총지출/잔액 세 칸을 가로로 똑같은 너비로 */
-#summary {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
-}
 
 /* 자산 요약용: 첫 번째 카드(총액)는 한 줄 전체, 나머지 둘은 나란히
    (금액이 커져도 "원"이 다음 줄로 밀리지 않게) */
@@ -341,84 +277,14 @@ main {
   overflow-wrap: anywhere; /* 금액이 길면 칸 밖으로 넘치지 않게 줄바꿈 */
 }
 
-#total-income {
-  color: var(--income);
-}
-
-#total-expense {
-  color: var(--expense);
-}
-
 /* =============================================
-   4. 내역 목록
+   4. 목록
    ============================================= */
 
-#entry-list,
 .item-list {
   list-style: none; /* 앞의 점(•) 없애기 */
   margin: 0;
   padding: 0;
-}
-
-/* 한 줄을 두 줄짜리 칸으로 배치
-   첫째 줄: 카테고리 ............ 금액
-   둘째 줄: 날짜  메모 ...... 수정 삭제 */
-.entry {
-  display: grid;
-  grid-template-columns: auto 1fr auto auto;
-  grid-template-areas:
-    "category category amount amount"
-    "date     memo     edit   delete";
-  align-items: center;
-  column-gap: 8px;
-  row-gap: 4px;
-  padding: 12px 8px;
-  border-bottom: 1px solid var(--border);
-}
-
-.entry:last-child {
-  border-bottom: none;
-}
-
-/* 수정 중인 줄은 연노랑 배경으로 강조 */
-.entry.editing {
-  background: var(--editing);
-  border-radius: 8px;
-}
-
-.entry-category {
-  grid-area: category;
-  font-weight: bold;
-}
-
-.entry-amount {
-  grid-area: amount;
-  text-align: right;
-  font-weight: bold;
-}
-
-.entry.income .entry-amount {
-  color: var(--income);
-}
-
-.entry.expense .entry-amount {
-  color: var(--expense);
-}
-
-.entry-date {
-  grid-area: date;
-  font-size: 0.85rem;
-  color: var(--text-light);
-}
-
-/* 메모가 길면 한 줄로 자르고 끝에 … 표시 */
-.entry-memo {
-  grid-area: memo;
-  font-size: 0.85rem;
-  color: var(--text-light);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .edit-btn {
@@ -446,7 +312,6 @@ main {
 }
 
 /* 내역이 없을 때 안내 문구 */
-#empty-message,
 .empty-message {
   margin: 8px 0;
   word-break: keep-all;
@@ -641,44 +506,8 @@ main {
 }
 
 /* =============================================
-   4-0. 가계부 카테고리별 지출
+   4-0. 가로 막대 (큰 종목 TOP 5에서 씀)
    ============================================= */
-
-.category-total {
-  margin: -4px 0 8px;
-  font-size: 0.85rem;
-  color: var(--text-light);
-  word-break: keep-all;
-}
-
-/* 한 카테고리를 두 줄로
-   첫째 줄: 이름 ................ 금액
-   둘째 줄: [막대] ........ 비중 · 지난달 대비 */
-.category-item {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas:
-    "name   amount"
-    "track  track"
-    "detail detail";
-  row-gap: 4px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.category-item:last-child {
-  border-bottom: none;
-}
-
-.category-name {
-  grid-area: name;
-  font-weight: bold;
-}
-
-.category-amount {
-  grid-area: amount;
-  font-weight: bold;
-}
 
 /* 막대의 바깥 칸 (회색 바탕) */
 .category-track {
@@ -697,12 +526,6 @@ main {
   min-width: 2px;
   border-radius: 4px;
   background: var(--expense);
-}
-
-.category-detail {
-  grid-area: detail;
-  font-size: 0.8rem;
-  color: var(--text-light);
 }
 
 /* =============================================
@@ -778,7 +601,7 @@ main {
 .kind-deposit  { background: #e87ba4; } /* 분홍 */
 .kind-cash     { background: #008300; } /* 초록 */
 .kind-etc      { background: #6250d6; } /* 보라 */
-.kind-crypto   { background: #e34948; } /* 빨강 — 전체 자산의 "가상자산" */
+.kind-crypto   { background: #e34948; } /* 빨강 — 전체 자산의 "비트코인" */
 
 /* 회색 작은 글씨(summary-sub)라도 손익이면 빨강/파랑으로
    (class 두 개를 함께 써서 위의 회색 규칙보다 우선하게 함) */
@@ -788,14 +611,6 @@ main {
 
 .summary-sub.profit-down {
   color: var(--down);
-}
-
-/* 전체 자산 카드 맨 아래 가계부 한 줄: 위와 구분선으로 나눔 */
-.networth-ledger {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  word-break: keep-all;
 }
 
 /* 업비트 시세 불러오기 */
@@ -840,7 +655,7 @@ main {
   color: var(--text-light);
 }
 
-/* 가상자산 코인별 색: 등록한 순서대로 0~6번, 그 뒤는 "기타" 회색
+/* 비트코인 탭의 코인별 색: 등록한 순서대로 0~6번, 그 뒤는 "기타" 회색
    (금융자산 종류 색과 같은 검증된 팔레트 순서) */
 .coin-color-0     { background: #2a78d6; }
 .coin-color-1     { background: #eb6834; }
@@ -1335,7 +1150,7 @@ main {
   margin-bottom: 8px;
 }
 
-/* 범례: ─ 총 자산  ─ 금융자산  ─ 가상자산 */
+/* 범례: ─ 총 자산  ─ 금융자산  ─ 비트코인 */
 .chart-legend {
   display: flex;
   flex-wrap: wrap;

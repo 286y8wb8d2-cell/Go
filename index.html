@@ -5,22 +5,21 @@
   <meta charset="UTF-8">
   <!-- 휴대폰에서 화면 폭에 맞춰 보이게 하는 설정 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>나의 가계부</title>
+  <title>나의 자산</title>
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=28">
+  <link rel="stylesheet" href="style.css?v=29">
 </head>
 <body>
   <header>
-    <h1>나의 가계부</h1>
+    <h1>나의 자산</h1>
   </header>
 
   <!-- 탭 메뉴: 누르면 아래에서 해당 탭(tab-panel)만 보임. data-tab 이름 = 탭 id의 뒷부분 -->
   <nav id="tabs" role="tablist">
     <button type="button" class="tab-btn" data-tab="home" role="tab">홈</button>
-    <button type="button" class="tab-btn" data-tab="ledger" role="tab">가계부</button>
     <button type="button" class="tab-btn" data-tab="assets" role="tab">금융자산</button>
-    <button type="button" class="tab-btn" data-tab="crypto" role="tab">가상자산</button>
+    <button type="button" class="tab-btn" data-tab="crypto" role="tab">비트코인</button>
     <button type="button" class="tab-btn" data-tab="scenario" role="tab">시나리오</button>
   </nav>
   <!-- 처음 한 번만 보이는 안내 (터치 화면) -->
@@ -40,10 +39,10 @@
 
       <!-- 자산이 없을 때 안내 -->
       <section id="dash-empty" class="dash-empty" hidden>
-        <p>아직 입력한 자산이 없어요.<br>금융자산·가상자산을 입력하면 대시보드가 채워져요.</p>
+        <p>아직 입력한 자산이 없어요.<br>금융자산·비트코인을 입력하면 대시보드가 채워져요.</p>
         <div class="backup-buttons">
           <button type="button" class="btn-primary" data-goto="assets">금융자산 입력</button>
-          <button type="button" class="btn-secondary" data-goto="crypto">가상자산 입력</button>
+          <button type="button" class="btn-secondary" data-goto="crypto">비트코인 입력</button>
         </div>
       </section>
 
@@ -73,12 +72,12 @@
               <p id="dash-dividend-sub" class="dash-kpi-sub"></p>
             </div>
             <div class="dash-kpi">
-              <p class="dash-kpi-label">이번 달 가계부</p>
-              <p id="dash-balance" class="dash-kpi-value">0원</p>
-              <p id="dash-balance-sub" class="dash-kpi-sub"></p>
+              <p class="dash-kpi-label">비트코인 손익</p>
+              <p id="dash-crypto-profit" class="dash-kpi-value">0원</p>
+              <p id="dash-crypto-profit-sub" class="dash-kpi-sub"></p>
             </div>
             <div class="dash-kpi">
-              <p class="dash-kpi-label">가상자산 비중</p>
+              <p class="dash-kpi-label">비트코인 비중</p>
               <p id="dash-crypto-share" class="dash-kpi-value">0%</p>
               <p id="dash-crypto-share-sub" class="dash-kpi-sub"></p>
             </div>
@@ -96,90 +95,9 @@
       </div>
     </div>
 
-    <!-- ===== 가계부 탭 ===== -->
-    <div id="tab-ledger" class="tab-panel" role="tabpanel" hidden>
-      <!-- ① 입력 폼: 수입/지출 한 건을 입력하는 곳 -->
-      <section id="form-section">
-        <h2>내역 입력</h2>
-        <form id="entry-form" class="card-form">
-          <!-- 날짜 -->
-          <label for="date">날짜</label>
-          <input type="date" id="date" required>
-
-          <!-- 구분: 수입 또는 지출 중 하나만 선택 (name이 같으면 하나만 고를 수 있음) -->
-          <fieldset>
-            <legend>구분</legend>
-            <label>
-              <input type="radio" name="type" value="expense" checked> 지출
-            </label>
-            <label>
-              <input type="radio" name="type" value="income"> 수입
-            </label>
-          </fieldset>
-
-          <!-- 카테고리: 선택지는 app.js가 구분에 맞게 채움 -->
-          <label for="category">카테고리</label>
-          <select id="category" required>
-            <option value="">-- 선택 --</option>
-          </select>
-
-          <!-- 금액: 1원 ~ 10억 원, 정수만 입력 가능 (inputmode: 휴대폰에서 숫자 키패드가 뜸) -->
-          <label for="amount">금액(원)</label>
-          <input type="number" id="amount" min="1" max="1000000000" step="1" inputmode="numeric" placeholder="예: 12000" required>
-
-          <!-- 메모: 선택 사항 -->
-          <label for="memo">메모</label>
-          <input type="text" id="memo" placeholder="예: 점심 식사">
-
-          <button type="submit" id="submit-btn" class="btn-primary">추가</button>
-          <!-- 수정 취소 버튼: 수정 중일 때만 보임 (hidden = 처음에는 숨김) -->
-          <button type="button" id="cancel-btn" class="btn-secondary" hidden>취소</button>
-        </form>
-      </section>
-
-      <!-- ② 월 선택 + 요약: 선택한 달의 총수입/총지출/잔액 -->
-      <section id="summary-section">
-        <div id="month-nav">
-          <button type="button" id="prev-month">◀</button>
-          <span id="current-month">2026년 10월</span>
-          <button type="button" id="next-month">▶</button>
-        </div>
-
-        <div id="summary">
-          <div class="summary-card">
-            <p>총수입</p>
-            <p id="total-income">0원</p>
-          </div>
-          <div class="summary-card">
-            <p>총지출</p>
-            <p id="total-expense">0원</p>
-          </div>
-          <div class="summary-card">
-            <p>잔액</p>
-            <p id="balance">0원</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- ②-1 카테고리별 지출: 막대는 app.js가 채움 -->
-      <section>
-        <h2>카테고리별 지출</h2>
-        <p id="category-total" class="category-total" hidden></p>
-        <ul id="category-list" class="item-list"></ul>
-        <p id="category-empty-message" class="empty-message">이 달의 지출이 없습니다.</p>
-      </section>
-
-      <!-- ③ 내역 목록: 항목은 app.js가 채움 -->
-      <section id="list-section">
-        <h2>내역</h2>
-        <ul id="entry-list"></ul>
-        <p id="empty-message">이 달의 내역이 없습니다.</p>
-      </section>
-    </div>
-
     <!-- ===== 금융자산 탭 ===== -->
     <div id="tab-assets" class="tab-panel" role="tabpanel" hidden>
-      <!-- ⓪ 전체 자산 = 금융자산 + 가상자산: networth.js가 채움 -->
+      <!-- ⓪ 전체 자산 = 금융자산 + 비트코인: networth.js가 채움 -->
       <section>
         <h2>전체 자산</h2>
         <div class="summary-grid">
@@ -192,7 +110,7 @@
             <p id="networth-assets">0원</p>
           </div>
           <div class="summary-card">
-            <p>가상자산</p>
+            <p>비트코인</p>
             <p id="networth-crypto">0원</p>
           </div>
         </div>
@@ -201,9 +119,6 @@
         <!-- 자산군별 비중 -->
         <div id="networth-alloc-bar" class="alloc-bar" hidden></div>
         <ul id="networth-alloc-legend" class="alloc-legend" hidden></ul>
-
-        <!-- 이번 달 가계부 (참고용, 총 자산에는 포함하지 않음) -->
-        <p id="networth-ledger" class="summary-sub networth-ledger"></p>
       </section>
 
       <!-- ⓪-1 자산 추이: 매달 자동 기록 (history.js) -->
@@ -216,14 +131,14 @@
           <ul class="chart-legend">
             <li><span class="legend-line series-1"></span>총 자산</li>
             <li><span class="legend-line series-2"></span>금융자산</li>
-            <li><span class="legend-line series-3"></span>가상자산</li>
+            <li><span class="legend-line series-3"></span>비트코인</li>
           </ul>
           <svg id="history-chart" class="history-chart" viewBox="0 0 340 200" role="img"
                aria-label="월별 자산 추이 그래프. 왼쪽·오른쪽 화살표로 달을 옮길 수 있어요." tabindex="0"></svg>
           <p id="history-readout" class="history-readout" aria-live="polite"></p>
         </div>
 
-        <p id="history-empty-message" class="empty-message">아직 기록이 없어요. 금융자산이나 가상자산을 입력하면 이번 달부터 기록돼요.</p>
+        <p id="history-empty-message" class="empty-message">아직 기록이 없어요. 금융자산이나 비트코인을 입력하면 이번 달부터 기록돼요.</p>
 
         <div id="history-table-box" class="table-scroll" hidden>
           <table class="scenario-table history-table">
@@ -252,7 +167,7 @@
                 <input type="number" id="history-assets" min="0" step="any" inputmode="numeric" placeholder="0">
               </div>
               <div>
-                <label for="history-crypto">가상자산(원)</label>
+                <label for="history-crypto">비트코인(원)</label>
                 <input type="number" id="history-crypto" min="0" step="any" inputmode="numeric" placeholder="0">
               </div>
             </div>
@@ -388,11 +303,11 @@
       </section>
     </div>
 
-    <!-- ===== 가상자산 탭 ===== -->
+    <!-- ===== 비트코인 탭 ===== -->
     <div id="tab-crypto" class="tab-panel" role="tabpanel" hidden>
       <!-- ① 요약: 숫자와 막대는 crypto.js가 채움 -->
       <section>
-        <h2>가상자산 요약</h2>
+        <h2>비트코인 요약</h2>
         <div class="summary-grid">
           <div class="summary-card">
             <p>총 평가금액</p>
@@ -499,7 +414,7 @@
       <section>
         <h2>시나리오 결과</h2>
         <p id="scenario-no-asset-message" class="empty-message" hidden>
-          금융자산이나 가상자산을 먼저 입력해 주세요.
+          금융자산이나 비트코인을 먼저 입력해 주세요.
         </p>
         <div class="summary-grid">
           <div class="summary-card">
@@ -558,10 +473,7 @@
           </div>
 
           <label for="sim-monthly">매월 투자금(원)</label>
-          <div class="inline-row">
-            <input type="number" id="sim-monthly" min="0" step="any" inputmode="numeric" placeholder="0">
-            <button type="button" id="sim-load-ledger" class="btn-secondary">가계부 평균</button>
-          </div>
+          <input type="number" id="sim-monthly" min="0" step="any" inputmode="numeric" placeholder="0">
 
           <div class="form-row">
             <div>
@@ -646,26 +558,25 @@
       <input type="file" id="backup-file-input" accept=".json,application/json" hidden>
     </section>
     <!-- 앱 버전: 휴대폰이 최신 파일을 쓰고 있는지 확인용 (파일을 고칠 때 ?v= 숫자와 같이 올림) -->
-    <p class="app-version">앱 버전 v28</p>
+    <p class="app-version">앱 버전 v29</p>
   </footer>
 
   <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
        common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
-  <script src="common.js?v=28"></script>
-  <script src="app.js?v=28"></script>
-  <script src="assets.js?v=28"></script>
-  <script src="crypto.js?v=28"></script>
+  <script src="common.js?v=29"></script>
+  <script src="assets.js?v=29"></script>
+  <script src="crypto.js?v=29"></script>
   <!-- 전체 자산 요약: 위 파일들의 계산 함수를 쓰므로 맨 마지막에 -->
-  <script src="networth.js?v=28"></script>
+  <script src="networth.js?v=29"></script>
   <!-- 자산 추이: 전체 자산 계산을 씀 -->
-  <script src="history.js?v=28"></script>
+  <script src="history.js?v=29"></script>
   <!-- 홈(대시보드): 모든 계산 함수를 씀 -->
-  <script src="dashboard.js?v=28"></script>
+  <script src="dashboard.js?v=29"></script>
   <!-- 시나리오: 위 모든 파일의 계산 함수를 씀 -->
-  <script src="scenario.js?v=28"></script>
-  <!-- 미래 적립 시뮬레이션: 전체 자산·가계부 값을 불러옴 -->
-  <script src="simulate.js?v=28"></script>
+  <script src="scenario.js?v=29"></script>
+  <!-- 미래 적립 시뮬레이션: 전체 자산 값을 불러옴 -->
+  <script src="simulate.js?v=29"></script>
   <!-- 데이터 백업 -->
-  <script src="backup.js?v=28"></script>
+  <script src="backup.js?v=29"></script>
 </body>
 </html>

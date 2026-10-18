@@ -1,7 +1,7 @@
 // =============================================
 // 시나리오 탭 — B. 미래 적립 시뮬레이션
 // "지금 자산에 매달 50만 원씩 10년 더 넣으면?"
-// 전체 자산(networth.js)과 가계부(app.js)의 값을 불러오는 버튼이 있어서 그 파일들보다 뒤에 불러옴
+// 전체 자산(networth.js) 값을 불러오는 버튼이 있어서 그 파일보다 뒤에 불러옴
 // ※ 이름은 모두 sim~ / SIM~ 으로 시작
 // =============================================
 
@@ -53,7 +53,6 @@ const simRateInputs = {
   good: document.getElementById("sim-rate-good"),
 };
 const simLoadNetworthBtn = document.getElementById("sim-load-networth");
-const simLoadLedgerBtn = document.getElementById("sim-load-ledger");
 const simCards = document.getElementById("sim-cards");
 const simPrincipalText = document.getElementById("sim-principal");
 const simDividendText = document.getElementById("sim-dividend-result");
@@ -173,27 +172,6 @@ function simulate(settings, annualRate) {
   };
 }
 
-// 가계부의 월평균 잔액(수입 - 지출): 내역이 있는 달 중 최근 12개월까지
-function getLedgerMonthlyAverage() {
-  const balanceByMonth = {}; // { "2026-09": 1200000, ... }
-  entries.forEach(function (entry) {
-    const monthKey = entry.date.slice(0, 7);
-    const amount = entry.type === "income" ? entry.amount : -entry.amount;
-    balanceByMonth[monthKey] = (balanceByMonth[monthKey] || 0) + amount;
-  });
-
-  // 최근 달부터 12개까지
-  const months = Object.keys(balanceByMonth).sort().reverse().slice(0, 12);
-  if (months.length === 0) {
-    return null;
-  }
-  let sum = 0;
-  months.forEach(function (month) {
-    sum = sum + balanceByMonth[month];
-  });
-  return { average: sum / months.length, monthCount: months.length };
-}
-
 // =============================================
 // 4. 화면 그리기
 // =============================================
@@ -296,27 +274,11 @@ function rowTotal(result, index, settings) {
 simLoadNetworthBtn.addEventListener("click", function () {
   const networth = calculateNetworth(); // networth.js
   if (networth.value <= 0) {
-    alert("금융자산이나 가상자산을 먼저 입력해 주세요.");
+    alert("금융자산이나 비트코인을 먼저 입력해 주세요.");
     return;
   }
   simStartInput.value = Math.round(networth.value);
   renderSimulation();
-});
-
-// "가계부 평균" 버튼: 가계부 월평균 잔액을 매월 투자금으로 (천 원 단위로 반올림)
-simLoadLedgerBtn.addEventListener("click", function () {
-  const ledger = getLedgerMonthlyAverage();
-  if (ledger === null) {
-    alert("가계부에 입력한 내역이 없습니다.");
-    return;
-  }
-  if (ledger.average <= 0) {
-    alert("최근 " + ledger.monthCount + "개월 가계부 월평균 잔액이 " + formatMoney(ledger.average) + "이에요.\n남는 돈이 없어서 불러오지 않았어요.");
-    return;
-  }
-  simMonthlyInput.value = Math.round(ledger.average / 1000) * 1000;
-  renderSimulation();
-  alert("최근 " + ledger.monthCount + "개월 가계부 월평균 잔액 " + formatMoney(ledger.average) + "을 넣었어요.");
 });
 
 // =============================================

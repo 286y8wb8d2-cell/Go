@@ -1,7 +1,7 @@
 // =============================================
 // 시나리오 탭 — A. 가격 변동 시나리오
 // "주식 -20%, 코인 +50%가 되면 내 자산은?"
-// 금융자산(assets.js), 가상자산(crypto.js), 전체 자산(networth.js)의 계산 함수를 씀
+// 금융자산(assets.js), 비트코인(crypto.js), 전체 자산(networth.js)의 계산 함수를 씀
 // → index.html에서 그 파일들보다 뒤에 불러옴
 // ※ 이름은 모두 scenario~ / SCENARIO~ 로 시작
 // =============================================
@@ -106,7 +106,7 @@ function calculateScenario(changes) {
     dividendNow = dividendNow + result.annualDividend;
   });
 
-  // 가상자산은 코인마다 따로 (코인별 변동률이 있을 수 있어서)
+  // 비트코인은 코인마다 따로 (코인별 변동률이 있을 수 있어서)
   cryptos.forEach(function (crypto) {
     const result = calculateCrypto(crypto);
     groups.crypto.now = groups.crypto.now + result.value;
@@ -140,7 +140,7 @@ function calculateScenario(changes) {
   };
 }
 
-// 변동률 묶음을 짧은 글로 (예: "국내주식 -30% · 가상자산 -60%")
+// 변동률 묶음을 짧은 글로 (예: "국내주식 -30% · 비트코인 -60%")
 function describeChanges(changes) {
   const parts = [];
   NETWORTH_GROUPS.forEach(function (group) {
@@ -228,7 +228,7 @@ function buildScenarioItemInputs() {
     })
     .concat(
       cryptos.map(function (crypto) {
-        return { key: "crypto:" + crypto.id, name: crypto.name, group: "가상자산" };
+        return { key: "crypto:" + crypto.id, name: crypto.name, group: "비트코인" };
       })
     );
 
@@ -375,7 +375,7 @@ function renderScenarioList() {
 
     // 한 줄 모양
     // 폭락 대비 .................. 5,230,000원
-    // 국내주식 -30% · 가상자산 -60%
+    // 국내주식 -30% · 비트코인 -60%
     // -1,520,000원 (-22.5%) ..... [불러오기] [삭제]
     const li = document.createElement("li");
     li.className = "scenario-item";

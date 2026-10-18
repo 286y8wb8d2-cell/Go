@@ -10,7 +10,7 @@
 // =============================================
 
 // 백업 파일임을 알아보기 위한 표시와 형식 번호 (나중에 형식이 바뀌면 번호를 올림)
-const BACKUP_APP_NAME = "household-ledger";
+const BACKUP_APP_NAME = "household-ledger"; // 예전 백업 파일도 불러올 수 있게 이름은 그대로 둠
 const BACKUP_VERSION = 1;
 
 // 마지막으로 내보낸 날짜를 기억해 두는 이름
@@ -18,9 +18,8 @@ const BACKUP_LAST_KEY = "household-last-backup";
 
 // 백업할 항목: localStorage 이름, 화면 이름, 단위, 데이터 모양 검사 함수
 const BACKUP_ITEMS = [
-  { key: "household-entries", label: "가계부", unit: "건", check: isValidEntry },
   { key: "household-assets", label: "금융자산", unit: "종목", check: isValidAsset },
-  { key: "household-crypto", label: "가상자산", unit: "개", check: isValidCrypto },
+  { key: "household-crypto", label: "비트코인", unit: "개", check: isValidCrypto },
   { key: "household-scenarios", label: "시나리오", unit: "개", check: isValidScenario },
   { key: "household-history", label: "자산 기록", unit: "개월", check: isValidHistory },
 ];
@@ -39,17 +38,6 @@ function isText(value) {
 
 function isNumber(value) {
   return typeof value === "number" && Number.isFinite(value);
-}
-
-function isValidEntry(item) {
-  return (
-    isText(item.id) &&
-    isText(item.date) && /^\d{4}-\d{2}-\d{2}$/.test(item.date) &&
-    isNumber(item.amount) &&
-    (item.type === "income" || item.type === "expense") &&
-    isText(item.category) &&
-    isText(item.memo)
-  );
 }
 
 function isValidAsset(item) {
@@ -196,7 +184,7 @@ function validateBackup(backup) {
   return "";
 }
 
-// 확인 창에 보여 줄 요약 (예: "가계부 120건 · 금융자산 5종목 ...")
+// 확인 창에 보여 줄 요약 (예: "금융자산 5종목 · 비트코인 2개 ...")
 function describeBackup(backup) {
   const parts = [];
   BACKUP_ITEMS.forEach(function (item) {

@@ -1,5 +1,5 @@
 // =============================================
-// 가상자산 탭
+// 비트코인 탭
 // (공통 도구 loadList, saveList, formatMoney, formatPrice, formatNumber 등은 common.js에 있음)
 // ※ 다른 파일과 이름이 겹치지 않게 모두 crypto~ / CRYPTO~ 로 시작
 // 구조는 금융자산(assets.js)과 같고, 배당이 없고 보관처가 있다는 점만 다름
@@ -241,7 +241,7 @@ function renderCryptoSummary(total) {
   renderAllocation(cryptoAllocBar, cryptoAllocLegend, groups); // common.js
 }
 
-// 가상자산 탭 전체를 다시 그림
+// 비트코인 탭 전체를 다시 그림
 function renderCryptos() {
   const total = calculateCryptoTotal(cryptos);
   renderCryptoSummary(total);
