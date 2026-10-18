@@ -18,9 +18,20 @@ const CRYPTO_MAX_VALUE = 1000000000000; // 1조
 // 이보다 많으면 나머지는 "기타"로 묶음
 const CRYPTO_COLOR_COUNT = 7;
 
-// 업비트 공개 시세 주소 (로그인이 필요 없는 공개 정보. 코인 심볼만 보내고 보유량·금액은 보내지 않음)
+// 공개 시세 주소들 (로그인이 필요 없는 공개 정보. 코인 심볼만 보내고 보유량·금액은 보내지 않음)
+// 위에서부터 차례로 시도하고, 못 가져온 코인만 다음 곳에서 다시 찾음
 const CRYPTO_UPBIT_MARKETS_URL = "https://api.upbit.com/v1/market/all";
 const CRYPTO_UPBIT_TICKER_URL = "https://api.upbit.com/v1/ticker?markets=";
+const CRYPTO_BITHUMB_URL = "https://api.bithumb.com/public/ticker/ALL_KRW";
+const CRYPTO_COINGECKO_URL = "https://api.coingecko.com/api/v3/simple/price?vs_currencies=krw";
+
+// 코인게코는 심볼 대신 고유 이름(id)으로 찾는 게 정확해서, 자주 쓰는 코인은 미리 짝지어 둠
+const CRYPTO_COINGECKO_IDS = {
+  BTC: "bitcoin", ETH: "ethereum", XRP: "ripple", SOL: "solana", DOGE: "dogecoin",
+  ADA: "cardano", TRX: "tron", AVAX: "avalanche-2", DOT: "polkadot", LINK: "chainlink",
+  BCH: "bitcoin-cash", ETC: "ethereum-classic", XLM: "stellar", SUI: "sui", SHIB: "shiba-inu",
+  USDT: "tether", USDC: "usd-coin",
+};
 
 // 마지막으로 시세를 불러온 시각을 기억하는 이름
 const CRYPTO_PRICE_UPDATED_KEY = "household-crypto-price-updated";
@@ -305,15 +316,13 @@ function startCryptoEdit(crypto) {
   cryptoSubmitBtn.textContent = "수정 완료";
   cryptoCancelBtn.hidden = false;
 
-  renderCryptoRefreshStatus();
-renderCryptos();
+  renderCryptos();
   cryptoForm.scrollIntoView({ behavior: "smooth" });
 }
 
 cryptoCancelBtn.addEventListener("click", function () {
   resetCryptoForm();
-  renderCryptoRefreshStatus();
-renderCryptos();
+  renderCryptos();
 });
 
 cryptoForm.addEventListener("submit", function (event) {
@@ -346,8 +355,7 @@ cryptoForm.addEventListener("submit", function (event) {
   }
   saveCryptos();
   resetCryptoForm();
-  renderCryptoRefreshStatus();
-renderCryptos();
+  renderCryptos();
 });
 
 function deleteCrypto(id) {
@@ -358,12 +366,11 @@ function deleteCrypto(id) {
   if (id === cryptoEditingId) {
     resetCryptoForm();
   }
-  renderCryptoRefreshStatus();
-renderCryptos();
+  renderCryptos();
 }
 
 // ---------------------------------------------
-// 업비트 시세 불러오기
+// 시세 불러오기 (업비트 → 빗썸 → 코인게코 순서로 시도)
 // ---------------------------------------------
 
 // 코인의 심볼: 심볼 칸이 있으면 그 값, 없으면 이름 속 영어 대문자 단어 (예: "비트코인 BTC" → "BTC")
@@ -406,7 +413,7 @@ function renderCryptoRefreshStatus(message) {
   }
   cryptoRefreshStatus.textContent = last
     ? "마지막 시세 갱신: " + last
-    : "심볼(예: BTC)이 있는 코인의 현재가를 업비트 원화 시세로 바꿔요.";
+    : "심볼(예: BTC)이 있는 코인의 현재가를 원화 시세로 바꿔요. (업비트 → 빗썸 → 코인게코 순서로 시도)";
 }
 
 // 지금 시각을 "2026-10-18 10:32" 모양으로
@@ -414,6 +421,84 @@ function getNowText() {
   const now = new Date();
   return getToday() + " " + String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
 }
+
+// ① 업비트: 원화 마켓 목록으로 있는 코인만 골라 한 번에 물어봄
+// (없는 코인이 섞이면 업비트가 전체를 오류로 돌려주기 때문)
+async function fetchUpbitPrices(symbols) {
+  const markets = await fetchCryptoJson(CRYPTO_UPBIT_MARKETS_URL);
+  const krwMarkets = new Set(
+    markets.map(function (item) {
+      return item.market;
+    })
+  );
+  const listed = symbols.filter(function (symbol) {
+    return krwMarkets.has("KRW-" + symbol);
+  });
+  const prices = {};
+  if (listed.length === 0) {
+    return prices;
+  }
+  const tickers = await fetchCryptoJson(
+    CRYPTO_UPBIT_TICKER_URL +
+      listed
+        .map(function (symbol) {
+          return "KRW-" + symbol;
+        })
+        .join(",")
+  );
+  tickers.forEach(function (ticker) {
+    prices[String(ticker.market).replace("KRW-", "")] = Number(ticker.trade_price);
+  });
+  return prices;
+}
+
+// ② 빗썸: 원화 시세 전체를 한 번에 받아서 필요한 코인만 꺼냄
+async function fetchBithumbPrices(symbols) {
+  const result = await fetchCryptoJson(CRYPTO_BITHUMB_URL);
+  if (!result || result.status !== "0000" || !result.data) {
+    throw new Error("빗썸 응답 오류");
+  }
+  const prices = {};
+  symbols.forEach(function (symbol) {
+    const item = result.data[symbol];
+    if (item && item.closing_price !== undefined) {
+      prices[symbol] = Number(item.closing_price);
+    }
+  });
+  return prices;
+}
+
+// ③ 코인게코: 세계 평균 시세를 원화로 환산한 값 (국내 거래소 가격과 조금 다를 수 있음)
+async function fetchCoinGeckoPrices(symbols) {
+  const ids = symbols
+    .map(function (symbol) {
+      return CRYPTO_COINGECKO_IDS[symbol];
+    })
+    .filter(Boolean);
+  // 짝지어 둔 이름(ids)과 심볼(symbols)을 함께 보내서, 목록에 없는 코인도 찾아봄
+  const url =
+    CRYPTO_COINGECKO_URL +
+    (ids.length > 0 ? "&ids=" + ids.join(",") : "") +
+    "&symbols=" + symbols.join(",").toLowerCase();
+  const result = await fetchCryptoJson(url);
+  const prices = {};
+  symbols.forEach(function (symbol) {
+    const byId = result[CRYPTO_COINGECKO_IDS[symbol]];
+    const bySymbol = result[symbol.toLowerCase()];
+    const found = byId || bySymbol;
+    if (found && found.krw !== undefined) {
+      prices[symbol] = Number(found.krw);
+    }
+  });
+  return prices;
+}
+
+// 시도할 순서
+const CRYPTO_PRICE_SOURCES = [
+  { name: "업비트", fetch: fetchUpbitPrices },
+  { name: "빗썸", fetch: fetchBithumbPrices },
+  { name: "코인게코", fetch: fetchCoinGeckoPrices },
+];
 
 cryptoRefreshBtn.addEventListener("click", async function () {
   // 심볼별로 코인 묶기 (같은 코인을 거래소별로 여러 줄 넣었을 수 있음)
@@ -435,42 +520,33 @@ cryptoRefreshBtn.addEventListener("click", async function () {
 
   cryptoRefreshBtn.disabled = true;
   cryptoRefreshBtn.textContent = "불러오는 중…";
-  try {
-    // ① 업비트 원화 마켓 목록 (없는 코인을 물어보면 업비트가 전체를 오류로 돌려주기 때문에 먼저 걸러 냄)
-    const markets = await fetchCryptoJson(CRYPTO_UPBIT_MARKETS_URL);
-    const krwMarkets = new Set(
-      markets.map(function (item) {
-        return item.market;
-      })
-    );
-    const found = symbols.filter(function (symbol) {
-      return krwMarkets.has("KRW-" + symbol);
-    });
-    const notFound = symbols.filter(function (symbol) {
-      return !krwMarkets.has("KRW-" + symbol);
-    });
 
-    // ② 찾은 코인들의 현재가를 한 번에
-    let updatedCount = 0;
-    if (found.length > 0) {
-      const tickers = await fetchCryptoJson(
-        CRYPTO_UPBIT_TICKER_URL +
-          found
-            .map(function (symbol) {
-              return "KRW-" + symbol;
-            })
-            .join(",")
-      );
-      tickers.forEach(function (ticker) {
-        const symbol = String(ticker.market).replace("KRW-", "");
-        const price = Number(ticker.trade_price);
-        if (!bySymbol[symbol] || !Number.isFinite(price) || price < 0) {
-          return;
+  let remaining = symbols.slice(); // 아직 가격을 못 찾은 코인
+  const countBySource = {}; // { "업비트": 2, "빗썸": 1 }
+  const failedSources = []; // 접속이 안 된 곳
+  let updatedCount = 0;
+
+  try {
+    for (const source of CRYPTO_PRICE_SOURCES) {
+      if (remaining.length === 0) break;
+      let prices;
+      try {
+        prices = await source.fetch(remaining);
+      } catch (error) {
+        failedSources.push(source.name); // 이곳은 실패 → 다음 곳에서 시도
+        continue;
+      }
+      remaining = remaining.filter(function (symbol) {
+        const price = prices[symbol];
+        if (!Number.isFinite(price) || price < 0) {
+          return true; // 못 찾음 → 다음 곳에서 다시
         }
         bySymbol[symbol].forEach(function (crypto) {
           crypto.currentPrice = price;
           updatedCount = updatedCount + 1;
         });
+        countBySource[source.name] = (countBySource[source.name] || 0) + 1;
+        return false;
       });
     }
 
@@ -481,26 +557,39 @@ cryptoRefreshBtn.addEventListener("click", async function () {
         // 무시
       }
       saveCryptos();
-      renderCryptoRefreshStatus();
-renderCryptos();
+      renderCryptos();
     }
 
-    // 결과 안내 (몇 개 바뀌었는지 + 못 찾은 코인)
-    const notes = ["마지막 시세 갱신: " + getNowText() + " (" + updatedCount + "개 코인)"];
-    if (notFound.length > 0) {
-      notes.push("업비트 원화 마켓에 없음: " + notFound.join(", ") + ".");
+    // 결과 안내: 어디서 몇 개를 가져왔는지, 못 찾은 코인, 접속이 안 된 곳
+    const notes = [];
+    if (updatedCount > 0) {
+      const sourceText = Object.keys(countBySource)
+        .map(function (name) {
+          return name + " " + countBySource[name] + "개";
+        })
+        .join(", ");
+      notes.push("마지막 시세 갱신: " + getNowText() + " (" + sourceText + ")");
+    } else if (failedSources.length === CRYPTO_PRICE_SOURCES.length) {
+      notes.push("시세를 불러오지 못했어요. 인터넷 연결을 확인하고 잠시 뒤 다시 눌러 주세요.");
+    } else {
+      notes.push("가격을 찾은 코인이 없어요.");
+    }
+    if (remaining.length > 0 && failedSources.length < CRYPTO_PRICE_SOURCES.length) {
+      notes.push("못 찾은 코인: " + remaining.join(", ") + ".");
     }
     if (noSymbol.length > 0) {
       notes.push("심볼이 없어 건너뜀: " + noSymbol.join(", ") + ".");
     }
+    if (failedSources.length > 0) {
+      notes.push("접속 실패: " + failedSources.join(", ") + ".");
+    }
+    if (countBySource["코인게코"]) {
+      notes.push("코인게코 가격은 세계 평균을 원화로 바꾼 값이라 국내 거래소와 조금 다를 수 있어요.");
+    }
     renderCryptoRefreshStatus(notes.join(" "));
-  } catch (error) {
-    renderCryptoRefreshStatus(
-      "시세를 불러오지 못했어요. 인터넷 연결을 확인하고 잠시 뒤 다시 눌러 주세요. (브라우저가 업비트 접속을 막았을 수도 있어요)"
-    );
   } finally {
     cryptoRefreshBtn.disabled = false;
-    cryptoRefreshBtn.textContent = "업비트 시세 불러오기";
+    cryptoRefreshBtn.textContent = "시세 불러오기";
   }
 });
 
