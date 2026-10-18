@@ -88,8 +88,33 @@ await collect("treasury", async () => {
 
 // ---------- 현물 ETF 흐름 ----------
 await collect("etf", async () => {
-  const json = await (await get("https://xoomar.com/api/markets/etf-flows?asset=btc&days=180")).json();
-  log("etf 예시:", sample({ ...json, data: json.data?.slice(0, 3) }));
+  // 요청 방법에 따라 돌려주는 행 수가 다를 수 있어서 몇 가지를 시도하고 ETF 종류가 가장 많은 응답을 씀
+  const variants = [
+    "https://xoomar.com/api/markets/etf-flows?asset=btc&days=180",
+    "https://xoomar.com/api/markets/etf-flows?asset=btc&days=30",
+    "https://xoomar.com/api/markets/etf-flows?asset=btc&days=10",
+    "https://xoomar.com/api/markets/etf-flows?asset=btc&days=180&limit=5000",
+  ];
+  let json = null;
+  let bestTickers = -1;
+  for (const url of variants) {
+    try {
+      const candidate = await (await get(url)).json();
+      const rows = candidate.data || [];
+      const tickers = new Set(rows.map((r) => r.ticker)).size;
+      const dates = new Set(rows.map((r) => String(r.date).slice(0, 10))).size;
+      const keys = Object.keys(candidate).filter((k) => k !== "data");
+      log(`etf ${url.split("?")[1]} → 행 ${rows.length}, ETF ${tickers}종, 날짜 ${dates}일, 기타 키: ${keys.join(",")}`);
+      if (tickers > bestTickers) {
+        bestTickers = tickers;
+        json = candidate;
+      }
+    } catch (error) {
+      log(`etf ${url} 실패: ${error.message}`);
+    }
+  }
+  if (!json) throw new Error("ETF 응답 없음");
+  log("etf 티커:", [...new Set(json.data.map((r) => r.ticker))].join(","));
   const rows = (json.data || []).map((r) => ({
     date: String(r.date).slice(0, 10),
     ticker: String(r.ticker),
@@ -108,11 +133,19 @@ await collect("etf", async () => {
     day.funds += 1;
     byDate.set(r.date, day);
   }
-  const days = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+  // 아직 일부 ETF만 발표된 날(보통 맨 마지막 날)은 빼고, 대부분 발표된 날까지만
+  const allDays = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+  const maxFunds = Math.max(...allDays.map((d) => d.funds));
+  const days = allDays.filter((d) => d.funds >= Math.ceil(maxFunds * 0.8));
+  if (days.length === 0) throw new Error("완전한 날짜가 없음");
   const lastDate = days[days.length - 1].date;
-  const funds = rows
-    .filter((r) => r.date === lastDate)
-    .sort((a, b) => (b.holdings || 0) - (a.holdings || 0));
+  // ETF마다 가장 최근 행 (발표가 늦은 ETF도 빠지지 않게)
+  const latestByTicker = new Map();
+  for (const r of rows) {
+    const old = latestByTicker.get(r.ticker);
+    if (!old || r.date > old.date) latestByTicker.set(r.ticker, r);
+  }
+  const funds = [...latestByTicker.values()].sort((a, b) => (b.holdings || 0) - (a.holdings || 0));
   return { sourceUpdated: json.updatedAt || null, days, funds, lastDate, attribution: json.canonicalUrl || "https://xoomar.com/markets/api" };
 });
 
@@ -144,8 +177,21 @@ await collect("btcUsdMonthly", async () => {
     const price = num(cells[priceIndex]);
     if (price && cells[priceIndex] !== "") byMonth.set(cells[timeIndex].slice(0, 7), Math.round(price * 100) / 100);
   }
-  const rows = [...byMonth].map(([month, value]) => ({ month, value }));
+  // Coin Metrics는 몇 달 늦게 올라오므로, 최근 1년은 코인게코 하루 가격으로 채움 (월말 값)
+  try {
+    const recent = await (await get("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=365&interval=daily")).json();
+    for (const [time, price] of recent.prices || []) {
+      const month = new Date(time).toISOString().slice(0, 7);
+      if (!byMonth.has(month) || month > [...byMonth.keys()].sort().pop() || month >= new Date(Date.now() - 400 * 864e5).toISOString().slice(0, 7)) {
+        byMonth.set(month, Math.round(price * 100) / 100);
+      }
+    }
+  } catch (error) {
+    log("코인게코 최근 가격 실패:", error.message);
+  }
+  const rows = [...byMonth].map(([month, value]) => ({ month, value })).sort((a, b) => a.month.localeCompare(b.month));
   if (rows.length < 12) throw new Error("가격 데이터가 부족함");
+  log("btcUsdMonthly 마지막:", sample(rows.slice(-3)));
   return rows;
 });
 
