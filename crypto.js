@@ -20,8 +20,7 @@ const CRYPTO_COLOR_COUNT = 7;
 
 // 공개 시세 주소들 (로그인이 필요 없는 공개 정보. 코인 심볼만 보내고 보유량·금액은 보내지 않음)
 // 위에서부터 차례로 시도하고, 못 가져온 코인만 다음 곳에서 다시 찾음
-const CRYPTO_UPBIT_MARKETS_URL = "https://api.upbit.com/v1/market/all";
-const CRYPTO_UPBIT_TICKER_URL = "https://api.upbit.com/v1/ticker?markets=";
+// (업비트는 브라우저에서 바로 부르는 걸 막아 두어서 쓰지 않음)
 const CRYPTO_BITHUMB_URL = "https://api.bithumb.com/public/ticker/ALL_KRW";
 const CRYPTO_COINGECKO_URL = "https://api.coingecko.com/api/v3/simple/price?vs_currencies=krw";
 
@@ -370,7 +369,7 @@ function deleteCrypto(id) {
 }
 
 // ---------------------------------------------
-// 시세 불러오기 (업비트 → 빗썸 → 코인게코 순서로 시도)
+// 시세 불러오기 (빗썸 → 코인게코 순서로 시도)
 // ---------------------------------------------
 
 // 코인의 심볼: 심볼 칸이 있으면 그 값, 없으면 이름 속 영어 대문자 단어 (예: "비트코인 BTC" → "BTC")
@@ -413,7 +412,7 @@ function renderCryptoRefreshStatus(message) {
   }
   cryptoRefreshStatus.textContent = last
     ? "마지막 시세 갱신: " + last
-    : "심볼(예: BTC)이 있는 코인의 현재가를 원화 시세로 바꿔요. (업비트 → 빗썸 → 코인게코 순서로 시도)";
+    : "심볼(예: BTC)이 있는 코인의 현재가를 원화 시세로 바꿔요. (빗썸 → 코인게코 순서로 시도)";
 }
 
 // 결과 문구를 잠깐 강조 (눌렀는데 반응이 없는 것처럼 보이지 않게)
@@ -429,37 +428,7 @@ function getNowText() {
   return getToday() + " " + String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
 }
 
-// ① 업비트: 원화 마켓 목록으로 있는 코인만 골라 한 번에 물어봄
-// (없는 코인이 섞이면 업비트가 전체를 오류로 돌려주기 때문)
-async function fetchUpbitPrices(symbols) {
-  const markets = await fetchCryptoJson(CRYPTO_UPBIT_MARKETS_URL);
-  const krwMarkets = new Set(
-    markets.map(function (item) {
-      return item.market;
-    })
-  );
-  const listed = symbols.filter(function (symbol) {
-    return krwMarkets.has("KRW-" + symbol);
-  });
-  const prices = {};
-  if (listed.length === 0) {
-    return prices;
-  }
-  const tickers = await fetchCryptoJson(
-    CRYPTO_UPBIT_TICKER_URL +
-      listed
-        .map(function (symbol) {
-          return "KRW-" + symbol;
-        })
-        .join(",")
-  );
-  tickers.forEach(function (ticker) {
-    prices[String(ticker.market).replace("KRW-", "")] = Number(ticker.trade_price);
-  });
-  return prices;
-}
-
-// ② 빗썸: 원화 시세 전체를 한 번에 받아서 필요한 코인만 꺼냄
+// ① 빗썸: 원화 시세 전체를 한 번에 받아서 필요한 코인만 꺼냄
 async function fetchBithumbPrices(symbols) {
   const result = await fetchCryptoJson(CRYPTO_BITHUMB_URL);
   if (!result || result.status !== "0000" || !result.data) {
@@ -475,7 +444,7 @@ async function fetchBithumbPrices(symbols) {
   return prices;
 }
 
-// ③ 코인게코: 세계 평균 시세를 원화로 환산한 값 (국내 거래소 가격과 조금 다를 수 있음)
+// ② 코인게코: 세계 평균 시세를 원화로 환산한 값 (국내 거래소 가격과 조금 다를 수 있음)
 async function fetchCoinGeckoPrices(symbols) {
   const ids = symbols
     .map(function (symbol) {
@@ -502,7 +471,6 @@ async function fetchCoinGeckoPrices(symbols) {
 
 // 시도할 순서
 const CRYPTO_PRICE_SOURCES = [
-  { name: "업비트", fetch: fetchUpbitPrices },
   { name: "빗썸", fetch: fetchBithumbPrices },
   { name: "코인게코", fetch: fetchCoinGeckoPrices },
 ];
@@ -530,8 +498,8 @@ cryptoRefreshBtn.addEventListener("click", async function () {
   renderCryptoRefreshStatus("시세를 불러오는 중… (최대 20초 정도 걸릴 수 있어요)");
 
   let remaining = symbols.slice(); // 아직 가격을 못 찾은 코인
-  const countBySource = {}; // { "업비트": 2, "빗썸": 1 }
-  const failedSources = []; // 접속이 안 된 곳
+  const countBySource = {}; // { "빗썸": 2, "코인게코": 1 }
+  const failedSources = []; // 접속이 안 된 곳 (모두 실패했는지 확인용, 화면에는 따로 안 보여 줌)
   let updatedCount = 0;
 
   try {
@@ -568,7 +536,7 @@ cryptoRefreshBtn.addEventListener("click", async function () {
       renderCryptos();
     }
 
-    // 결과 안내: 어디서 몇 개를 가져왔는지, 못 찾은 코인, 접속이 안 된 곳
+    // 결과 안내: 어디서 몇 개를 가져왔는지, 못 찾은 코인
     const notes = [];
     if (updatedCount > 0) {
       const sourceText = Object.keys(countBySource)
@@ -589,9 +557,6 @@ cryptoRefreshBtn.addEventListener("click", async function () {
     if (noSymbol.length > 0) {
       notes.push("심볼이 없어 건너뜀: " + noSymbol.join(", ") + ".");
     }
-    if (failedSources.length > 0) {
-      notes.push("접속 실패: " + failedSources.join(", ") + ".");
-    }
     if (countBySource["코인게코"]) {
       notes.push("코인게코 가격은 세계 평균을 원화로 바꾼 값이라 국내 거래소와 조금 다를 수 있어요.");
     }
@@ -600,7 +565,7 @@ cryptoRefreshBtn.addEventListener("click", async function () {
     // 모두 실패했으면 알림창으로도 알려 줌 (문구만 바뀌면 놓치기 쉬워서)
     if (failedSources.length === CRYPTO_PRICE_SOURCES.length) {
       alert(
-        "시세 서비스(업비트·빗썸·코인게코)에 모두 접속하지 못했어요.\n" +
+        "시세 서비스(빗썸·코인게코)에 모두 접속하지 못했어요.\n" +
         "와이파이/데이터 연결을 확인하고 잠시 뒤 다시 눌러 주세요.\n" +
         "계속 안 되면 버튼 아래 문구를 알려 주세요."
       );
