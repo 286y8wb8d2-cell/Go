@@ -149,13 +149,6 @@ function sortAssetsByValue(list) {
 // 4. 화면 그리기
 // =============================================
 
-// 손익 숫자에 따라 class 이름을 돌려줌 (style.css에서 색을 정함)
-function getProfitClass(amount) {
-  if (amount > 0) return "profit-up";
-  if (amount < 0) return "profit-down";
-  return "";
-}
-
 // 종목 하나로 목록의 한 줄(<li>)을 만들어 돌려줌
 // totalValue: 전체 평가금액 (비중 계산에 사용)
 function createAssetItem(asset, totalValue) {
@@ -200,7 +193,7 @@ function createAssetItem(asset, totalValue) {
   const ratioSpan = document.createElement("span");
   ratioSpan.className = "asset-ratio";
   const ratio = totalValue > 0 ? (result.value / totalValue) * 100 : 0;
-  ratioSpan.textContent = "비중 " + ratio.toFixed(1) + "%";
+  ratioSpan.textContent = "비중 " + formatShare(ratio);
 
   // 버튼 묶음: 수정, 삭제
   const actions = document.createElement("span");
@@ -261,7 +254,7 @@ function renderAssetSummary(portfolio) {
       return;
     }
     const ratio = (kindValue / portfolio.value) * 100;
-    const label = ASSET_KINDS[kind] + " " + ratio.toFixed(1) + "%";
+    const label = ASSET_KINDS[kind] + " " + formatShare(ratio);
 
     // 막대 조각: 너비 = 비중(%)
     const segment = document.createElement("span");
@@ -330,7 +323,7 @@ function renderDividends(portfolio) {
       "주당 " + formatMoney(asset.dividendPerShare) +
       " · 수익률 " + result.dividendYield.toFixed(2) + "%" +
       " (매입가 기준 " + result.yieldOnCost.toFixed(2) + "%)" +
-      " · 배당 비중 " + share.toFixed(1) + "%";
+      " · 배당 비중 " + formatShare(share);
 
     li.append(name, amount, detail);
     assetDivList.appendChild(li);

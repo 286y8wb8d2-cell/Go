@@ -8,7 +8,7 @@
   <title>나의 가계부</title>
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
   <header>
@@ -208,11 +208,75 @@
       </section>
     </div>
 
-    <!-- ===== 가상자산 탭 (5단계에서 채움) ===== -->
+    <!-- ===== 가상자산 탭 ===== -->
     <div id="tab-crypto" class="tab-panel" role="tabpanel" hidden>
+      <!-- ① 요약: 숫자와 막대는 crypto.js가 채움 -->
       <section>
-        <h2>가상자산</h2>
-        <p class="placeholder">준비 중입니다.</p>
+        <h2>가상자산 요약</h2>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <p>총 평가금액</p>
+            <p id="crypto-total-value">0원</p>
+          </div>
+          <div class="summary-card">
+            <p>총 손익</p>
+            <p id="crypto-total-profit">0원</p>
+          </div>
+          <div class="summary-card">
+            <p>수익률</p>
+            <p id="crypto-total-rate">0.00%</p>
+          </div>
+        </div>
+        <p id="crypto-total-cost" class="summary-sub">총 매입금액 0원</p>
+
+        <!-- 코인별 비중 -->
+        <div id="crypto-alloc-bar" class="alloc-bar" hidden></div>
+        <ul id="crypto-alloc-legend" class="alloc-legend" hidden></ul>
+      </section>
+
+      <!-- ② 코인 입력 폼 -->
+      <section>
+        <h2>코인 입력</h2>
+        <form id="crypto-form" class="card-form">
+          <label for="crypto-name">코인명</label>
+          <input type="text" id="crypto-name" maxlength="40" placeholder="예: 비트코인 BTC" required>
+
+          <div class="form-row">
+            <div>
+              <label for="crypto-quantity">수량</label>
+              <!-- step="any": 0.00012345처럼 소수점 수량 입력 가능 -->
+              <input type="number" id="crypto-quantity" min="0" step="any" inputmode="decimal" placeholder="예: 0.0523" required>
+            </div>
+            <div>
+              <label for="crypto-avg-price">평균 매입가(원)</label>
+              <input type="number" id="crypto-avg-price" min="0" step="any" inputmode="decimal" placeholder="1개 가격" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label for="crypto-current-price">현재가(원)</label>
+              <input type="number" id="crypto-current-price" min="0" step="any" inputmode="decimal" placeholder="1개 가격" required>
+            </div>
+            <div>
+              <label for="crypto-place">보관처</label>
+              <input type="text" id="crypto-place" maxlength="20" placeholder="예: 업비트">
+            </div>
+          </div>
+
+          <label for="crypto-memo">메모</label>
+          <input type="text" id="crypto-memo" placeholder="예: 장기 보유">
+
+          <button type="submit" id="crypto-submit-btn" class="btn-primary">추가</button>
+          <button type="button" id="crypto-cancel-btn" class="btn-secondary" hidden>취소</button>
+        </form>
+      </section>
+
+      <!-- ③ 보유 코인 목록 (평가금액이 큰 순서): 항목은 crypto.js가 채움 -->
+      <section>
+        <h2>보유 코인</h2>
+        <ul id="crypto-list" class="item-list"></ul>
+        <p id="crypto-empty-message" class="empty-message">아직 등록한 코인이 없습니다.</p>
       </section>
     </div>
 
@@ -227,8 +291,9 @@
 
   <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
        common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
-  <script src="common.js?v=6"></script>
-  <script src="app.js?v=6"></script>
-  <script src="assets.js?v=6"></script>
+  <script src="common.js?v=7"></script>
+  <script src="app.js?v=7"></script>
+  <script src="assets.js?v=7"></script>
+  <script src="crypto.js?v=7"></script>
 </body>
 </html>

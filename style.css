@@ -254,11 +254,26 @@ section {
 }
 
 /* 총수입/총지출/잔액 세 칸을 가로로 똑같은 너비로 */
-#summary,
-.summary-grid {
+#summary {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
+}
+
+/* 자산 요약용: 첫 번째 카드(총액)는 한 줄 전체, 나머지 둘은 나란히
+   (금액이 커져도 "원"이 다음 줄로 밀리지 않게) */
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.summary-grid .summary-card:first-child {
+  grid-column: 1 / -1;
+}
+
+.summary-grid .summary-card:first-child p:last-child {
+  font-size: 1.3rem;
 }
 
 .summary-card {
@@ -471,6 +486,17 @@ section {
 .kind-cash     { background: #008300; } /* 초록 */
 .kind-etc      { background: #6250d6; } /* 보라 */
 
+/* 가상자산 코인별 색: 등록한 순서대로 0~6번, 그 뒤는 "기타" 회색
+   (금융자산 종류 색과 같은 검증된 팔레트 순서) */
+.coin-color-0     { background: #2a78d6; }
+.coin-color-1     { background: #eb6834; }
+.coin-color-2     { background: #1baf7a; }
+.coin-color-3     { background: #eda100; }
+.coin-color-4     { background: #e87ba4; }
+.coin-color-5     { background: #008300; }
+.coin-color-6     { background: #6250d6; }
+.coin-color-other { background: #9b9a97; }
+
 /* 한 종목을 세 줄로 배치
    첫째 줄: 종목명 [종류] ............ 평가금액
    둘째 줄: 손익 (수익률) ............ 비중
@@ -584,11 +610,16 @@ section {
   word-break: keep-all;
 }
 
-/* 수정·삭제 버튼을 오른쪽에 나란히 */
+/* 수정·삭제 버튼을 오른쪽에 나란히 (목록 안에서는 조금 작게 → 왼쪽 글자 칸이 넓어짐) */
 .asset-actions {
   grid-area: actions;
   display: flex;
-  gap: 6px;
+  gap: 4px;
+}
+
+.asset-actions button {
+  height: 30px;
+  padding: 0 9px;
 }
 
 /* =============================================

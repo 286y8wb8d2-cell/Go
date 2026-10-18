@@ -58,6 +58,33 @@ function formatPercent(value) {
   return (value > 0 ? "+" : "") + fixed + "%";
 }
 
+// 손익 숫자에 따라 class 이름을 돌려줌 (style.css에서 수익은 빨강, 손실은 파랑)
+// 반올림해서 0원이면 색을 칠하지 않음
+function getProfitClass(amount) {
+  const rounded = Math.round(amount);
+  if (rounded > 0) return "profit-up";
+  if (rounded < 0) return "profit-down";
+  return "";
+}
+
+// 비중(%)을 소수점 첫째 자리까지 (예: "12.3%")
+// 0보다 크지만 0.1%도 안 되면 "0.0%" 대신 "0.1% 미만"으로 (갖고 있는데 0처럼 보이지 않게)
+function formatShare(percent) {
+  if (percent > 0 && percent < 0.05) {
+    return "0.1% 미만";
+  }
+  return percent.toFixed(1) + "%";
+}
+
+// 단가(한 개 가격)를 보여 줌: 100원 미만이면 소수점 넷째 자리까지, 아니면 원 단위로
+// (가격이 1원도 안 되는 코인이 "0원"으로 보이지 않게)
+function formatPrice(price) {
+  if (Math.abs(price) < 100) {
+    return price.toLocaleString("ko-KR", { maximumFractionDigits: 4 }) + "원";
+  }
+  return formatMoney(price);
+}
+
 // 수량처럼 소수점이 있을 수 있는 숫자를 "1,234.5" 모양으로 (소수점은 8자리까지)
 function formatNumber(value) {
   return value.toLocaleString("ko-KR", { maximumFractionDigits: 8 });
