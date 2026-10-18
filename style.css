@@ -114,8 +114,9 @@ main {
   touch-action: pan-y pinch-zoom; /* pinch-zoom: 두 손가락 확대는 그대로 되게 */
 }
 
-/* 옆으로 스크롤되는 표는 가로로도 밀 수 있게 */
-.table-scroll {
+/* 옆으로 스크롤되는 표·블록 줄은 가로로도 밀 수 있게 */
+.table-scroll,
+.btc-blocks {
   touch-action: pan-x pan-y pinch-zoom;
 }
 
@@ -1403,6 +1404,301 @@ footer {
 
 .backup-buttons .btn-secondary {
   margin-top: 0;
+}
+
+/* =============================================
+   4-3. 비트코인 시장 정보 (btc.js, btc-chart.js, btc-chain.js)
+   ============================================= */
+
+/* 큰 숫자 하나를 가운데에 (김치 프리미엄, 반감기 D-day) */
+.btc-hero {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.btc-big {
+  margin: 2px 0;
+  font-size: 2rem;
+  font-weight: bold;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.btc-hero-sub {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-light);
+  word-break: keep-all;
+}
+
+/* 작은 카드 두 개를 나란히 */
+.btc-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* 카드 안 둘째 줄(금액)은 굵게, 셋째 줄(작은 설명)은 흐리게
+   (.summary-card p:last-child 규칙보다 우선하도록 .btc-pair를 앞에 붙임) */
+.btc-pair .summary-card p:nth-child(2) {
+  font-size: 0.9rem;
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+.btc-pair .summary-card .btc-card-sub {
+  margin-top: 2px;
+  font-size: 0.75rem;
+  font-weight: normal;
+  color: var(--text-light);
+}
+
+.btc-pair .summary-card .btc-card-sub.profit-up { color: var(--up); }
+.btc-pair .summary-card .btc-card-sub.profit-down { color: var(--down); }
+
+/* 차트 버튼: 봉 종류 줄 + 기간 줄 */
+.btc-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+}
+
+.btc-chip-row {
+  margin-bottom: 8px;
+}
+
+/* 고른 버튼 */
+.chip-btn[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.btc-chart-change {
+  margin: 4px 0 6px;
+  font-size: 0.9rem;
+  word-break: keep-all;
+}
+
+.btc-chart-change-detail {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.btc-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: pan-y; /* 세로 스크롤은 그대로, 가로로 끌 때만 차트가 반응 */
+  cursor: crosshair;
+}
+
+.btc-chart:focus-visible {
+  outline: 2px solid var(--primary);
+  border-radius: 6px;
+}
+
+/* 손가락·마우스로 눌렀을 때는 테두리를 그리지 않음 (키보드로 옮겨 왔을 때만) */
+.btc-chart:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* 봉 색: 한국 관례대로 오르면 빨강, 내리면 파랑 */
+.btc-wick { fill: none; }
+.btc-wick.btc-up { stroke: var(--up); }
+.btc-wick.btc-down { stroke: var(--down); }
+.btc-body.btc-up { fill: var(--up); }
+.btc-body.btc-down { fill: var(--down); }
+
+/* 반감기 진행 막대 */
+.btc-progress {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.btc-progress-fill {
+  width: 0;
+  height: 100%;
+  border-radius: 5px;
+  background: #eda100;
+}
+
+.btc-history-box {
+  margin-top: 12px;
+  font-size: 0.85rem;
+}
+
+.btc-history-box summary {
+  cursor: pointer;
+  color: var(--text-light);
+}
+
+.btc-halving-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.btc-halving-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.btc-halving-list li:last-child {
+  border-bottom: none;
+}
+
+.btc-halving-reward {
+  color: var(--text-light);
+}
+
+/* 실시간 블록 줄: 옆으로 밀어서 보는 블록 상자들 */
+.btc-blocks {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.btc-block {
+  position: relative;
+  flex: 0 0 104px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* 채굴된 블록: 보라 테두리 / 대기 블록: 점선 테두리 (아직 확정 아님) */
+.btc-block.mined {
+  border: 1px solid #6250d6;
+  background: #ffffff;
+}
+
+.btc-block.pending {
+  border: 1px dashed #b07a00;
+  background: #ffffff;
+}
+
+/* 블록이 꽉 찬 만큼 아래에서부터 연한 색으로 채움 */
+.btc-block-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+}
+
+.btc-block.mined .btc-block-fill { background: rgba(98, 80, 214, 0.14); }
+.btc-block.pending .btc-block-fill { background: rgba(237, 161, 0, 0.18); }
+
+/* 글자는 채운 색 위에 */
+.btc-block > span:not(.btc-block-fill) {
+  position: relative;
+  z-index: 1;
+}
+
+.btc-block-title {
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.btc-block.mined .btc-block-title { color: #6250d6; }
+.btc-block.pending .btc-block-title { color: #8a5f00; }
+
+.btc-block-fee {
+  font-weight: bold;
+}
+
+.btc-block-range,
+.btc-block-sub {
+  color: var(--text-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btc-block-foot {
+  margin-top: auto;
+  padding-top: 2px;
+  font-weight: bold;
+}
+
+/* 대기 블록과 채굴된 블록 사이의 구분선 */
+.btc-blocks-divider {
+  flex: 0 0 2px;
+  border-radius: 1px;
+  background: var(--border);
+}
+
+/* 새 블록이 나오면 잠깐 강조 */
+@keyframes btc-new-block {
+  from { box-shadow: 0 0 0 4px rgba(98, 80, 214, 0.5); }
+  to   { box-shadow: 0 0 0 0 rgba(98, 80, 214, 0); }
+}
+
+.btc-block-new {
+  animation: btc-new-block 1.6s ease-out;
+}
+
+.btc-subtitle {
+  margin: 12px 0 8px;
+  font-size: 0.95rem;
+}
+
+.btc-subtitle span {
+  font-size: 0.75rem;
+  font-weight: normal;
+  color: var(--text-light);
+}
+
+/* 추천 수수료 4칸 (2×2) */
+.btc-fees {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.btc-fee-card {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.btc-fee-card p {
+  margin: 0;
+}
+
+.btc-fee-name {
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+.btc-fee-value {
+  font-weight: bold;
+}
+
+.btc-fee-won {
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btc-block-new { animation: none; }
 }
 
 /* =============================================

@@ -8,7 +8,7 @@
   <title>나의 자산</title>
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=29">
+  <link rel="stylesheet" href="style.css?v=30">
 </head>
 <body>
   <header>
@@ -328,11 +328,99 @@
         <div id="crypto-alloc-bar" class="alloc-bar" hidden></div>
         <ul id="crypto-alloc-legend" class="alloc-legend" hidden></ul>
 
-        <!-- 업비트 시세로 현재가 한 번에 바꾸기 -->
+        <!-- 빗썸·코인게코 시세로 현재가 한 번에 바꾸기 -->
         <div class="price-refresh">
           <button type="button" id="crypto-refresh-btn" class="btn-secondary">시세 불러오기</button>
           <p id="crypto-refresh-status" class="price-refresh-status" aria-live="polite"></p>
         </div>
+      </section>
+
+      <!-- ①-1 시세 · 김치 프리미엄 (btc.js): 이 탭을 보는 동안 30초마다 새로 받음 -->
+      <section>
+        <h2>시세 · 김치 프리미엄</h2>
+        <p class="section-desc">국내(빗썸) 비트코인 가격이 해외 가격보다 얼마나 비싼지 보여 줘요.</p>
+        <div class="btc-hero">
+          <p class="dash-label">김치 프리미엄</p>
+          <p id="btc-kimp-rate" class="btc-big">-</p>
+          <p id="btc-kimp-diff" class="btc-hero-sub">시세를 불러오는 중…</p>
+        </div>
+        <div class="btc-pair">
+          <div class="summary-card">
+            <p>국내 (빗썸)</p>
+            <p id="btc-kimp-domestic">-</p>
+            <p id="btc-kimp-domestic-sub" class="btc-card-sub"></p>
+          </div>
+          <div class="summary-card">
+            <p>해외 (원화로 환산)</p>
+            <p id="btc-kimp-global">-</p>
+            <p id="btc-kimp-global-sub" class="btc-card-sub"></p>
+          </div>
+        </div>
+        <p id="btc-kimp-status" class="price-refresh-status" aria-live="polite"></p>
+      </section>
+
+      <!-- ①-2 캔들 차트 (btc-chart.js) -->
+      <section>
+        <h2>비트코인 차트</h2>
+        <div class="btc-chip-group">
+          <div class="chip-row btc-chip-row" role="group" aria-label="봉 종류">
+            <button type="button" class="chip-btn" data-btc-interval="day">일봉</button>
+            <button type="button" class="chip-btn" data-btc-interval="week">주봉</button>
+            <button type="button" class="chip-btn" data-btc-interval="month">월봉</button>
+          </div>
+          <div class="chip-row btc-chip-row" role="group" aria-label="기간">
+            <button type="button" class="chip-btn" data-btc-range="3m">3개월</button>
+            <button type="button" class="chip-btn" data-btc-range="1y">1년</button>
+            <button type="button" class="chip-btn" data-btc-range="4y">4년</button>
+            <button type="button" class="chip-btn" data-btc-range="all">전체</button>
+          </div>
+        </div>
+        <p id="btc-chart-change" class="btc-chart-change"></p>
+        <!-- 누르거나 끌면 그 봉의 시가·고가·저가·종가가 아래에 나옴 -->
+        <svg id="btc-chart" class="btc-chart" viewBox="0 0 340 220" tabindex="0" role="img" aria-label="비트코인 원화 가격 캔들 차트. 좌우 화살표로 봉을 옮길 수 있어요."></svg>
+        <p id="btc-chart-readout" class="history-readout"></p>
+        <p id="btc-chart-status" class="price-refresh-status"></p>
+      </section>
+
+      <!-- ①-3 반감기 (btc-chain.js) -->
+      <section>
+        <h2>반감기</h2>
+        <p class="section-desc">비트코인은 21만 블록(약 4년)마다 채굴 보상이 절반으로 줄어요.</p>
+        <div class="btc-hero">
+          <p id="btc-halving-title" class="dash-label">다음 반감기</p>
+          <p id="btc-halving-dday" class="btc-big">-</p>
+          <p id="btc-halving-date" class="btc-hero-sub"></p>
+        </div>
+        <div class="btc-progress" aria-hidden="true">
+          <div id="btc-halving-bar" class="btc-progress-fill"></div>
+        </div>
+        <p id="btc-halving-progress" class="summary-sub"></p>
+        <div class="btc-pair">
+          <div class="summary-card">
+            <p>현재 블록</p>
+            <p id="btc-halving-height">-</p>
+          </div>
+          <div class="summary-card">
+            <p>블록 보상</p>
+            <p id="btc-halving-reward">-</p>
+          </div>
+        </div>
+        <details class="btc-history-box">
+          <summary>지난 반감기</summary>
+          <ol id="btc-halving-list" class="btc-halving-list"></ol>
+        </details>
+        <p id="btc-halving-note" class="price-refresh-status"></p>
+      </section>
+
+      <!-- ①-4 실시간 블록 (btc-chain.js): mempool.space 정보, 30초마다 -->
+      <section>
+        <h2>실시간 블록</h2>
+        <p class="section-desc">왼쪽은 채굴을 기다리는 블록(예상), 오른쪽은 방금 채굴된 블록이에요. 옆으로 밀어 볼 수 있고, 채굴된 블록을 누르면 mempool.space에서 자세히 보여 줘요.</p>
+        <div id="btc-blocks" class="btc-blocks"></div>
+        <h3 class="btc-subtitle">추천 수수료 <span>(보통 송금 1건 기준 원화)</span></h3>
+        <div id="btc-fees" class="btc-fees"></div>
+        <p id="btc-mempool-info" class="summary-sub"></p>
+        <p id="btc-blocks-status" class="price-refresh-status" aria-live="polite">불러오는 중…</p>
       </section>
 
       <!-- ② 코인 입력 폼 -->
@@ -558,25 +646,29 @@
       <input type="file" id="backup-file-input" accept=".json,application/json" hidden>
     </section>
     <!-- 앱 버전: 휴대폰이 최신 파일을 쓰고 있는지 확인용 (파일을 고칠 때 ?v= 숫자와 같이 올림) -->
-    <p class="app-version">앱 버전 v29</p>
+    <p class="app-version">앱 버전 v30</p>
   </footer>
 
   <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
        common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
-  <script src="common.js?v=29"></script>
-  <script src="assets.js?v=29"></script>
-  <script src="crypto.js?v=29"></script>
+  <script src="common.js?v=30"></script>
+  <script src="assets.js?v=30"></script>
+  <script src="crypto.js?v=30"></script>
   <!-- 전체 자산 요약: 위 파일들의 계산 함수를 쓰므로 맨 마지막에 -->
-  <script src="networth.js?v=29"></script>
+  <script src="networth.js?v=30"></script>
   <!-- 자산 추이: 전체 자산 계산을 씀 -->
-  <script src="history.js?v=29"></script>
+  <script src="history.js?v=30"></script>
   <!-- 홈(대시보드): 모든 계산 함수를 씀 -->
-  <script src="dashboard.js?v=29"></script>
+  <script src="dashboard.js?v=30"></script>
   <!-- 시나리오: 위 모든 파일의 계산 함수를 씀 -->
-  <script src="scenario.js?v=29"></script>
+  <script src="scenario.js?v=30"></script>
   <!-- 미래 적립 시뮬레이션: 전체 자산 값을 불러옴 -->
-  <script src="simulate.js?v=29"></script>
+  <script src="simulate.js?v=30"></script>
+  <!-- 비트코인 시장 정보: 시세·김프 → 차트 → 반감기·실시간 블록 (마지막 파일이 자동 갱신을 시작) -->
+  <script src="btc.js?v=30"></script>
+  <script src="btc-chart.js?v=30"></script>
+  <script src="btc-chain.js?v=30"></script>
   <!-- 데이터 백업 -->
-  <script src="backup.js?v=29"></script>
+  <script src="backup.js?v=30"></script>
 </body>
 </html>

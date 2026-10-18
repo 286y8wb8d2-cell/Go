@@ -231,6 +231,9 @@ function showTab(tabName) {
   // (홈 화면 아이콘으로 새로 열면 주소에 #이 없으니 홈부터 보임)
   // replaceState: 페이지를 다시 불러오지 않고 주소만 바꿈
   history.replaceState(null, "", tabName === "home" ? location.pathname + location.search : "#" + tabName);
+
+  // 다른 파일에 "탭이 바뀌었다"고 알림 (예: 비트코인 탭의 자동 갱신 켜고 끄기)
+  document.dispatchEvent(new CustomEvent("tab-shown", { detail: { tab: tabName } }));
 }
 
 // 탭 버튼을 누르면 그 탭을 보여 줌
@@ -248,8 +251,8 @@ tabButtons.forEach(function (button) {
 // 이만큼(px) 넘게 밀어야 탭이 넘어감 (조금 밀다 놓으면 제자리로)
 const SWIPE_DISTANCE = 60;
 
-// 밀어서 넘기기를 하지 않을 곳: 입력칸, 옆으로 스크롤되는 표, 끌어서 보는 그래프
-const SWIPE_IGNORE = "input, select, textarea, .table-scroll, .history-chart";
+// 밀어서 넘기기를 하지 않을 곳: 입력칸, 옆으로 스크롤되는 표·블록 줄, 끌어서 보는 그래프
+const SWIPE_IGNORE = "input, select, textarea, .table-scroll, .history-chart, .btc-chart, .btc-blocks";
 
 // 지금 밀고 있는 손가락 정보 (안 밀고 있으면 null)
 let swipe = null;
