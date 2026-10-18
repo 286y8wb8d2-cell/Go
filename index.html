@@ -8,7 +8,7 @@
   <title>나의 가계부</title>
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=21">
+  <link rel="stylesheet" href="style.css?v=22">
 </head>
 <body>
   <header>
@@ -17,6 +17,7 @@
 
   <!-- 탭 메뉴: 누르면 아래에서 해당 탭(tab-panel)만 보임. data-tab 이름 = 탭 id의 뒷부분 -->
   <nav id="tabs" role="tablist">
+    <button type="button" class="tab-btn" data-tab="home" role="tab">홈</button>
     <button type="button" class="tab-btn" data-tab="ledger" role="tab">가계부</button>
     <button type="button" class="tab-btn" data-tab="assets" role="tab">금융자산</button>
     <button type="button" class="tab-btn" data-tab="crypto" role="tab">가상자산</button>
@@ -24,8 +25,77 @@
   </nav>
 
   <main>
+    <!-- ===== 홈(대시보드) 탭: 앱을 열면 가장 먼저 보임 (dashboard.js) ===== -->
+    <div id="tab-home" class="tab-panel" role="tabpanel">
+      <!-- 맨 위: 총 자산 큰 숫자 + 변화 + 작은 추이선 -->
+      <section class="dash-hero">
+        <p class="dash-label">총 자산</p>
+        <p id="dash-total" class="dash-total">0원</p>
+        <p id="dash-change" class="dash-change"></p>
+        <svg id="dash-spark" class="dash-spark" viewBox="0 0 300 56" role="img" aria-label="최근 월별 총 자산 추이" hidden></svg>
+        <p id="dash-spark-note" class="dash-spark-note"></p>
+      </section>
+
+      <!-- 자산이 없을 때 안내 -->
+      <section id="dash-empty" class="dash-empty" hidden>
+        <p>아직 입력한 자산이 없어요.<br>금융자산·가상자산을 입력하면 대시보드가 채워져요.</p>
+        <div class="backup-buttons">
+          <button type="button" class="btn-primary" data-goto="assets">금융자산 입력</button>
+          <button type="button" class="btn-secondary" data-goto="crypto">가상자산 입력</button>
+        </div>
+      </section>
+
+      <div id="dash-content">
+        <!-- 자산 구성: 굵은 가로 막대 + 범례 -->
+        <section>
+          <div class="dash-section-head">
+            <h2>자산 구성</h2>
+            <button type="button" class="link-btn" data-goto="assets">자세히</button>
+          </div>
+          <div id="dash-alloc-bar" class="alloc-bar dash-alloc-bar"></div>
+          <ul id="dash-alloc-legend" class="alloc-legend"></ul>
+        </section>
+
+        <!-- 핵심 숫자 4칸 -->
+        <section>
+          <h2>한눈에 보기</h2>
+          <div class="dash-kpis">
+            <div class="dash-kpi">
+              <p class="dash-kpi-label">총 손익</p>
+              <p id="dash-profit" class="dash-kpi-value">0원</p>
+              <p id="dash-profit-sub" class="dash-kpi-sub"></p>
+            </div>
+            <div class="dash-kpi">
+              <p class="dash-kpi-label">연 예상 배당</p>
+              <p id="dash-dividend" class="dash-kpi-value">0원</p>
+              <p id="dash-dividend-sub" class="dash-kpi-sub"></p>
+            </div>
+            <div class="dash-kpi">
+              <p class="dash-kpi-label">이번 달 가계부</p>
+              <p id="dash-balance" class="dash-kpi-value">0원</p>
+              <p id="dash-balance-sub" class="dash-kpi-sub"></p>
+            </div>
+            <div class="dash-kpi">
+              <p class="dash-kpi-label">가상자산 비중</p>
+              <p id="dash-crypto-share" class="dash-kpi-value">0%</p>
+              <p id="dash-crypto-share-sub" class="dash-kpi-sub"></p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 큰 종목 TOP 5 -->
+        <section>
+          <div class="dash-section-head">
+            <h2>큰 종목 TOP 5</h2>
+            <button type="button" class="link-btn" data-goto="assets">자세히</button>
+          </div>
+          <ol id="dash-top-list" class="item-list dash-top-list"></ol>
+        </section>
+      </div>
+    </div>
+
     <!-- ===== 가계부 탭 ===== -->
-    <div id="tab-ledger" class="tab-panel" role="tabpanel">
+    <div id="tab-ledger" class="tab-panel" role="tabpanel" hidden>
       <!-- ① 입력 폼: 수입/지출 한 건을 입력하는 곳 -->
       <section id="form-section">
         <h2>내역 입력</h2>
@@ -553,19 +623,21 @@
 
   <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
        common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
-  <script src="common.js?v=21"></script>
-  <script src="app.js?v=21"></script>
-  <script src="assets.js?v=21"></script>
-  <script src="crypto.js?v=21"></script>
+  <script src="common.js?v=22"></script>
+  <script src="app.js?v=22"></script>
+  <script src="assets.js?v=22"></script>
+  <script src="crypto.js?v=22"></script>
   <!-- 전체 자산 요약: 위 파일들의 계산 함수를 쓰므로 맨 마지막에 -->
-  <script src="networth.js?v=21"></script>
+  <script src="networth.js?v=22"></script>
   <!-- 자산 추이: 전체 자산 계산을 씀 -->
-  <script src="history.js?v=21"></script>
+  <script src="history.js?v=22"></script>
+  <!-- 홈(대시보드): 모든 계산 함수를 씀 -->
+  <script src="dashboard.js?v=22"></script>
   <!-- 시나리오: 위 모든 파일의 계산 함수를 씀 -->
-  <script src="scenario.js?v=21"></script>
+  <script src="scenario.js?v=22"></script>
   <!-- 미래 적립 시뮬레이션: 전체 자산·가계부 값을 불러옴 -->
-  <script src="simulate.js?v=21"></script>
+  <script src="simulate.js?v=22"></script>
   <!-- 데이터 백업 -->
-  <script src="backup.js?v=21"></script>
+  <script src="backup.js?v=22"></script>
 </body>
 </html>

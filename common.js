@@ -179,9 +179,6 @@ function renderAllocation(bar, legend, items) {
 // 탭 전환
 // ---------------------------------------------
 
-// 마지막으로 본 탭을 기억해 둘 때 쓰는 이름
-const ACTIVE_TAB_KEY = "household-active-tab";
-
 const tabButtons = document.querySelectorAll(".tab-btn");
 const tabPanels = document.querySelectorAll(".tab-panel");
 
@@ -198,12 +195,10 @@ function showTab(tabName) {
     panel.hidden = panel.id !== "tab-" + tabName;
   });
 
-  // 다음에 열 때 같은 탭이 보이도록 기억 (저장이 안 되는 환경이어도 앱은 계속 동작)
-  try {
-    localStorage.setItem(ACTIVE_TAB_KEY, tabName);
-  } catch (error) {
-    // 무시
-  }
+  // 주소 끝에 "#assets"처럼 탭 이름을 남김 → 새로고침해도 보던 탭이 그대로
+  // (홈 화면 아이콘으로 새로 열면 주소에 #이 없으니 홈부터 보임)
+  // replaceState: 페이지를 다시 불러오지 않고 주소만 바꿈
+  history.replaceState(null, "", tabName === "home" ? location.pathname + location.search : "#" + tabName);
 }
 
 // 탭 버튼을 누르면 그 탭을 보여 줌
@@ -213,17 +208,11 @@ tabButtons.forEach(function (button) {
   });
 });
 
-// 처음 열 때: 마지막으로 본 탭(없으면 가계부)을 보여 줌
+// 처음 열 때: 주소에 탭 이름(#assets 등)이 있으면 그 탭, 없으면 홈(대시보드)
 (function () {
-  let savedTab = null;
-  try {
-    savedTab = localStorage.getItem(ACTIVE_TAB_KEY);
-  } catch (error) {
-    // 무시
-  }
-  // 저장된 이름이 실제로 있는 탭인지 확인
+  const hashTab = location.hash.slice(1); // "#assets" → "assets"
   const exists = Array.from(tabButtons).some(function (button) {
-    return button.dataset.tab === savedTab;
+    return button.dataset.tab === hashTab;
   });
-  showTab(exists ? savedTab : "ledger");
+  showTab(exists ? hashTab : "home");
 })();

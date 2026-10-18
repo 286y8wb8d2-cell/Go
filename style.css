@@ -88,12 +88,15 @@ section {
 /* 탭 버튼 네 개를 똑같은 너비로 */
 .tab-btn {
   flex: 1;
+  min-width: 0;
   height: 40px;
+  padding: 0 2px;
   border: none;
   border-radius: 8px;
   background: transparent;
   color: var(--text-light);
-  font-size: 15px;
+  font-size: 14px; /* 탭이 5개라 조금 작게 */
+  white-space: nowrap;
   font-weight: bold;
   cursor: pointer;
 }
@@ -405,6 +408,192 @@ section {
   word-break: keep-all;
   text-align: center;
   color: var(--text-light);
+}
+
+/* =============================================
+   3-1. 홈(대시보드)
+   ============================================= */
+
+/* 맨 위 총 자산 카드 */
+.dash-hero {
+  text-align: center;
+}
+
+.dash-label {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-light);
+}
+
+/* 대시보드에서 가장 먼저 읽히는 숫자 */
+.dash-total {
+  margin: 2px 0 4px;
+  font-size: 2.2rem;
+  font-weight: bold;
+  letter-spacing: -0.5px;
+  overflow-wrap: anywhere;
+}
+
+.dash-change {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-light);
+  word-break: keep-all;
+}
+
+.dash-change.profit-up { color: var(--up); }
+.dash-change.profit-down { color: var(--down); }
+
+/* 작은 추이선 */
+.dash-spark {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 12px;
+}
+
+.dash-spark-line {
+  fill: none;
+  stroke: var(--series-1);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.dash-spark-dot {
+  fill: var(--series-1);
+  stroke: var(--card);
+  stroke-width: 2;
+}
+
+.dash-spark-note {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+.dash-empty {
+  text-align: center;
+  color: var(--text-light);
+  word-break: keep-all;
+}
+
+.dash-empty .btn-secondary {
+  margin-top: 0;
+}
+
+/* 섹션 제목 줄: 제목(왼쪽) + "자세히" 버튼(오른쪽) */
+.dash-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.link-btn {
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+/* 자산 구성 막대는 대시보드에서 더 굵게 */
+.dash-alloc-bar {
+  height: 24px;
+  margin-top: 4px;
+}
+
+/* 핵심 숫자 4칸 (2 × 2) */
+.dash-kpis {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.dash-kpi {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.dash-kpi p {
+  margin: 0;
+}
+
+.dash-kpi-label {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.dash-kpi-value {
+  margin: 2px 0 !important;
+  font-size: 1.2rem;
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+.dash-kpi-sub {
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+/* 큰 종목 TOP 5
+   첫째 줄: 순위  종목명 [종류] ........ 금액
+   둘째 줄:       [막대] .............. 비중 */
+.dash-top-list {
+  margin: 0;
+}
+
+.dash-top-item {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  grid-template-areas:
+    "rank name  value"
+    ".    track share";
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.dash-top-item:last-child {
+  border-bottom: none;
+}
+
+.dash-top-rank {
+  grid-area: rank;
+  font-weight: bold;
+  color: var(--text-light);
+}
+
+.dash-top-name {
+  grid-area: name;
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+.dash-top-value {
+  grid-area: value;
+  font-weight: bold;
+}
+
+.dash-top-track {
+  grid-area: track;
+}
+
+/* TOP 5 막대는 크기 비교용이라 한 가지 색 (파랑)
+   (아래 카테고리 지출의 빨간 막대 규칙보다 우선하도록 class 두 개로 지정) */
+.dash-top-track .dash-top-fill {
+  background: var(--series-1);
+}
+
+.dash-top-share {
+  grid-area: share;
+  font-size: 0.8rem;
+  color: var(--text-light);
+  text-align: right;
 }
 
 /* =============================================
