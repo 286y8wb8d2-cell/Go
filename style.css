@@ -821,6 +821,25 @@ main {
   word-break: keep-all;
 }
 
+/* 시세 결과 문구를 잠깐 노랗게 강조 */
+@keyframes status-flash {
+  from { background: var(--editing); }
+  to   { background: transparent; }
+}
+
+.price-refresh-status.flash {
+  animation: status-flash 1.2s ease-out;
+  border-radius: 6px;
+}
+
+/* 맨 아래 작은 앱 버전 표시 */
+.app-version {
+  margin: 0;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
 /* 가상자산 코인별 색: 등록한 순서대로 0~6번, 그 뒤는 "기타" 회색
    (금융자산 종류 색과 같은 검증된 팔레트 순서) */
 .coin-color-0     { background: #2a78d6; }

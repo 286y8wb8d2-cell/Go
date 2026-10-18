@@ -36,8 +36,8 @@ const CRYPTO_COINGECKO_IDS = {
 // 마지막으로 시세를 불러온 시각을 기억하는 이름
 const CRYPTO_PRICE_UPDATED_KEY = "household-crypto-price-updated";
 
-// 응답을 기다리는 최대 시간 (10초)
-const CRYPTO_FETCH_TIMEOUT = 10000;
+// 응답을 기다리는 최대 시간 (6초) — 넘으면 다음 시세 서비스로
+const CRYPTO_FETCH_TIMEOUT = 6000;
 
 // =============================================
 // 2. 저장/불러오기
@@ -416,6 +416,13 @@ function renderCryptoRefreshStatus(message) {
     : "심볼(예: BTC)이 있는 코인의 현재가를 원화 시세로 바꿔요. (업비트 → 빗썸 → 코인게코 순서로 시도)";
 }
 
+// 결과 문구를 잠깐 강조 (눌렀는데 반응이 없는 것처럼 보이지 않게)
+function flashCryptoRefreshStatus() {
+  cryptoRefreshStatus.classList.remove("flash");
+  void cryptoRefreshStatus.offsetWidth; // 효과를 처음부터 다시 시작
+  cryptoRefreshStatus.classList.add("flash");
+}
+
 // 지금 시각을 "2026-10-18 10:32" 모양으로
 function getNowText() {
   const now = new Date();
@@ -520,6 +527,7 @@ cryptoRefreshBtn.addEventListener("click", async function () {
 
   cryptoRefreshBtn.disabled = true;
   cryptoRefreshBtn.textContent = "불러오는 중…";
+  renderCryptoRefreshStatus("시세를 불러오는 중… (최대 20초 정도 걸릴 수 있어요)");
 
   let remaining = symbols.slice(); // 아직 가격을 못 찾은 코인
   const countBySource = {}; // { "업비트": 2, "빗썸": 1 }
@@ -570,9 +578,10 @@ cryptoRefreshBtn.addEventListener("click", async function () {
         .join(", ");
       notes.push("마지막 시세 갱신: " + getNowText() + " (" + sourceText + ")");
     } else if (failedSources.length === CRYPTO_PRICE_SOURCES.length) {
-      notes.push("시세를 불러오지 못했어요. 인터넷 연결을 확인하고 잠시 뒤 다시 눌러 주세요.");
+      // 같은 실패가 반복돼도 다시 확인했다는 걸 알 수 있게 시각을 붙임
+      notes.push(getNowText() + " 확인: 시세를 불러오지 못했어요.");
     } else {
-      notes.push("가격을 찾은 코인이 없어요.");
+      notes.push(getNowText() + " 확인: 가격을 찾은 코인이 없어요.");
     }
     if (remaining.length > 0 && failedSources.length < CRYPTO_PRICE_SOURCES.length) {
       notes.push("못 찾은 코인: " + remaining.join(", ") + ".");
@@ -587,6 +596,15 @@ cryptoRefreshBtn.addEventListener("click", async function () {
       notes.push("코인게코 가격은 세계 평균을 원화로 바꾼 값이라 국내 거래소와 조금 다를 수 있어요.");
     }
     renderCryptoRefreshStatus(notes.join(" "));
+    flashCryptoRefreshStatus();
+    // 모두 실패했으면 알림창으로도 알려 줌 (문구만 바뀌면 놓치기 쉬워서)
+    if (failedSources.length === CRYPTO_PRICE_SOURCES.length) {
+      alert(
+        "시세 서비스(업비트·빗썸·코인게코)에 모두 접속하지 못했어요.\n" +
+        "와이파이/데이터 연결을 확인하고 잠시 뒤 다시 눌러 주세요.\n" +
+        "계속 안 되면 버튼 아래 문구를 알려 주세요."
+      );
+    }
   } finally {
     cryptoRefreshBtn.disabled = false;
     cryptoRefreshBtn.textContent = "시세 불러오기";
