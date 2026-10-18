@@ -85,6 +85,49 @@ section {
   background: var(--bg);
 }
 
+/* 처음 한 번 보이는 "밀어서 넘기기" 안내 */
+.swipe-hint {
+  max-width: 600px;
+  margin: -8px auto 12px;
+  padding: 0 16px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--primary);
+  word-break: keep-all;
+}
+
+/* 탭이 바뀔 때 옆에서 미끄러져 들어오는 효과 (0.22초) */
+@keyframes slide-from-right {
+  from { transform: translateX(40px); opacity: 0.4; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes slide-from-left {
+  from { transform: translateX(-40px); opacity: 0.4; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+.tab-panel.slide-from-right { animation: slide-from-right 0.22s ease-out; }
+.tab-panel.slide-from-left  { animation: slide-from-left 0.22s ease-out; }
+
+/* 밀어서 넘기기: 세로 스크롤은 브라우저가, 가로로 미는 동작은 앱이 처리 */
+main {
+  touch-action: pan-y pinch-zoom; /* pinch-zoom: 두 손가락 확대는 그대로 되게 */
+}
+
+/* 옆으로 스크롤되는 표는 가로로도 밀 수 있게 */
+.table-scroll {
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+/* "움직임 줄이기"를 켠 사람에게는 효과를 끔 */
+@media (prefers-reduced-motion: reduce) {
+  .tab-panel.slide-from-right,
+  .tab-panel.slide-from-left {
+    animation: none;
+  }
+}
+
 /* 탭 버튼 네 개를 똑같은 너비로 */
 .tab-btn {
   flex: 1;

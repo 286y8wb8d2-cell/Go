@@ -182,8 +182,26 @@ function renderAllocation(bar, legend, items) {
 const tabButtons = document.querySelectorAll(".tab-btn");
 const tabPanels = document.querySelectorAll(".tab-panel");
 
+// 탭 순서 (버튼 순서 그대로): ["home", "ledger", "assets", "crypto", "scenario"]
+const TAB_ORDER = Array.from(tabButtons).map(function (button) {
+  return button.dataset.tab;
+});
+
+// 지금 보고 있는 탭 이름
+let currentTab = null;
+
+// 사용자가 "움직임 줄이기"를 켜 두었는지 (켜져 있으면 미끄러지는 효과를 끔)
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 // tabName(예: "ledger")에 해당하는 탭만 보이고 나머지는 숨김
 function showTab(tabName) {
+  // 옆으로 넘어가는 방향 (다음 탭이면 오른쪽에서, 이전 탭이면 왼쪽에서 들어옴)
+  const fromIndex = TAB_ORDER.indexOf(currentTab);
+  const toIndex = TAB_ORDER.indexOf(tabName);
+  const isFirstShow = currentTab === null;
+  const changed = currentTab !== tabName;
+  currentTab = tabName;
+
   tabButtons.forEach(function (button) {
     const isActive = button.dataset.tab === tabName;
     button.classList.toggle("active", isActive);
@@ -193,7 +211,21 @@ function showTab(tabName) {
 
   tabPanels.forEach(function (panel) {
     panel.hidden = panel.id !== "tab-" + tabName;
+    // 밀던 중에 남은 움직임 지우기
+    panel.style.transform = "";
+    panel.style.transition = "";
   });
+
+  // 탭이 바뀌면: 새 탭이 옆에서 미끄러져 들어오고, 화면 맨 위로
+  if (changed && !isFirstShow) {
+    const panel = document.getElementById("tab-" + tabName);
+    if (!reduceMotion) {
+      panel.classList.remove("slide-from-left", "slide-from-right");
+      void panel.offsetWidth; // 효과를 처음부터 다시 시작하게 하는 요령 (화면 다시 계산)
+      panel.classList.add(toIndex > fromIndex ? "slide-from-right" : "slide-from-left");
+    }
+    window.scrollTo(0, 0);
+  }
 
   // 주소 끝에 "#assets"처럼 탭 이름을 남김 → 새로고침해도 보던 탭이 그대로
   // (홈 화면 아이콘으로 새로 열면 주소에 #이 없으니 홈부터 보임)
@@ -207,6 +239,119 @@ tabButtons.forEach(function (button) {
     showTab(button.dataset.tab);
   });
 });
+
+// ---------------------------------------------
+// 손가락으로 밀어서 탭 넘기기 (아이폰 사진 넘기듯)
+// 왼쪽으로 밀면 다음 탭, 오른쪽으로 밀면 이전 탭
+// ---------------------------------------------
+
+// 이만큼(px) 넘게 밀어야 탭이 넘어감 (조금 밀다 놓으면 제자리로)
+const SWIPE_DISTANCE = 60;
+
+// 밀어서 넘기기를 하지 않을 곳: 입력칸, 옆으로 스크롤되는 표, 끌어서 보는 그래프
+const SWIPE_IGNORE = "input, select, textarea, .table-scroll, .history-chart";
+
+// 지금 밀고 있는 손가락 정보 (안 밀고 있으면 null)
+let swipe = null;
+
+document.addEventListener(
+  "touchstart",
+  function (event) {
+    // 손가락 하나일 때만, 그리고 제외할 곳이 아닐 때만
+    if (event.touches.length !== 1 || event.target.closest(SWIPE_IGNORE)) {
+      swipe = null;
+      return;
+    }
+    const touch = event.touches[0];
+    swipe = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      direction: null, // 처음 조금 움직였을 때 "가로"인지 "세로"인지 정함
+      panel: document.getElementById("tab-" + currentTab),
+    };
+  },
+  { passive: true }
+);
+
+// 미는 동안: 가로로 밀고 있으면 화면이 손가락을 따라 움직임
+document.addEventListener(
+  "touchmove",
+  function (event) {
+    if (!swipe) return;
+    const touch = event.touches[0];
+    const dx = touch.clientX - swipe.startX;
+    const dy = touch.clientY - swipe.startY;
+
+    // 10px 넘게 움직이면 방향을 정함 (세로 스크롤이면 넘기기는 하지 않음)
+    if (swipe.direction === null && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+      swipe.direction = Math.abs(dx) > Math.abs(dy) * 1.2 ? "horizontal" : "vertical";
+    }
+    if (swipe.direction !== "horizontal" || reduceMotion) return;
+
+    // 첫 탭에서 오른쪽, 마지막 탭에서 왼쪽으로 밀면 넘어갈 탭이 없으니 조금만 끌려옴
+    const index = TAB_ORDER.indexOf(currentTab);
+    const noTab = (dx > 0 && index === 0) || (dx < 0 && index === TAB_ORDER.length - 1);
+    swipe.panel.style.transition = "none";
+    swipe.panel.style.transform = "translateX(" + dx * (noTab ? 0.2 : 0.5) + "px)";
+  },
+  { passive: true }
+);
+
+// 손을 떼면: 충분히 밀었으면 옆 탭으로, 아니면 제자리로
+document.addEventListener("touchend", function (event) {
+  if (!swipe) return;
+  const current = swipe;
+  swipe = null;
+  if (current.direction !== "horizontal") return;
+
+  const dx = event.changedTouches[0].clientX - current.startX;
+  const index = TAB_ORDER.indexOf(currentTab);
+  const target = dx < 0 ? TAB_ORDER[index + 1] : TAB_ORDER[index - 1];
+
+  if (Math.abs(dx) >= SWIPE_DISTANCE && target) {
+    showTab(target);
+    hideSwipeHint();
+  } else {
+    // 제자리로 부드럽게 돌아감
+    current.panel.style.transition = "transform 0.2s ease";
+    current.panel.style.transform = "";
+  }
+});
+
+document.addEventListener("touchcancel", function () {
+  if (swipe && swipe.panel) {
+    swipe.panel.style.transform = "";
+  }
+  swipe = null;
+});
+
+// 처음 한 번만 "밀어서 넘길 수 있어요" 안내 (터치 화면에서만)
+const SWIPE_HINT_KEY = "household-swipe-hint-seen";
+const swipeHint = document.getElementById("swipe-hint");
+
+function hideSwipeHint() {
+  if (swipeHint.hidden) return;
+  swipeHint.hidden = true;
+  try {
+    localStorage.setItem(SWIPE_HINT_KEY, "yes");
+  } catch (error) {
+    // 무시
+  }
+}
+
+(function () {
+  let seen = false;
+  try {
+    seen = localStorage.getItem(SWIPE_HINT_KEY) === "yes";
+  } catch (error) {
+    // 무시
+  }
+  const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  if (isTouch && !seen) {
+    swipeHint.hidden = false;
+    setTimeout(hideSwipeHint, 5000); // 5초 뒤 저절로 사라짐
+  }
+})();
 
 // 처음 열 때: 주소에 탭 이름(#assets 등)이 있으면 그 탭, 없으면 홈(대시보드)
 (function () {
