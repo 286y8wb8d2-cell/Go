@@ -68,42 +68,11 @@ function renderNetworth() {
     "총 손익 " + formatSignedMoney(networth.profit) + " (" + formatPercent(networth.rate) + ")";
   networthProfitText.className = "summary-sub " + getProfitClass(networth.profit);
 
-  // 자산군별 비중 막대 + 범례 (금융자산 탭의 막대와 같은 방식)
-  networthAllocBar.innerHTML = "";
-  networthAllocLegend.innerHTML = "";
-  const hasValue = networth.value > 0;
-  networthAllocBar.hidden = !hasValue;
-  networthAllocLegend.hidden = !hasValue;
-
-  if (hasValue) {
-    NETWORTH_GROUPS.forEach(function (group) {
-      const groupValue = networth.valueByGroup[group];
-      if (groupValue <= 0) {
-        return;
-      }
-      const ratio = (groupValue / networth.value) * 100;
-      const label = getNetworthGroupName(group) + " " + formatShare(ratio);
-
-      const segment = document.createElement("span");
-      segment.className = "alloc-segment kind-" + group;
-      segment.style.width = ratio + "%";
-      segment.title = label + " (" + formatMoney(groupValue) + ")";
-
-      const item = document.createElement("li");
-      const swatch = document.createElement("span");
-      swatch.className = "alloc-swatch kind-" + group;
-      const name = document.createElement("span");
-      name.className = "alloc-name";
-      name.textContent = label;
-      const amount = document.createElement("span");
-      amount.className = "alloc-amount";
-      amount.textContent = formatMoney(groupValue);
-      item.append(swatch, name, amount);
-
-      networthAllocBar.appendChild(segment);
-      networthAllocLegend.appendChild(item);
-    });
-  }
+  // 자산군별 비중 막대 (자산군 순서 고정 → 색 고정)
+  const items = NETWORTH_GROUPS.map(function (group) {
+    return { name: getNetworthGroupName(group), value: networth.valueByGroup[group], colorClass: "kind-" + group };
+  });
+  renderAllocation(networthAllocBar, networthAllocLegend, items); // common.js
 
   renderNetworthLedger();
 }

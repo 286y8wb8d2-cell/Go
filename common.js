@@ -122,6 +122,60 @@ function getToday() {
 }
 
 // ---------------------------------------------
+// 비중 막대 + 범례 그리기 (금융자산·가상자산·전체 자산에서 같이 씀)
+// ---------------------------------------------
+
+// bar: 막대를 넣을 칸, legend: 범례 목록(<ul>)
+// items: [{ name: "국내주식", value: 750000, colorClass: "kind-kr-stock" }, ...]
+//        → 이 순서 그대로 그림 (색이 순위가 아니라 항목을 따라가도록, 순서는 부르는 쪽에서 고정)
+function renderAllocation(bar, legend, items) {
+  bar.innerHTML = "";
+  legend.innerHTML = "";
+
+  // 합계 (0원인 항목은 뺌)
+  const shown = items.filter(function (item) {
+    return item.value > 0;
+  });
+  let total = 0;
+  shown.forEach(function (item) {
+    total = total + item.value;
+  });
+
+  // 합계가 0이면 비중을 계산할 수 없으니 막대와 범례를 숨김
+  bar.hidden = total <= 0;
+  legend.hidden = total <= 0;
+  if (total <= 0) {
+    return;
+  }
+
+  shown.forEach(function (item) {
+    const ratio = (item.value / total) * 100;
+    const label = item.name + " " + formatShare(ratio);
+
+    // 막대 조각: 너비 = 비중(%)
+    const segment = document.createElement("span");
+    segment.className = "alloc-segment " + item.colorClass;
+    segment.style.width = ratio + "%";
+    segment.title = label + " (" + formatMoney(item.value) + ")"; // PC에서 마우스를 올리면 보임
+
+    // 범례 한 줄: ■ 국내주식 45.2% ........ 1,234,000원
+    const li = document.createElement("li");
+    const swatch = document.createElement("span");
+    swatch.className = "alloc-swatch " + item.colorClass;
+    const name = document.createElement("span");
+    name.className = "alloc-name";
+    name.textContent = label;
+    const amount = document.createElement("span");
+    amount.className = "alloc-amount";
+    amount.textContent = formatMoney(item.value);
+    li.append(swatch, name, amount);
+
+    bar.appendChild(segment);
+    legend.appendChild(li);
+  });
+}
+
+// ---------------------------------------------
 // 탭 전환
 // ---------------------------------------------
 

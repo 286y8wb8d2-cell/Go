@@ -195,20 +195,10 @@ function renderCryptoSummary(total) {
 
   cryptoTotalCostText.textContent = "총 매입금액 " + formatMoney(total.cost) + " · " + cryptos.length + "개 코인";
 
-  cryptoAllocBar.innerHTML = "";
-  cryptoAllocLegend.innerHTML = "";
-
-  const hasValue = total.value > 0;
-  cryptoAllocBar.hidden = !hasValue;
-  cryptoAllocLegend.hidden = !hasValue;
-  if (!hasValue) {
-    return;
-  }
-
-  // 색 번호별로 평가금액을 모음 ("other"는 여러 코인이 합쳐짐)
+  // 코인별 비중 막대: 색 번호별로 평가금액을 모음 ("other"는 여러 코인이 합쳐짐)
   const colorMap = getCryptoColorMap(cryptos);
-  const groups = []; // [{ color, name, value }]
-  const otherGroup = { color: "other", name: "기타", value: 0 };
+  const groups = []; // [{ name, value, colorClass }]
+  const otherGroup = { name: "기타", value: 0, colorClass: "coin-color-other" };
 
   cryptos
     .slice()
@@ -220,39 +210,12 @@ function renderCryptoSummary(total) {
       if (colorMap[crypto.id] === "other") {
         otherGroup.value = otherGroup.value + value;
       } else {
-        groups.push({ color: colorMap[crypto.id], name: crypto.name, value: value });
+        groups.push({ name: crypto.name, value: value, colorClass: "coin-color-" + colorMap[crypto.id] });
       }
     });
-  if (otherGroup.value > 0) {
-    groups.push(otherGroup);
-  }
+  groups.push(otherGroup); // 0원이면 renderAllocation이 알아서 건너뜀
 
-  groups.forEach(function (group) {
-    if (group.value <= 0) {
-      return;
-    }
-    const ratio = (group.value / total.value) * 100;
-    const label = group.name + " " + formatShare(ratio);
-
-    const segment = document.createElement("span");
-    segment.className = "alloc-segment coin-color-" + group.color;
-    segment.style.width = ratio + "%";
-    segment.title = label + " (" + formatMoney(group.value) + ")";
-
-    const item = document.createElement("li");
-    const swatch = document.createElement("span");
-    swatch.className = "alloc-swatch coin-color-" + group.color;
-    const name = document.createElement("span");
-    name.className = "alloc-name";
-    name.textContent = label;
-    const amount = document.createElement("span");
-    amount.className = "alloc-amount";
-    amount.textContent = formatMoney(group.value);
-    item.append(swatch, name, amount);
-
-    cryptoAllocBar.appendChild(segment);
-    cryptoAllocLegend.appendChild(item);
-  });
+  renderAllocation(cryptoAllocBar, cryptoAllocLegend, groups); // common.js
 }
 
 // 가상자산 탭 전체를 다시 그림

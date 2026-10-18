@@ -235,48 +235,11 @@ function renderAssetSummary(portfolio) {
   assetTotalCostText.textContent =
     "총 매입금액 " + formatMoney(portfolio.cost) + " · " + assets.length + "종목";
 
-  // 종류별 비중 막대와 설명(범례)을 처음부터 다시 그림
-  assetAllocBar.innerHTML = "";
-  assetAllocLegend.innerHTML = "";
-
-  // 평가금액이 0이면 비중을 계산할 수 없으니 막대를 숨김
-  const hasValue = portfolio.value > 0;
-  assetAllocBar.hidden = !hasValue;
-  assetAllocLegend.hidden = !hasValue;
-  if (!hasValue) {
-    return;
-  }
-
-  // 종류 순서는 항상 같게 (색이 종류마다 고정되도록), 금액이 0인 종류는 건너뜀
-  Object.keys(ASSET_KINDS).forEach(function (kind) {
-    const kindValue = portfolio.valueByKind[kind];
-    if (kindValue <= 0) {
-      return;
-    }
-    const ratio = (kindValue / portfolio.value) * 100;
-    const label = ASSET_KINDS[kind] + " " + formatShare(ratio);
-
-    // 막대 조각: 너비 = 비중(%)
-    const segment = document.createElement("span");
-    segment.className = "alloc-segment kind-" + kind;
-    segment.style.width = ratio + "%";
-    segment.title = label + " (" + formatMoney(kindValue) + ")"; // PC에서 마우스를 올리면 보임
-
-    // 범례 한 줄: ■ 국내주식 45.2% 1,234,000원
-    const item = document.createElement("li");
-    const swatch = document.createElement("span");
-    swatch.className = "alloc-swatch kind-" + kind;
-    const name = document.createElement("span");
-    name.className = "alloc-name";
-    name.textContent = label;
-    const amount = document.createElement("span");
-    amount.className = "alloc-amount";
-    amount.textContent = formatMoney(kindValue);
-    item.append(swatch, name, amount);
-
-    assetAllocBar.appendChild(segment);
-    assetAllocLegend.appendChild(item);
+  // 종류별 비중 막대 (종류 순서는 항상 같게 → 색이 종류마다 고정)
+  const items = Object.keys(ASSET_KINDS).map(function (kind) {
+    return { name: ASSET_KINDS[kind], value: portfolio.valueByKind[kind], colorClass: "kind-" + kind };
   });
+  renderAllocation(assetAllocBar, assetAllocLegend, items); // common.js
 }
 
 // 배당 요약과 배당 종목 목록을 그림
