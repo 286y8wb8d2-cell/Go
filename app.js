@@ -59,6 +59,9 @@ const currentMonthLabel = document.getElementById("current-month");
 const totalIncomeText = document.getElementById("total-income");
 const totalExpenseText = document.getElementById("total-expense");
 const balanceText = document.getElementById("balance");
+const categoryList = document.getElementById("category-list");
+const categoryTotalText = document.getElementById("category-total");
+const categoryEmptyMessage = document.getElementById("category-empty-message");
 
 // =============================================
 // 3. 계산
@@ -96,6 +99,28 @@ function calculateSummary(list) {
     expense: expense,
     balance: income - expense,
   };
+}
+
+// 지금 보고 있는 달의 바로 전 달을 "2026-09" 모양으로 돌려줌 (1월이면 작년 12월)
+function getPrevMonthKey() {
+  let year = currentYear;
+  let month = currentMonth - 1;
+  if (month < 1) {
+    month = 12;
+    year = year - 1;
+  }
+  return year + "-" + String(month).padStart(2, "0");
+}
+
+// 내역 목록에서 지출만 카테고리별로 더해 돌려줌: { "식비": 12000, "교통": 45000, ... }
+function calculateExpenseByCategory(list) {
+  const totals = {};
+  list.forEach(function (entry) {
+    if (entry.type === "expense") {
+      totals[entry.category] = (totals[entry.category] || 0) + entry.amount;
+    }
+  });
+  return totals;
 }
 
 // 내역을 최신순으로 정렬한 새 배열을 돌려줌 (원래 배열은 그대로 둠)
@@ -180,6 +205,88 @@ function renderSummary() {
   balanceText.textContent = formatMoney(summary.balance);
 }
 
+// 지난달과 비교한 차이를 글로 (예: "▲12,000원", "▼5,000원", "변동 없음")
+// 지출이 늘었는지 줄었는지만 보여 주고, 좋고 나쁨의 색은 칠하지 않음
+function describeChange(diff) {
+  if (diff > 0) return "▲" + formatMoney(diff);
+  if (diff < 0) return "▼" + formatMoney(-diff);
+  return "변동 없음";
+}
+
+// 지금 보고 있는 달의 카테고리별 지출 막대를 그림
+function renderCategories() {
+  const thisMonth = calculateExpenseByCategory(getEntriesOfMonth());
+  const prevMonthKey = getPrevMonthKey();
+  const prevMonth = calculateExpenseByCategory(
+    entries.filter(function (entry) {
+      return entry.date.startsWith(prevMonthKey);
+    })
+  );
+
+  // 이번 달 지출 합계
+  let total = 0;
+  Object.values(thisMonth).forEach(function (amount) {
+    total = total + amount;
+  });
+  let prevTotal = 0;
+  Object.values(prevMonth).forEach(function (amount) {
+    prevTotal = prevTotal + amount;
+  });
+
+  categoryList.innerHTML = "";
+  categoryEmptyMessage.hidden = total > 0;
+  categoryTotalText.hidden = total <= 0;
+  if (total <= 0) {
+    return;
+  }
+
+  // 지난달 지출이 아예 없으면 "▲전액"이 아니라 "지난달 지출 없음"으로
+  categoryTotalText.textContent =
+    "지출 합계 " + formatMoney(total) + " · " +
+    (prevTotal > 0 ? "지난달 대비 " + describeChange(total - prevTotal) : "지난달 지출 없음");
+
+  // 많이 쓴 카테고리부터
+  const categories = Object.keys(thisMonth).sort(function (a, b) {
+    return thisMonth[b] - thisMonth[a];
+  });
+
+  categories.forEach(function (category) {
+    const amount = thisMonth[category];
+    const share = (amount / total) * 100;
+
+    // 한 줄 모양
+    // 식비 ........................ 12,000원
+    // [■■■■■■□□□□□□□□]  20.0% · 지난달 대비 ▲3,000원
+    const li = document.createElement("li");
+    li.className = "category-item";
+
+    const name = document.createElement("span");
+    name.className = "category-name";
+    name.textContent = category;
+
+    const amountSpan = document.createElement("span");
+    amountSpan.className = "category-amount";
+    amountSpan.textContent = formatMoney(amount);
+
+    // 막대: 바깥 회색 칸(track) 안에 비중만큼 채운 막대(fill)
+    const track = document.createElement("span");
+    track.className = "category-track";
+    const fill = document.createElement("span");
+    fill.className = "category-fill";
+    fill.style.width = share + "%";
+    track.appendChild(fill);
+
+    const detail = document.createElement("span");
+    detail.className = "category-detail";
+    const prevAmount = prevMonth[category] || 0;
+    detail.textContent =
+      formatShare(share) + " · " + (prevAmount > 0 ? "지난달 대비 " + describeChange(amount - prevAmount) : "지난달엔 없음");
+
+    li.append(name, amountSpan, track, detail);
+    categoryList.appendChild(li);
+  });
+}
+
 // 지금 보고 있는 달의 목록을 다시 그림
 function renderList() {
   const sorted = sortByNewest(getEntriesOfMonth());
@@ -229,6 +336,7 @@ typeRadios.forEach(function (radio) {
 function render() {
   renderMonth();
   renderSummary();
+  renderCategories();
   renderList();
 }
 

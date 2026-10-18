@@ -408,6 +408,71 @@ section {
 }
 
 /* =============================================
+   4-0. 가계부 카테고리별 지출
+   ============================================= */
+
+.category-total {
+  margin: -4px 0 8px;
+  font-size: 0.85rem;
+  color: var(--text-light);
+  word-break: keep-all;
+}
+
+/* 한 카테고리를 두 줄로
+   첫째 줄: 이름 ................ 금액
+   둘째 줄: [막대] ........ 비중 · 지난달 대비 */
+.category-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "name   amount"
+    "track  track"
+    "detail detail";
+  row-gap: 4px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.category-item:last-child {
+  border-bottom: none;
+}
+
+.category-name {
+  grid-area: name;
+  font-weight: bold;
+}
+
+.category-amount {
+  grid-area: amount;
+  font-weight: bold;
+}
+
+/* 막대의 바깥 칸 (회색 바탕) */
+.category-track {
+  grid-area: track;
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* 비중만큼 채운 막대 (지출 색) */
+.category-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 4px;
+  background: var(--expense);
+}
+
+.category-detail {
+  grid-area: detail;
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+/* =============================================
    4-1. 금융자산
    ============================================= */
 
