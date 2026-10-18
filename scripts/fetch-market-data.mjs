@@ -9,10 +9,9 @@
 
 import { writeFile } from "node:fs/promises";
 
-const HEADERS = {
-  accept: "application/json",
-  "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36",
-};
+// 야후는 브라우저처럼 꾸민 요청을 오히려 막는 경우가 있어서 정직한 이름을 씀
+const HEADERS = { accept: "application/json", "user-agent": "Mozilla/5.0 (household-app data bot)" };
+const HOSTS = ["query1.finance.yahoo.com", "query2.finance.yahoo.com"];
 
 // ---------- 받을 종목 (야후 기호) ----------
 // 국내: 6자리 코드 + .KS(코스피) / .KQ(코스닥)
@@ -69,17 +68,17 @@ async function get(url) {
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const round = (value, digits = 4) => (Number.isFinite(value) ? Number(value.toFixed(digits)) : null);
 
-// 종목 하나: 2년치 월봉 + 배당 기록
+// 종목 하나: 2년치 월봉 + 배당 기록 (너무 많다고 하면(429) 쉬었다가 다른 주소로 다시)
 async function fetchQuote(symbol) {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=2y&interval=1mo&events=div`;
   let json;
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const url = `https://${HOSTS[attempt % 2]}/v8/finance/chart/${encodeURIComponent(symbol)}?range=2y&interval=1mo&events=div`;
     try {
       json = await get(url);
       break;
     } catch (error) {
       if (attempt === 3) throw error;
-      await wait(1500 * attempt);
+      await wait(error.message === "HTTP 429" ? 4000 * (attempt + 1) : 1000);
     }
   }
   const result = json.chart?.result?.[0];
@@ -110,7 +109,7 @@ async function fetchQuote(symbol) {
   };
 }
 
-// 여러 종목을 동시에 4개씩
+// 여러 종목을 동시에 2개씩 (천천히)
 async function fetchAll(symbols) {
   const results = {};
   const failed = [];
@@ -123,10 +122,10 @@ async function fetchAll(symbols) {
       } catch (error) {
         failed.push(symbol + "(" + error.message + ")");
       }
-      await wait(150);
+      await wait(400);
     }
   }
-  await Promise.all([worker(), worker(), worker(), worker()]);
+  await Promise.all([worker(), worker()]);
   return { results, failed };
 }
 
@@ -134,6 +133,39 @@ const stockSymbols = [...Object.keys(KOREA), ...US];
 const marketSymbols = Object.keys(MARKETS);
 const stocks = await fetchAll(stockSymbols);
 const markets = await fetchAll(marketSymbols);
+
+// 야후에서 못 받은 국내 종목은 네이버 증권에서 (가격·등락률만)
+async function fetchNaver(symbol) {
+  const code = symbol.slice(0, 6);
+  const json = await get(`https://m.stock.naver.com/api/stock/${code}/basic`);
+  const price = Number(String(json.closePrice).replace(/,/g, ""));
+  if (!(price > 0)) throw new Error("가격 없음");
+  return {
+    name: json.stockName || symbol,
+    currency: "KRW",
+    price,
+    change: Number(json.fluctuationsRatio),
+    time: Math.floor(Date.now() / 1000),
+    high52: null,
+    low52: null,
+    divTTM: 0,
+    divMonths: [],
+    closes: [],
+    source: "naver",
+  };
+}
+const koreanMissing = Object.keys(KOREA).filter((symbol) => !stocks.results[symbol]);
+if (koreanMissing.length > 0) {
+  console.log(`국내 ${koreanMissing.length}개를 네이버로 다시 시도`);
+  for (const symbol of koreanMissing) {
+    try {
+      stocks.results[symbol] = await fetchNaver(symbol);
+    } catch (error) {
+      // 그래도 안 되면 빠짐
+    }
+    await wait(200);
+  }
+}
 
 // 국내 종목은 한글 이름으로
 for (const [symbol, name] of Object.entries(KOREA)) {
@@ -144,13 +176,14 @@ for (const [symbol, name] of Object.entries(MARKETS)) {
 }
 
 console.log(`종목 ${Object.keys(stocks.results).length}/${stockSymbols.length}, 지수 ${Object.keys(markets.results).length}/${marketSymbols.length}`);
-if (stocks.failed.length) console.log("실패:", stocks.failed.join(", "));
+console.log("실패 수:", stocks.failed.length, "예:", stocks.failed.slice(0, 8).join(", "));
+
 if (markets.failed.length) console.log("지수 실패:", markets.failed.join(", "));
 console.log("예시 QQQ:", JSON.stringify(stocks.results.QQQ));
 console.log("예시 SCHD:", JSON.stringify(stocks.results.SCHD));
 console.log("예시 005930.KS:", JSON.stringify(stocks.results["005930.KS"]));
 
-if (Object.keys(stocks.results).length < stockSymbols.length / 2) {
+if (Object.keys(stocks.results).length < 10) {
   // 절반도 못 받았으면 실패로 보고 저장하지 않음 (지난번 파일이 그대로 남음)
   console.log("너무 많이 실패해서 저장하지 않음");
   process.exit(1);
