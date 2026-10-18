@@ -8,7 +8,7 @@
   <title>나의 가계부</title>
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
   <header>
@@ -307,22 +307,80 @@
       </section>
     </div>
 
-    <!-- ===== 시나리오 탭 (7단계부터 채움) ===== -->
+    <!-- ===== 시나리오 탭 ===== -->
     <div id="tab-scenario" class="tab-panel" role="tabpanel" hidden>
+      <!-- A-① 변동률 입력: 예시 버튼과 입력칸은 scenario.js가 만듦 -->
       <section>
-        <h2>시나리오</h2>
-        <p class="placeholder">준비 중입니다.</p>
+        <h2>가격 변동 시나리오</h2>
+        <p class="section-desc">자산군별로 가격이 몇 % 바뀌면 내 자산이 어떻게 될지 계산해요.</p>
+
+        <div id="scenario-presets" class="chip-row"></div>
+
+        <div id="scenario-inputs" class="card-form scenario-inputs"></div>
+        <button type="button" id="scenario-reset-btn" class="btn-secondary">모두 0%로 초기화</button>
+      </section>
+
+      <!-- A-② 결과: 숫자를 바꾸면 바로 다시 계산됨 -->
+      <section>
+        <h2>시나리오 결과</h2>
+        <p id="scenario-no-asset-message" class="empty-message" hidden>
+          금융자산이나 가상자산을 먼저 입력해 주세요.
+        </p>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <p>시나리오 후 총 자산</p>
+            <p id="scenario-total">0원</p>
+          </div>
+        </div>
+        <p class="scenario-diff-line">현재 대비 <span id="scenario-diff">0원</span></p>
+        <p id="scenario-now" class="summary-sub"></p>
+        <p id="scenario-profit" class="summary-sub scenario-sub-tight"></p>
+        <p id="scenario-dividend" class="summary-sub"></p>
+
+        <!-- 자산군별 표: 화면보다 넓으면 표만 옆으로 밀어서 볼 수 있음 -->
+        <div class="table-scroll">
+          <table class="scenario-table">
+            <thead>
+              <tr>
+                <th>자산군</th>
+                <th>현재(원)</th>
+                <th>시나리오</th>
+                <th>변화</th>
+              </tr>
+            </thead>
+            <tbody id="scenario-table-body"></tbody>
+          </table>
+        </div>
+
+        <!-- 저장 -->
+        <form id="scenario-save-form" class="card-form scenario-save">
+          <label for="scenario-name">이 시나리오 저장</label>
+          <div class="inline-row">
+            <input type="text" id="scenario-name" maxlength="30" placeholder="예: 폭락 대비">
+            <button type="submit" class="btn-primary">저장</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- A-③ 저장한 시나리오 비교 -->
+      <section>
+        <h2>저장한 시나리오</h2>
+        <p class="section-desc">지금 자산 기준으로 다시 계산돼요.</p>
+        <ul id="scenario-list" class="item-list"></ul>
+        <p id="scenario-empty-message" class="empty-message">저장한 시나리오가 없습니다.</p>
       </section>
     </div>
   </main>
 
   <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
        common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
-  <script src="common.js?v=8"></script>
-  <script src="app.js?v=8"></script>
-  <script src="assets.js?v=8"></script>
-  <script src="crypto.js?v=8"></script>
+  <script src="common.js?v=10"></script>
+  <script src="app.js?v=9"></script>
+  <script src="assets.js?v=9"></script>
+  <script src="crypto.js?v=9"></script>
   <!-- 전체 자산 요약: 위 파일들의 계산 함수를 쓰므로 맨 마지막에 -->
-  <script src="networth.js?v=8"></script>
+  <script src="networth.js?v=9"></script>
+  <!-- 시나리오: 위 모든 파일의 계산 함수를 씀 -->
+  <script src="scenario.js?v=10"></script>
 </body>
 </html>

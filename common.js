@@ -40,8 +40,13 @@ function saveList(key, list) {
 // 숫자를 "3,000,000원" 모양으로 바꿔 줌 (음수면 "-50,000원")
 // 원 단위 아래(소수점)는 반올림해서 보여 줌
 function formatMoney(amount) {
-  // "|| 0": -0.4를 반올림하면 -0이 되어 "-0원"으로 보이는 것을 막음
-  return (Math.round(amount) || 0).toLocaleString("ko-KR") + "원";
+  return formatAmount(amount) + "원";
+}
+
+// "원" 없이 숫자만 "3,000,000" 모양으로 (표처럼 칸이 좁을 때 사용)
+function formatAmount(amount) {
+  // "|| 0": -0.4를 반올림하면 -0이 되어 "-0"으로 보이는 것을 막음
+  return (Math.round(amount) || 0).toLocaleString("ko-KR");
 }
 
 // 금액 앞에 +/- 부호를 붙여 줌 (예: "+50,000원", "-3,000원", 0이면 "0원")
