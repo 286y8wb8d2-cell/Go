@@ -93,7 +93,8 @@ function isValidScenario(item) {
 function isValidHistory(item) {
   return (
     isText(item.month) && /^\d{4}-\d{2}$/.test(item.month) &&
-    isNumber(item.total) && isNumber(item.assets) && isNumber(item.crypto)
+    isNumber(item.total) && isNumber(item.assets) && isNumber(item.crypto) &&
+    (item.manual === undefined || typeof item.manual === "boolean")
   );
 }
 

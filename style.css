@@ -123,6 +123,7 @@ section {
 /* 입력칸은 가로로 꽉 차게, 손가락으로 누르기 쉬운 높이로
    (글자 크기 16px 이상: 아이폰에서 입력할 때 화면이 확대되는 걸 막음) */
 .card-form input[type="date"],
+.card-form input[type="month"],
 .card-form input[type="number"],
 .card-form input[type="text"],
 .card-form select {
@@ -1120,6 +1121,7 @@ section {
 
 /* 표가 화면보다 넓을 때 표만 옆으로 스크롤 (페이지 전체가 밀리지 않게) */
 .table-scroll {
+  position: relative; /* 안쪽의 숨김 글자(.visually-hidden)가 상자 밖으로 나가 페이지를 넓히지 않게 */
   overflow-x: auto;
   margin-top: 14px;
 }
@@ -1385,6 +1387,37 @@ section {
 .readout-name {
   font-size: 0.75rem;
   color: var(--text-light);
+}
+
+/* 자산 추이 표의 수정·삭제 버튼을 나란히 */
+.history-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.history-edit-box {
+  margin-top: 14px;
+}
+
+/* 총 자산 아래 작은 "직전 대비" 글자 */
+.history-diff {
+  display: block;
+  font-size: 0.75rem;
+}
+
+/* 표 칸은 위아래 가운데 정렬 (두 줄짜리 칸과 버튼 칸 높이를 맞춤) */
+.history-table td {
+  vertical-align: middle;
+}
+
+/* 아이폰 사파리의 달 선택 칸도 날짜 칸처럼 바로잡기 */
+.card-form input[type="month"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  line-height: 42px;
+  text-align: left;
 }
 
 /* 자산 추이 표의 작은 삭제 버튼 */

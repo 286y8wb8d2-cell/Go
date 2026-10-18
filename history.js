@@ -29,6 +29,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 // =============================================
 
 // 달마다 한 줄: [{ month: "2026-10", total: 25000000, assets: 20050000, crypto: 4950000, updated: "2026-10-18" }]
+// 직접 입력한 지난달 기록에는 manual: true 가 붙음
 let historyRecords = loadList(HISTORY_STORAGE_KEY);
 
 function saveHistory() {
@@ -50,6 +51,17 @@ const historySummaryText = document.getElementById("history-summary");
 const historyChartBox = document.getElementById("history-chart-box");
 const historyChart = document.getElementById("history-chart");
 const historyReadout = document.getElementById("history-readout");
+const historyEditBox = document.getElementById("history-edit-box");
+const historyEditForm = document.getElementById("history-edit-form");
+const historyMonthInput = document.getElementById("history-month");
+const historyAssetsInput = document.getElementById("history-assets");
+const historyCryptoInput = document.getElementById("history-crypto");
+const historyTotalPreview = document.getElementById("history-total-preview");
+const historySubmitBtn = document.getElementById("history-submit-btn");
+const historyCancelBtn = document.getElementById("history-cancel-btn");
+
+// 지금 수정 중인 기록의 달 (수정 중이 아니면 null)
+let historyEditingMonth = null;
 
 // 그래프에서 지금 고른 기록의 순번 (null이면 가장 최근 달)
 let historySelectedIndex = null;
@@ -87,6 +99,7 @@ function recordThisMonth() {
 
   if (existing) {
     Object.assign(existing, record);
+    delete existing.manual; // 이번 달은 항상 자동 기록
   } else {
     historyRecords.push(record);
   }
@@ -130,21 +143,47 @@ function renderHistoryTable() {
 
     const monthCell = document.createElement("td");
     monthCell.textContent = formatHistoryMonth(record.month);
+    // 직접 입력한 기록은 작은 "직접" 표시
+    if (record.manual) {
+      const tag = document.createElement("span");
+      tag.className = "asset-kind";
+      tag.textContent = "직접";
+      monthCell.appendChild(tag);
+    }
 
+    // 총 자산 + 그 아래 작게 직전 대비 (칸 수를 줄여 휴대폰 폭에 맞춤)
     const totalCell = document.createElement("td");
     totalCell.textContent = formatAmount(record.total);
 
     // 바로 전 기록과 비교 (중간 달 기록을 지웠으면 그 전 기록과 비교)
-    const diffCell = document.createElement("td");
     if (prev) {
       const diff = record.total - prev.total;
-      diffCell.textContent = (diff > 0 ? "+" : "") + formatAmount(diff);
-      diffCell.className = getProfitClass(diff);
-    } else {
-      diffCell.textContent = "-";
+      const diffSpan = document.createElement("span");
+      diffSpan.className = "history-diff " + getProfitClass(diff);
+      diffSpan.textContent = (diff > 0 ? "+" : "") + formatAmount(diff);
+      totalCell.appendChild(diffSpan);
     }
 
+    // 버튼 칸: 칸(td) 자체는 그대로 두고 안쪽 묶음(div)에서 버튼을 나란히 놓음
+    // (td에 flex를 주면 표의 줄 테두리가 어긋남)
     const actionCell = document.createElement("td");
+    const actionBox = document.createElement("div");
+    actionBox.className = "history-actions";
+    actionCell.appendChild(actionBox);
+
+    // 수정 버튼: 지난달 기록만 (이번 달은 자산이 바뀔 때 자동으로 바뀌므로)
+    if (record.month < getToday().slice(0, 7)) {
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "edit-btn history-delete-btn";
+      editBtn.textContent = "수정";
+      editBtn.setAttribute("aria-label", formatHistoryMonth(record.month) + " 기록 수정");
+      editBtn.addEventListener("click", function () {
+        startHistoryEdit(record);
+      });
+      actionBox.appendChild(editBtn);
+    }
+
     const deleteBtn = document.createElement("button");
     deleteBtn.type = "button";
     deleteBtn.className = "delete-btn history-delete-btn";
@@ -160,12 +199,13 @@ function renderHistoryTable() {
           return item.month !== record.month;
         });
         saveHistory();
+        historySelectedIndex = null; // 그래프는 가장 최근 달을 다시 보여 줌
         renderHistory();
       }
     });
-    actionCell.appendChild(deleteBtn);
+    actionBox.appendChild(deleteBtn);
 
-    row.append(monthCell, totalCell, diffCell, actionCell);
+    row.append(monthCell, totalCell, actionCell);
     historyTableBody.appendChild(row);
   }
 }
@@ -319,6 +359,132 @@ function selectHistoryAt(clientX) {
   }
 }
 
+// ---------------------------------------------
+// 기록 직접 추가·수정
+// ---------------------------------------------
+
+// 지난달을 "2026-09" 모양으로 (직접 입력할 수 있는 가장 최근 달)
+function getLastMonthKey() {
+  const today = getToday();
+  let year = Number(today.slice(0, 4));
+  let month = Number(today.slice(5, 7)) - 1;
+  if (month < 1) {
+    month = 12;
+    year = year - 1;
+  }
+  return year + "-" + String(month).padStart(2, "0");
+}
+
+// 입력칸 숫자 읽기 (비어 있으면 0)
+function readHistoryNumber(input) {
+  return input.value.trim() === "" ? 0 : Number(input.value);
+}
+
+// 금융자산 + 가상자산 = 총 자산 미리 보기
+function updateHistoryTotalPreview() {
+  const total = readHistoryNumber(historyAssetsInput) + readHistoryNumber(historyCryptoInput);
+  historyTotalPreview.textContent = Number.isFinite(total) ? "총 자산 " + formatMoney(total) : "";
+}
+
+// 폼을 처음 상태로
+function resetHistoryForm() {
+  historyEditForm.reset();
+  historyEditingMonth = null;
+  historyMonthInput.disabled = false;
+  historyMonthInput.max = getLastMonthKey();
+  historySubmitBtn.textContent = "기록 추가";
+  historyCancelBtn.hidden = true;
+  updateHistoryTotalPreview();
+}
+
+// 수정 시작: 그 달의 값을 폼에 채움
+function startHistoryEdit(record) {
+  historyEditingMonth = record.month;
+  historyMonthInput.value = record.month;
+  historyMonthInput.disabled = true; // 수정할 때는 달은 바꾸지 않음
+  historyAssetsInput.value = record.assets;
+  historyCryptoInput.value = record.crypto;
+  historySubmitBtn.textContent = "수정 완료";
+  historyCancelBtn.hidden = false;
+  updateHistoryTotalPreview();
+  historyEditBox.open = true; // 접혀 있으면 펼침
+  historyEditBox.scrollIntoView({ behavior: "smooth" });
+}
+
+// 입력값 검사: 문제가 있으면 안내 문구, 없으면 ""
+function validateHistoryInput(month, assetsValue, cryptoValue) {
+  if (!/^\d{4}-\d{2}$/.test(month) || Number(month.slice(5, 7)) < 1 || Number(month.slice(5, 7)) > 12) {
+    return "달을 골라 주세요. (예: 2026-09)";
+  }
+  if (month >= getToday().slice(0, 7)) {
+    return "이번 달과 앞으로 올 달은 직접 입력할 수 없어요.\n이번 달 기록은 자산이 바뀔 때 자동으로 기록돼요.";
+  }
+  const values = [
+    { value: assetsValue, label: "금융자산" },
+    { value: cryptoValue, label: "가상자산" },
+  ];
+  for (const item of values) {
+    if (!Number.isFinite(item.value) || item.value < 0) {
+      return item.label + ": 0 이상의 숫자로 입력해 주세요.";
+    }
+    if (item.value > 10000000000000) {
+      return item.label + ": 값이 너무 큽니다.";
+    }
+  }
+  if (assetsValue + cryptoValue <= 0) {
+    return "금융자산이나 가상자산 중 하나는 입력해 주세요.";
+  }
+  return "";
+}
+
+historyAssetsInput.addEventListener("input", updateHistoryTotalPreview);
+historyCryptoInput.addEventListener("input", updateHistoryTotalPreview);
+
+historyCancelBtn.addEventListener("click", resetHistoryForm);
+
+// "기록 추가" 또는 "수정 완료"
+historyEditForm.addEventListener("submit", function (event) {
+  event.preventDefault();
+
+  const month = historyEditingMonth !== null ? historyEditingMonth : historyMonthInput.value;
+  const assetsValue = readHistoryNumber(historyAssetsInput);
+  const cryptoValue = readHistoryNumber(historyCryptoInput);
+
+  const error = validateHistoryInput(month, assetsValue, cryptoValue);
+  if (error !== "") {
+    alert(error);
+    return;
+  }
+
+  const existing = historyRecords.find(function (record) {
+    return record.month === month;
+  });
+  // 새로 추가하는데 그 달 기록이 이미 있으면 바꿀지 물어봄
+  if (historyEditingMonth === null && existing) {
+    if (!confirm(formatHistoryMonth(month) + " 기록이 이미 있어요. 입력한 값으로 바꿀까요?")) {
+      return;
+    }
+  }
+
+  const record = {
+    month: month,
+    total: Math.round(assetsValue + cryptoValue),
+    assets: Math.round(assetsValue),
+    crypto: Math.round(cryptoValue),
+    updated: getToday(),
+    manual: true,
+  };
+  if (existing) {
+    Object.assign(existing, record);
+  } else {
+    historyRecords.push(record);
+  }
+  saveHistory(); // 달 순서대로 정렬해서 저장
+  resetHistoryForm();
+  historySelectedIndex = null; // 그래프는 가장 최근 달을 다시 보여 줌
+  renderHistory();
+});
+
 // 자산 추이 전체를 다시 그림
 function renderHistory() {
   renderHistoryTable();
@@ -364,4 +530,5 @@ document.addEventListener("data-saved", function (event) {
 // =============================================
 
 recordThisMonth();
+resetHistoryForm();
 renderHistory();

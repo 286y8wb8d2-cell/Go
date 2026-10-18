@@ -8,7 +8,7 @@
   <title>나의 가계부</title>
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=22">
+  <link rel="stylesheet" href="style.css?v=24">
 </head>
 <body>
   <header>
@@ -228,14 +228,38 @@
             <thead>
               <tr>
                 <th>달</th>
-                <th>총 자산(원)</th>
-                <th>직전 대비</th>
-                <th><span class="visually-hidden">삭제</span></th>
+                <th>총 자산(원)<span class="history-diff">직전 대비</span></th>
+                <th><span class="visually-hidden">수정·삭제</span></th>
               </tr>
             </thead>
             <tbody id="history-table-body"></tbody>
           </table>
         </div>
+
+        <!-- 지난달 기록 직접 추가·수정 (접었다 펼 수 있음) -->
+        <details id="history-edit-box" class="scenario-items-box history-edit-box">
+          <summary>지난달 기록 직접 추가·수정</summary>
+          <p class="section-desc">앱을 쓰기 전 달의 자산을 넣거나, 잘못 기록된 달을 고칠 수 있어요. 이번 달은 자동으로 기록돼요.</p>
+          <form id="history-edit-form" class="card-form">
+            <label for="history-month">달</label>
+            <input type="month" id="history-month" required>
+
+            <div class="form-row">
+              <div>
+                <label for="history-assets">금융자산(원)</label>
+                <input type="number" id="history-assets" min="0" step="any" inputmode="numeric" placeholder="0">
+              </div>
+              <div>
+                <label for="history-crypto">가상자산(원)</label>
+                <input type="number" id="history-crypto" min="0" step="any" inputmode="numeric" placeholder="0">
+              </div>
+            </div>
+            <p id="history-total-preview" class="form-hint"></p>
+
+            <button type="submit" id="history-submit-btn" class="btn-primary">기록 추가</button>
+            <button type="button" id="history-cancel-btn" class="btn-secondary" hidden>취소</button>
+          </form>
+        </details>
       </section>
 
       <!-- ① 포트폴리오 요약: 숫자와 막대는 assets.js가 채움 -->
@@ -623,21 +647,21 @@
 
   <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
        common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
-  <script src="common.js?v=22"></script>
-  <script src="app.js?v=22"></script>
-  <script src="assets.js?v=22"></script>
-  <script src="crypto.js?v=22"></script>
+  <script src="common.js?v=24"></script>
+  <script src="app.js?v=24"></script>
+  <script src="assets.js?v=24"></script>
+  <script src="crypto.js?v=24"></script>
   <!-- 전체 자산 요약: 위 파일들의 계산 함수를 쓰므로 맨 마지막에 -->
-  <script src="networth.js?v=22"></script>
+  <script src="networth.js?v=24"></script>
   <!-- 자산 추이: 전체 자산 계산을 씀 -->
-  <script src="history.js?v=22"></script>
+  <script src="history.js?v=24"></script>
   <!-- 홈(대시보드): 모든 계산 함수를 씀 -->
-  <script src="dashboard.js?v=22"></script>
+  <script src="dashboard.js?v=24"></script>
   <!-- 시나리오: 위 모든 파일의 계산 함수를 씀 -->
-  <script src="scenario.js?v=22"></script>
+  <script src="scenario.js?v=24"></script>
   <!-- 미래 적립 시뮬레이션: 전체 자산·가계부 값을 불러옴 -->
-  <script src="simulate.js?v=22"></script>
+  <script src="simulate.js?v=24"></script>
   <!-- 데이터 백업 -->
-  <script src="backup.js?v=22"></script>
+  <script src="backup.js?v=24"></script>
 </body>
 </html>
