@@ -1,4 +1,9 @@
 // =============================================
+// 가계부 탭
+// (공통 도구 loadList, saveList, formatMoney, getToday는 common.js에 있음)
+// =============================================
+
+// =============================================
 // 1. 상수 (카테고리 목록)
 // =============================================
 
@@ -18,29 +23,13 @@ const MAX_AMOUNT = 1000000000;
 // 2. 저장/불러오기 (localStorage)
 // =============================================
 
-// 저장된 내역을 꺼내 배열로 돌려줌. 저장된 게 없으면 빈 배열
-function loadEntries() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved === null) {
-    return [];
-  }
-  // 저장된 글자가 깨져 있어도 앱이 멈추지 않게 try/catch로 감쌈
-  try {
-    const parsed = JSON.parse(saved);
-    // 배열이 아닌 이상한 값이 저장돼 있으면 빈 배열로 시작
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    return [];
-  }
-}
-
-// 내역 배열을 글자(JSON)로 바꿔 저장함
+// 내역 배열을 저장함
 function saveEntries() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  saveList(STORAGE_KEY, entries);
 }
 
 // 모든 내역을 담아 두는 배열 (페이지가 열리면 저장된 내역을 불러옴)
-let entries = loadEntries();
+let entries = loadList(STORAGE_KEY);
 
 // 지금 화면에 보여 주는 연도와 월 (처음에는 이번 달)
 let currentYear = new Date().getFullYear();
@@ -125,11 +114,6 @@ function sortByNewest(list) {
 // =============================================
 // 4. 화면 그리기
 // =============================================
-
-// 숫자를 "3,000,000원" 모양으로 바꿔 줌 (음수면 "-50,000원")
-function formatMoney(amount) {
-  return amount.toLocaleString("ko-KR") + "원";
-}
 
 // 내역 한 건으로 목록의 한 줄(<li>)을 만들어 돌려줌
 function createListItem(entry) {
@@ -234,16 +218,6 @@ function updateCategoryOptions() {
     option.textContent = name;
     categorySelect.appendChild(option);
   });
-}
-
-// 오늘 날짜를 "2026-10-16" 모양의 글자로 만들어 줌
-function getToday() {
-  const now = new Date();
-  const year = now.getFullYear();
-  // 월은 0부터 시작하므로 +1, 한 자리면 앞에 0을 붙여 두 자리로 맞춤
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return year + "-" + month + "-" + day;
 }
 
 // 수입/지출 버튼을 바꿔 누를 때마다 카테고리를 다시 채움

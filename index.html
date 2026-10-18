@@ -8,86 +8,123 @@
   <title>나의 가계부</title>
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
   <header>
     <h1>나의 가계부</h1>
   </header>
 
+  <!-- 탭 메뉴: 누르면 아래에서 해당 탭(tab-panel)만 보임. data-tab 이름 = 탭 id의 뒷부분 -->
+  <nav id="tabs" role="tablist">
+    <button type="button" class="tab-btn" data-tab="ledger" role="tab">가계부</button>
+    <button type="button" class="tab-btn" data-tab="assets" role="tab">금융자산</button>
+    <button type="button" class="tab-btn" data-tab="crypto" role="tab">가상자산</button>
+    <button type="button" class="tab-btn" data-tab="scenario" role="tab">시나리오</button>
+  </nav>
+
   <main>
-    <!-- ① 입력 폼: 수입/지출 한 건을 입력하는 곳 -->
-    <section id="form-section">
-      <h2>내역 입력</h2>
-      <form id="entry-form">
-        <!-- 날짜 -->
-        <label for="date">날짜</label>
-        <input type="date" id="date" required>
+    <!-- ===== 가계부 탭 ===== -->
+    <div id="tab-ledger" class="tab-panel" role="tabpanel">
+      <!-- ① 입력 폼: 수입/지출 한 건을 입력하는 곳 -->
+      <section id="form-section">
+        <h2>내역 입력</h2>
+        <form id="entry-form">
+          <!-- 날짜 -->
+          <label for="date">날짜</label>
+          <input type="date" id="date" required>
 
-        <!-- 구분: 수입 또는 지출 중 하나만 선택 (name이 같으면 하나만 고를 수 있음) -->
-        <fieldset>
-          <legend>구분</legend>
-          <label>
-            <input type="radio" name="type" value="expense" checked> 지출
-          </label>
-          <label>
-            <input type="radio" name="type" value="income"> 수입
-          </label>
-        </fieldset>
+          <!-- 구분: 수입 또는 지출 중 하나만 선택 (name이 같으면 하나만 고를 수 있음) -->
+          <fieldset>
+            <legend>구분</legend>
+            <label>
+              <input type="radio" name="type" value="expense" checked> 지출
+            </label>
+            <label>
+              <input type="radio" name="type" value="income"> 수입
+            </label>
+          </fieldset>
 
-        <!-- 카테고리: 선택지는 app.js가 구분에 맞게 채움 -->
-        <label for="category">카테고리</label>
-        <select id="category" required>
-          <option value="">-- 선택 --</option>
-        </select>
+          <!-- 카테고리: 선택지는 app.js가 구분에 맞게 채움 -->
+          <label for="category">카테고리</label>
+          <select id="category" required>
+            <option value="">-- 선택 --</option>
+          </select>
 
-        <!-- 금액: 1원 ~ 10억 원, 정수만 입력 가능 (inputmode: 휴대폰에서 숫자 키패드가 뜸) -->
-        <label for="amount">금액(원)</label>
-        <input type="number" id="amount" min="1" max="1000000000" step="1" inputmode="numeric" placeholder="예: 12000" required>
+          <!-- 금액: 1원 ~ 10억 원, 정수만 입력 가능 (inputmode: 휴대폰에서 숫자 키패드가 뜸) -->
+          <label for="amount">금액(원)</label>
+          <input type="number" id="amount" min="1" max="1000000000" step="1" inputmode="numeric" placeholder="예: 12000" required>
 
-        <!-- 메모: 선택 사항 -->
-        <label for="memo">메모</label>
-        <input type="text" id="memo" placeholder="예: 점심 식사">
+          <!-- 메모: 선택 사항 -->
+          <label for="memo">메모</label>
+          <input type="text" id="memo" placeholder="예: 점심 식사">
 
-        <button type="submit" id="submit-btn">추가</button>
-        <!-- 수정 취소 버튼: 수정 중일 때만 보임 (hidden = 처음에는 숨김) -->
-        <button type="button" id="cancel-btn" hidden>취소</button>
-      </form>
-    </section>
+          <button type="submit" id="submit-btn">추가</button>
+          <!-- 수정 취소 버튼: 수정 중일 때만 보임 (hidden = 처음에는 숨김) -->
+          <button type="button" id="cancel-btn" hidden>취소</button>
+        </form>
+      </section>
 
-    <!-- ② 월 선택 + 요약: 선택한 달의 총수입/총지출/잔액 -->
-    <section id="summary-section">
-      <div id="month-nav">
-        <button type="button" id="prev-month">◀</button>
-        <span id="current-month">2026년 10월</span>
-        <button type="button" id="next-month">▶</button>
-      </div>
-
-      <div id="summary">
-        <div class="summary-card">
-          <p>총수입</p>
-          <p id="total-income">0원</p>
+      <!-- ② 월 선택 + 요약: 선택한 달의 총수입/총지출/잔액 -->
+      <section id="summary-section">
+        <div id="month-nav">
+          <button type="button" id="prev-month">◀</button>
+          <span id="current-month">2026년 10월</span>
+          <button type="button" id="next-month">▶</button>
         </div>
-        <div class="summary-card">
-          <p>총지출</p>
-          <p id="total-expense">0원</p>
-        </div>
-        <div class="summary-card">
-          <p>잔액</p>
-          <p id="balance">0원</p>
-        </div>
-      </div>
-    </section>
 
-    <!-- ③ 내역 목록: 항목은 app.js가 채움 -->
-    <section id="list-section">
-      <h2>내역</h2>
-      <ul id="entry-list"></ul>
-      <p id="empty-message">이 달의 내역이 없습니다.</p>
-    </section>
+        <div id="summary">
+          <div class="summary-card">
+            <p>총수입</p>
+            <p id="total-income">0원</p>
+          </div>
+          <div class="summary-card">
+            <p>총지출</p>
+            <p id="total-expense">0원</p>
+          </div>
+          <div class="summary-card">
+            <p>잔액</p>
+            <p id="balance">0원</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ③ 내역 목록: 항목은 app.js가 채움 -->
+      <section id="list-section">
+        <h2>내역</h2>
+        <ul id="entry-list"></ul>
+        <p id="empty-message">이 달의 내역이 없습니다.</p>
+      </section>
+    </div>
+
+    <!-- ===== 금융자산 탭 (2단계부터 채움) ===== -->
+    <div id="tab-assets" class="tab-panel" role="tabpanel" hidden>
+      <section>
+        <h2>금융자산</h2>
+        <p class="placeholder">준비 중입니다.</p>
+      </section>
+    </div>
+
+    <!-- ===== 가상자산 탭 (5단계에서 채움) ===== -->
+    <div id="tab-crypto" class="tab-panel" role="tabpanel" hidden>
+      <section>
+        <h2>가상자산</h2>
+        <p class="placeholder">준비 중입니다.</p>
+      </section>
+    </div>
+
+    <!-- ===== 시나리오 탭 (7단계부터 채움) ===== -->
+    <div id="tab-scenario" class="tab-panel" role="tabpanel" hidden>
+      <section>
+        <h2>시나리오</h2>
+        <p class="placeholder">준비 중입니다.</p>
+      </section>
+    </div>
   </main>
 
-  <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠 -->
-  <script src="app.js?v=2"></script>
+  <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
+       common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
+  <script src="common.js?v=3"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
