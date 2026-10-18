@@ -8,7 +8,7 @@
   <title>나의 자산</title>
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=30">
+  <link rel="stylesheet" href="style.css?v=31">
 </head>
 <body>
   <header>
@@ -646,29 +646,31 @@
       <input type="file" id="backup-file-input" accept=".json,application/json" hidden>
     </section>
     <!-- 앱 버전: 휴대폰이 최신 파일을 쓰고 있는지 확인용 (파일을 고칠 때 ?v= 숫자와 같이 올림) -->
-    <p class="app-version">앱 버전 v30</p>
+    <p class="app-version">앱 버전 v31</p>
   </footer>
 
   <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
        common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
-  <script src="common.js?v=30"></script>
-  <script src="assets.js?v=30"></script>
-  <script src="crypto.js?v=30"></script>
+  <script src="common.js?v=31"></script>
+  <script src="assets.js?v=31"></script>
+  <script src="crypto.js?v=31"></script>
   <!-- 전체 자산 요약: 위 파일들의 계산 함수를 쓰므로 맨 마지막에 -->
-  <script src="networth.js?v=30"></script>
+  <script src="networth.js?v=31"></script>
   <!-- 자산 추이: 전체 자산 계산을 씀 -->
-  <script src="history.js?v=30"></script>
+  <script src="history.js?v=31"></script>
   <!-- 홈(대시보드): 모든 계산 함수를 씀 -->
-  <script src="dashboard.js?v=30"></script>
+  <script src="dashboard.js?v=31"></script>
   <!-- 시나리오: 위 모든 파일의 계산 함수를 씀 -->
-  <script src="scenario.js?v=30"></script>
+  <script src="scenario.js?v=31"></script>
   <!-- 미래 적립 시뮬레이션: 전체 자산 값을 불러옴 -->
-  <script src="simulate.js?v=30"></script>
+  <script src="simulate.js?v=31"></script>
   <!-- 비트코인 시장 정보: 시세·김프 → 차트 → 반감기·실시간 블록 (마지막 파일이 자동 갱신을 시작) -->
-  <script src="btc.js?v=30"></script>
-  <script src="btc-chart.js?v=30"></script>
-  <script src="btc-chain.js?v=30"></script>
+  <script src="btc.js?v=31"></script>
+  <!-- 2010년부터의 비트코인 과거 가격 (차트용 고정 데이터, 약 50KB) -->
+  <script src="btc-history.js?v=31"></script>
+  <script src="btc-chart.js?v=31"></script>
+  <script src="btc-chain.js?v=31"></script>
   <!-- 데이터 백업 -->
-  <script src="backup.js?v=30"></script>
+  <script src="backup.js?v=31"></script>
 </body>
 </html>

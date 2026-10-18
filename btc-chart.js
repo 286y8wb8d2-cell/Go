@@ -1,7 +1,7 @@
 // =============================================
 // 비트코인 탭 — 시장 정보 ② 캔들 차트
-// 빗썸 일봉(하루 단위 시가·고가·저가·종가)을 받아서
-// 주봉·월봉은 일봉을 묶어 계산하고, SVG로 직접 그림
+// 2010년부터의 과거 기록(btc-history.js)에 빗썸 일봉을 덮어써서
+// 비트코인 첫 거래부터 오늘까지 그림. 주봉·월봉은 일봉을 묶어 계산하고, SVG로 직접 그림
 // (createSvg, formatAxisValue는 history.js, 자동 갱신 도구는 btc.js)
 // ※ 이름은 모두 btc~ / BTC~ 로 시작
 // =============================================
@@ -13,6 +13,7 @@
 // 빗썸 일봉 전체 (각 줄: [시각, 시가, 종가, 고가, 저가, 거래량])
 const BTC_CANDLE_URL = "https://api.bithumb.com/public/candlestick/BTC_KRW/24h";
 // 빗썸이 안 될 때: 코인게코 최근 1년 하루 가격 (고가·저가는 없음)
+// (그보다 옛날은 btc-history.js의 과거 기록으로 채움)
 const BTC_CANDLE_FALLBACK_URL =
   "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=krw&days=365&interval=daily";
 
@@ -34,8 +35,13 @@ const BTC_INTERVAL_NAMES = { day: "일봉", week: "주봉", month: "월봉" };
 // 2. 상태
 // =============================================
 
-let btcDailyCandles = []; // [{ time, open, high, low, close }] 오래된 것부터
-let btcChartFallback = false; // 코인게코 대체 데이터인지
+// 일봉 한 개: { time, open, high, low, close, source }
+// source: "history"(앱에 넣어 둔 과거 기록), "bithumb", "coingecko"
+// history·coingecko는 하루 종가만 있어서 시가 = 전날 종가, 고가·저가 = 시가·종가 중 큰/작은 값
+let btcHistoryCandles = []; // 과거 기록 (시작할 때 한 번 만듦)
+let btcLiveCandles = []; // 시세 서비스에서 받은 최근 일봉
+let btcLiveFailed = false; // 빗썸·코인게코 모두 실패했는지
+let btcDailyCandles = []; // 위 둘을 합친 것 (오래된 것부터)
 let btcInterval = "day";
 let btcRange = "3m";
 
@@ -99,6 +105,7 @@ function parseBithumbCandles(rows) {
     const open = row[1];
     const close = row[closeColumn];
     return {
+      source: "bithumb",
       time: row[0],
       open: open,
       close: close,
@@ -115,32 +122,67 @@ function parseCoinGeckoPrices(prices) {
     const open = Number(prices[i - 1][1]);
     const close = Number(prices[i][1]);
     if (!(open > 0 && close > 0)) continue;
-    candles.push({ time: prices[i][0], open: open, close: close, high: Math.max(open, close), low: Math.min(open, close) });
+    candles.push({ source: "coingecko", time: prices[i][0], open: open, close: close, high: Math.max(open, close), low: Math.min(open, close) });
   }
   return candles;
 }
 
-// 일봉 받아 오기 (빗썸 → 코인게코)
+// 앱에 넣어 둔 과거 기록(btc-history.js) → 일봉 모양
+function buildBtcHistoryCandles() {
+  const parts = BTC_HISTORY.start.split("-").map(Number);
+  const candles = [];
+  BTC_HISTORY.closes.forEach(function (close, index) {
+    const open = index === 0 ? close : BTC_HISTORY.closes[index - 1];
+    candles.push({
+      source: "history",
+      time: new Date(parts[0], parts[1] - 1, parts[2] + index).getTime(), // 그날 0시
+      open: open,
+      close: close,
+      high: Math.max(open, close),
+      low: Math.min(open, close),
+    });
+  });
+  return candles;
+}
+
+// 날짜 이름 (예: "2026-9-18") — 같은 날을 찾을 때 씀
+function getBtcDayKey(time) {
+  const date = new Date(time);
+  return date.getFullYear() + "-" + date.getMonth() + "-" + date.getDate();
+}
+
+// 과거 기록 + 최근 일봉 합치기 (같은 날이 있으면 최근 일봉이 이김)
+function mergeBtcCandles() {
+  const byDay = new Map();
+  btcHistoryCandles.concat(btcLiveCandles).forEach(function (candle) {
+    byDay.set(getBtcDayKey(candle.time), candle);
+  });
+  btcDailyCandles = Array.from(byDay.values()).sort(function (a, b) {
+    return a.time - b.time;
+  });
+}
+
+// 최근 일봉 받아 오기 (빗썸 → 코인게코)
 async function refreshBtcCandles() {
   try {
     const result = await fetchCryptoJson(BTC_CANDLE_URL); // crypto.js
     if (!result || result.status !== "0000" || !Array.isArray(result.data)) {
       throw new Error("빗썸 응답 오류");
     }
-    btcDailyCandles = parseBithumbCandles(result.data);
-    btcChartFallback = false;
+    btcLiveCandles = parseBithumbCandles(result.data);
+    btcLiveFailed = false;
   } catch (error) {
     try {
       const result = await fetchCryptoJson(BTC_CANDLE_FALLBACK_URL);
-      btcDailyCandles = parseCoinGeckoPrices(result.prices);
-      btcChartFallback = true;
+      btcLiveCandles = parseCoinGeckoPrices(result.prices);
+      btcLiveFailed = false;
     } catch (fallbackError) {
-      if (btcDailyCandles.length === 0) {
-        btcChartStatus.textContent = getBtcClock() + " 차트 데이터를 받지 못했어요. 잠시 뒤 다시 시도해요.";
-      }
+      btcLiveFailed = true;
+      renderBtcChart(); // 안내 문구만 바꿈 (과거 기록은 그대로 보임)
       return false;
     }
   }
+  mergeBtcCandles();
   btcSelectedIndex = null;
   renderBtcChart();
   return true;
@@ -173,10 +215,11 @@ function getBtcShownCandles() {
   daily.forEach(function (candle) {
     const key = getBtcGroupKey(candle.time, btcInterval);
     if (key !== lastKey) {
-      groups.push({ time: candle.time, open: candle.open, high: candle.high, low: candle.low, close: candle.close });
+      groups.push({ source: candle.source, time: candle.time, open: candle.open, high: candle.high, low: candle.low, close: candle.close });
       lastKey = key;
     } else {
       const group = groups[groups.length - 1];
+      if (candle.source !== "bithumb") group.source = candle.source; // 하나라도 종가 기록이면 종가 기록
       group.high = Math.max(group.high, candle.high);
       group.low = Math.min(group.low, candle.low);
       group.close = candle.close;
@@ -224,6 +267,12 @@ function getBtcTicks(min, max, useLog) {
   return ticks;
 }
 
+// 몇 배인지 글자로 (예: 1453000 → "145만", 37.4 → "37")
+function formatBtcRatio(ratio) {
+  if (ratio >= 10000) return Math.round(ratio / 10000).toLocaleString("ko-KR") + "만";
+  return Math.round(ratio).toLocaleString("ko-KR");
+}
+
 // 봉 날짜 글자 (고른 봉 안내용)
 function formatBtcCandleDate(time) {
   const date = new Date(time);
@@ -258,6 +307,9 @@ function renderBtcChart() {
     btcChartChange.textContent = "";
     btcChartReadout.innerHTML = "";
     btcChartScale = null;
+    btcChartStatus.textContent = btcLiveFailed
+      ? "시세 서비스에 접속하지 못했고, 저장된 기록은 " + BTC_HISTORY.end.replace(/-/g, ".") + "까지라 이 기간에는 보여 줄 데이터가 없어요. 1년 이상 기간을 골라 보세요."
+      : "차트를 불러오는 중…";
     return;
   }
 
@@ -336,7 +388,7 @@ function renderBtcChart() {
   // ③ 봉: 오른 봉(빨강)과 내린 봉(파랑)을 각각 경로 하나로 모아서 그림 (봉이 수천 개여도 빠르게)
   //    심지 = 고가~저가 세로선, 몸통 = 시가~종가 네모 (봉이 너무 촘촘하면 심지만)
   const bodyWidth = slot * 0.7;
-  const drawBody = bodyWidth >= 1.5;
+  const drawBody = bodyWidth >= 1;
   const paths = { up: { wick: "", body: "" }, down: { wick: "", body: "" } };
   candles.forEach(function (candle, index) {
     const kind = candle.close >= candle.open ? "up" : "down";
@@ -368,12 +420,14 @@ function renderBtcChart() {
   const first = candles[0];
   const last = candles[candles.length - 1];
   const change = (last.close / first.open - 1) * 100;
+  const ratio = last.close / first.open;
   btcChartChange.textContent = "";
   const changeLabel = document.createElement("span");
   changeLabel.textContent = BTC_RANGE_NAMES[btcRange] + " 동안 ";
   const changeValue = document.createElement("strong");
   changeValue.className = getProfitClass(change);
-  changeValue.textContent = formatPercent(change);
+  // 10배가 넘으면 %보다 "몇 배"가 읽기 쉬움 (예: +145,000,000% → 약 145만 배)
+  changeValue.textContent = ratio >= 10 ? "약 " + formatBtcRatio(ratio) + " 배" : formatPercent(change);
   const changeDetail = document.createElement("span");
   changeDetail.className = "btc-chart-change-detail";
   changeDetail.textContent = " (" + formatKoreanUnit(first.open) + " → " + formatKoreanUnit(last.close) + ")";
@@ -383,7 +437,18 @@ function renderBtcChart() {
   const notes = [BTC_INTERVAL_NAMES[btcInterval] + " " + candles.length + "개"];
   if (useLog) notes.push("로그 눈금 (같은 높이 = 같은 비율)");
   if (!drawBody) notes.push("봉이 촘촘해서 고가~저가 선만 표시");
-  if (btcChartFallback) notes.push("빗썸 대신 코인게코 하루 가격 (최근 1년, 고가·저가 없음)");
+  const sources = new Set(
+    candles.map(function (candle) {
+      return candle.source;
+    })
+  );
+  if (sources.has("history")) {
+    notes.push("빗썸 기록 이전은 달러 가격 × 당시 환율로 바꾼 하루 종가 (Coin Metrics·FRED)");
+  }
+  if (sources.has("coingecko")) notes.push("최근 1년은 빗썸 대신 코인게코 하루 가격");
+  if (btcLiveFailed) {
+    notes.push("시세 서비스에 접속하지 못해 " + BTC_HISTORY.end.replace(/-/g, ".") + "까지의 저장된 기록만 보여요");
+  }
   btcChartStatus.textContent = notes.join(" · ");
 
   if (btcSelectedIndex === null || btcSelectedIndex >= candles.length) {
@@ -405,22 +470,28 @@ function selectBtcCandle(index) {
   crosshair.setAttribute("x2", cx);
 
   const change = (candle.close / candle.open - 1) * 100;
+  // 하루 종가만 있는 기록의 일봉은 종가만 보여 줌 (시가·고가·저가는 정확한 값이 아님)
+  const closeOnly = candle.source !== "bithumb";
   btcChartReadout.innerHTML = "";
   const title = document.createElement("span");
   title.className = "readout-title";
-  title.textContent = formatBtcCandleDate(candle.time) + " ";
+  title.textContent = formatBtcCandleDate(candle.time) + (closeOnly ? " (하루 종가 기록) " : " ");
   const changeText = document.createElement("strong");
   changeText.className = getProfitClass(change);
   changeText.textContent = formatPercent(change);
   title.appendChild(changeText);
   btcChartReadout.appendChild(title);
 
-  [
-    ["시가", candle.open],
-    ["고가", candle.high],
-    ["저가", candle.low],
-    ["종가", candle.close],
-  ].forEach(function (pair) {
+  const values =
+    closeOnly && btcInterval === "day"
+      ? [["종가", candle.close]]
+      : [
+          ["시가", candle.open],
+          ["고가", candle.high],
+          ["저가", candle.low],
+          ["종가", candle.close],
+        ];
+  values.forEach(function (pair) {
     const item = document.createElement("span");
     item.className = "readout-item";
     const name = document.createElement("span");
@@ -484,7 +555,8 @@ btcChart.addEventListener("keydown", function (event) {
   }
 });
 
-// 시작: 버튼 표시만 해 두고, 데이터는 비트코인 탭을 열 때 받음
-renderBtcChartButtons();
-btcChartStatus.textContent = "차트를 불러오는 중…";
+// 시작: 과거 기록으로 바로 그려 두고, 최근 일봉은 비트코인 탭을 열 때 받아서 덮어씀
+btcHistoryCandles = buildBtcHistoryCandles();
+mergeBtcCandles();
+renderBtcChart();
 addBtcTask(refreshBtcCandles, BTC_CHART_EVERY_MS);
