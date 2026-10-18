@@ -252,3 +252,9 @@ document.addEventListener("data-saved", renderDashboard);
 // =============================================
 
 renderDashboard();
+
+// 홈 화면 앱(주소창 없이 열림)으로 실행 중이면, 비어 있는 홈에 "사파리와 저장 공간이 따로" 안내
+(function () {
+  const standalone = window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+  document.getElementById("dash-standalone-note").hidden = !standalone;
+})();

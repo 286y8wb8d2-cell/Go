@@ -2506,3 +2506,9 @@ footer {
     font-size: 1.1rem;
   }
 }
+
+/* 홈 화면 앱 안내 (빈 홈 화면) */
+.dash-standalone-note {
+  margin: 12px 0;
+  text-align: left;
+}
