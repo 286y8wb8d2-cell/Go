@@ -8,7 +8,7 @@
   <title>나의 가계부</title>
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
   <header>
@@ -455,6 +455,23 @@
     </div>
   </main>
 
+  <!-- 데이터 백업: 탭과 상관없이 항상 페이지 맨 아래에 보임 (backup.js) -->
+  <footer>
+    <section>
+      <h2>데이터 백업</h2>
+      <p class="section-desc">
+        데이터는 이 브라우저에만 저장돼요. 휴대폰을 바꾸거나 데이터가 지워질 때를 대비해 파일로 저장해 두세요.
+      </p>
+      <p id="backup-status" class="backup-status"></p>
+      <div class="backup-buttons">
+        <button type="button" id="backup-export-btn" class="btn-primary">내보내기</button>
+        <button type="button" id="backup-import-btn" class="btn-secondary">불러오기</button>
+      </div>
+      <!-- 실제 파일 선택 칸은 숨기고, 위 "불러오기" 버튼이 대신 눌러 줌 -->
+      <input type="file" id="backup-file-input" accept=".json,application/json" hidden>
+    </section>
+  </footer>
+
   <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
        common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
   <script src="common.js?v=11"></script>
@@ -466,6 +483,8 @@
   <!-- 시나리오: 위 모든 파일의 계산 함수를 씀 -->
   <script src="scenario.js?v=11"></script>
   <!-- 미래 적립 시뮬레이션: 전체 자산·가계부 값을 불러옴 -->
-  <script src="simulate.js?v=11"></script>
+  <script src="simulate.js?v=12"></script>
+  <!-- 데이터 백업 -->
+  <script src="backup.js?v=12"></script>
 </body>
 </html>

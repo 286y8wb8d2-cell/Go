@@ -42,7 +42,8 @@ body {
 
 /* 내용 전체 폭: 휴대폰에서는 화면에 꽉 차고, 넓은 화면에서도 600px까지만 */
 header,
-main {
+main,
+footer {
   max-width: 600px;
   margin: 0 auto;
   padding: 0 16px;
@@ -896,6 +897,38 @@ section {
 .scenario-item-actions button {
   height: 30px;
   padding: 0 9px;
+}
+
+/* =============================================
+   4-3. 데이터 백업 (페이지 맨 아래)
+   ============================================= */
+
+footer {
+  padding-bottom: 24px;
+}
+
+.backup-status {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  color: var(--text-light);
+  word-break: keep-all;
+}
+
+/* 오래 백업하지 않았을 때 */
+.backup-warning {
+  color: var(--expense);
+  font-weight: bold;
+}
+
+/* 내보내기 / 불러오기 버튼을 나란히 */
+.backup-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.backup-buttons .btn-secondary {
+  margin-top: 0;
 }
 
 /* =============================================
