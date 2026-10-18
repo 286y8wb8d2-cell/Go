@@ -22,6 +22,7 @@ const BACKUP_ITEMS = [
   { key: "household-assets", label: "금융자산", unit: "종목", check: isValidAsset },
   { key: "household-crypto", label: "가상자산", unit: "개", check: isValidCrypto },
   { key: "household-scenarios", label: "시나리오", unit: "개", check: isValidScenario },
+  { key: "household-history", label: "자산 기록", unit: "개월", check: isValidHistory },
 ];
 
 // 목록이 아닌 설정값 (시뮬레이션 입력값)
@@ -85,6 +86,13 @@ function isValidScenario(item) {
     }
     return isNumber(value);
   });
+}
+
+function isValidHistory(item) {
+  return (
+    isText(item.month) && /^\d{4}-\d{2}$/.test(item.month) &&
+    isNumber(item.total) && isNumber(item.assets) && isNumber(item.crypto)
+  );
 }
 
 // =============================================

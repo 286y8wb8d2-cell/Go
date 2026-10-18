@@ -8,7 +8,7 @@
   <title>나의 가계부</title>
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=17">
+  <link rel="stylesheet" href="style.css?v=18">
 </head>
 <body>
   <header>
@@ -132,6 +132,28 @@
 
         <!-- 이번 달 가계부 (참고용, 총 자산에는 포함하지 않음) -->
         <p id="networth-ledger" class="summary-sub networth-ledger"></p>
+      </section>
+
+      <!-- ⓪-1 자산 추이: 매달 자동 기록 (history.js) -->
+      <section>
+        <h2>자산 추이</h2>
+        <p class="section-desc">매달 총 자산이 자동으로 기록돼요. 이번 달 기록은 자산이 바뀔 때마다 최신 값으로 바뀌어요.</p>
+        <p id="history-summary" class="summary-sub" hidden></p>
+        <p id="history-empty-message" class="empty-message">아직 기록이 없어요. 금융자산이나 가상자산을 입력하면 이번 달부터 기록돼요.</p>
+
+        <div id="history-table-box" class="table-scroll" hidden>
+          <table class="scenario-table history-table">
+            <thead>
+              <tr>
+                <th>달</th>
+                <th>총 자산(원)</th>
+                <th>직전 대비</th>
+                <th><span class="visually-hidden">삭제</span></th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body"></tbody>
+          </table>
+        </div>
       </section>
 
       <!-- ① 포트폴리오 요약: 숫자와 막대는 assets.js가 채움 -->
@@ -504,17 +526,19 @@
 
   <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
        common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
-  <script src="common.js?v=17"></script>
-  <script src="app.js?v=17"></script>
-  <script src="assets.js?v=17"></script>
-  <script src="crypto.js?v=17"></script>
+  <script src="common.js?v=18"></script>
+  <script src="app.js?v=18"></script>
+  <script src="assets.js?v=18"></script>
+  <script src="crypto.js?v=18"></script>
   <!-- 전체 자산 요약: 위 파일들의 계산 함수를 쓰므로 맨 마지막에 -->
-  <script src="networth.js?v=17"></script>
+  <script src="networth.js?v=18"></script>
+  <!-- 자산 추이: 전체 자산 계산을 씀 -->
+  <script src="history.js?v=18"></script>
   <!-- 시나리오: 위 모든 파일의 계산 함수를 씀 -->
-  <script src="scenario.js?v=17"></script>
+  <script src="scenario.js?v=18"></script>
   <!-- 미래 적립 시뮬레이션: 전체 자산·가계부 값을 불러옴 -->
-  <script src="simulate.js?v=17"></script>
+  <script src="simulate.js?v=18"></script>
   <!-- 데이터 백업 -->
-  <script src="backup.js?v=17"></script>
+  <script src="backup.js?v=18"></script>
 </body>
 </html>
