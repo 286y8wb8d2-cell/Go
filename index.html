@@ -8,7 +8,7 @@
   <title>나의 가계부</title>
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <header>
@@ -123,7 +123,32 @@
         <ul id="asset-alloc-legend" class="alloc-legend" hidden></ul>
       </section>
 
-      <!-- ② 종목 입력 폼 -->
+      <!-- ② 배당: 숫자와 목록은 assets.js가 채움 -->
+      <section>
+        <h2>예상 배당</h2>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <p>연간</p>
+            <p id="asset-div-annual">0원</p>
+          </div>
+          <div class="summary-card">
+            <p>월평균</p>
+            <p id="asset-div-monthly">0원</p>
+          </div>
+          <div class="summary-card">
+            <p>배당수익률</p>
+            <p id="asset-div-yield">0.00%</p>
+          </div>
+        </div>
+        <p id="asset-div-after-tax" class="summary-sub">세후 연 약 0원</p>
+
+        <ul id="asset-div-list" class="item-list div-list"></ul>
+        <p id="asset-div-empty-message" class="empty-message">
+          배당금을 입력한 종목이 없습니다. 종목의 "주당 연간 배당금"을 넣어 보세요.
+        </p>
+      </section>
+
+      <!-- ③ 종목 입력 폼 -->
       <section>
         <h2>종목 입력</h2>
         <form id="asset-form" class="card-form">
@@ -175,7 +200,7 @@
         </form>
       </section>
 
-      <!-- ③ 보유 종목 목록 (평가금액이 큰 순서): 항목은 assets.js가 채움 -->
+      <!-- ④ 보유 종목 목록 (평가금액이 큰 순서): 항목은 assets.js가 채움 -->
       <section>
         <h2>보유 종목</h2>
         <ul id="asset-list" class="item-list"></ul>
@@ -202,8 +227,8 @@
 
   <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
        common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
-  <script src="common.js?v=5"></script>
-  <script src="app.js?v=5"></script>
-  <script src="assets.js?v=5"></script>
+  <script src="common.js?v=6"></script>
+  <script src="app.js?v=6"></script>
+  <script src="assets.js?v=6"></script>
 </body>
 </html>

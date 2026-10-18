@@ -392,6 +392,7 @@ section {
 #empty-message,
 .empty-message {
   margin: 8px 0;
+  word-break: keep-all;
   text-align: center;
   color: var(--text-light);
 }
@@ -540,6 +541,47 @@ section {
   text-align: right;
   font-size: 0.85rem;
   color: var(--text-light);
+}
+
+/* 배당 목록 한 줄
+   첫째 줄: 종목명 .............. 연 배당금
+   둘째 줄: 주당 배당금 · 수익률 · 배당 비중 */
+.div-list {
+  margin-top: 12px;
+}
+
+.div-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "name   amount"
+    "detail detail";
+  column-gap: 8px;
+  row-gap: 2px;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.div-item:last-child {
+  border-bottom: none;
+}
+
+.div-name {
+  grid-area: name;
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+.div-amount {
+  grid-area: amount;
+  font-weight: bold;
+}
+
+.div-detail {
+  grid-area: detail;
+  font-size: 0.8rem;
+  color: var(--text-light);
+  word-break: keep-all;
 }
 
 /* 수정·삭제 버튼을 오른쪽에 나란히 */

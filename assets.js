@@ -22,6 +22,9 @@ const ASSET_KINDS = {
   etc: "기타",
 };
 
+// 배당소득세율 (국내 기준 15.4% = 소득세 14% + 지방소득세 1.4%). 세후 금액 "추정"에만 사용
+const ASSET_DIVIDEND_TAX_RATE = 0.154;
+
 // 입력할 수 있는 가장 큰 값 (실수로 0을 너무 많이 넣는 것 방지)
 const ASSET_MAX_VALUE = 1000000000000; // 1조
 
@@ -61,25 +64,48 @@ const assetTotalRateText = document.getElementById("asset-total-rate");
 const assetTotalCostText = document.getElementById("asset-total-cost");
 const assetAllocBar = document.getElementById("asset-alloc-bar");
 const assetAllocLegend = document.getElementById("asset-alloc-legend");
+const assetDivAnnualText = document.getElementById("asset-div-annual");
+const assetDivMonthlyText = document.getElementById("asset-div-monthly");
+const assetDivYieldText = document.getElementById("asset-div-yield");
+const assetDivAfterTaxText = document.getElementById("asset-div-after-tax");
+const assetDivList = document.getElementById("asset-div-list");
+const assetDivEmptyMessage = document.getElementById("asset-div-empty-message");
 
 // =============================================
 // 3. 계산
 // =============================================
 
-// 종목 하나의 매입금액, 평가금액, 손익, 수익률(%)을 계산해 돌려줌
+// 종목 하나의 매입금액, 평가금액, 손익, 수익률(%), 배당을 계산해 돌려줌
 function calculateAsset(asset) {
   const cost = asset.quantity * asset.avgPrice; // 매입금액 = 수량 × 평균 매입가
   const value = asset.quantity * asset.currentPrice; // 평가금액 = 수량 × 현재가
   const profit = value - cost; // 손익
   // 수익률: 매입금액이 0이면 나눌 수 없으니 0으로
   const rate = cost > 0 ? (profit / cost) * 100 : 0;
-  return { cost: cost, value: value, profit: profit, rate: rate };
+
+  // 예상 연 배당금 = 수량 × 주당 연간 배당금
+  const annualDividend = asset.quantity * asset.dividendPerShare;
+  // 배당수익률(현재가 기준) = 주당 배당금 ÷ 현재가
+  const dividendYield = asset.currentPrice > 0 ? (asset.dividendPerShare / asset.currentPrice) * 100 : 0;
+  // 매입가 기준 배당수익률 = 주당 배당금 ÷ 평균 매입가 (내가 산 가격 대비 몇 %를 받는지)
+  const yieldOnCost = asset.avgPrice > 0 ? (asset.dividendPerShare / asset.avgPrice) * 100 : 0;
+
+  return {
+    cost: cost,
+    value: value,
+    profit: profit,
+    rate: rate,
+    annualDividend: annualDividend,
+    dividendYield: dividendYield,
+    yieldOnCost: yieldOnCost,
+  };
 }
 
 // 전체 포트폴리오의 합계와 종류별 평가금액을 계산해 돌려줌
 function calculatePortfolio(list) {
   let cost = 0;
   let value = 0;
+  let annualDividend = 0;
   // 종류별 평가금액을 모을 상자: { "kr-stock": 0, "us-stock": 0, ... }
   const valueByKind = {};
   Object.keys(ASSET_KINDS).forEach(function (kind) {
@@ -90,6 +116,7 @@ function calculatePortfolio(list) {
     const result = calculateAsset(asset);
     cost = cost + result.cost;
     value = value + result.value;
+    annualDividend = annualDividend + result.annualDividend;
     const kind = ASSET_KINDS[asset.kind] ? asset.kind : "etc";
     valueByKind[kind] = valueByKind[kind] + result.value;
   });
@@ -101,6 +128,9 @@ function calculatePortfolio(list) {
     profit: profit,
     rate: cost > 0 ? (profit / cost) * 100 : 0,
     valueByKind: valueByKind,
+    annualDividend: annualDividend,
+    // 포트폴리오 배당수익률 = 연 배당금 합계 ÷ 총 평가금액
+    dividendYield: value > 0 ? (annualDividend / value) * 100 : 0,
   };
 }
 
@@ -256,10 +286,64 @@ function renderAssetSummary(portfolio) {
   });
 }
 
-// 금융자산 탭 전체를 다시 그림 (요약 + 목록)
+// 배당 요약과 배당 종목 목록을 그림
+function renderDividends(portfolio) {
+  assetDivAnnualText.textContent = formatMoney(portfolio.annualDividend);
+  assetDivMonthlyText.textContent = formatMoney(portfolio.annualDividend / 12);
+  assetDivYieldText.textContent = portfolio.dividendYield.toFixed(2) + "%";
+  assetDivAfterTaxText.textContent =
+    "세후 연 약 " +
+    formatMoney(portfolio.annualDividend * (1 - ASSET_DIVIDEND_TAX_RATE)) +
+    " (배당소득세 15.4% 가정)";
+
+  // 배당이 있는 종목만 골라 연 배당금이 큰 순서로
+  const payers = assets
+    .filter(function (asset) {
+      return calculateAsset(asset).annualDividend > 0;
+    })
+    .sort(function (a, b) {
+      return calculateAsset(b).annualDividend - calculateAsset(a).annualDividend;
+    });
+
+  assetDivList.innerHTML = "";
+  payers.forEach(function (asset) {
+    const result = calculateAsset(asset);
+    const share = (result.annualDividend / portfolio.annualDividend) * 100;
+
+    // 한 줄 모양
+    // 삼성전자 .................. 연 14,440원
+    // 주당 1,444원 · 수익률 1.93% (매입가 기준 2.06%) · 배당 비중 30.0%
+    const li = document.createElement("li");
+    li.className = "div-item";
+
+    const name = document.createElement("span");
+    name.className = "div-name";
+    name.textContent = asset.name;
+
+    const amount = document.createElement("span");
+    amount.className = "div-amount";
+    amount.textContent = "연 " + formatMoney(result.annualDividend);
+
+    const detail = document.createElement("span");
+    detail.className = "div-detail";
+    detail.textContent =
+      "주당 " + formatMoney(asset.dividendPerShare) +
+      " · 수익률 " + result.dividendYield.toFixed(2) + "%" +
+      " (매입가 기준 " + result.yieldOnCost.toFixed(2) + "%)" +
+      " · 배당 비중 " + share.toFixed(1) + "%";
+
+    li.append(name, amount, detail);
+    assetDivList.appendChild(li);
+  });
+
+  assetDivEmptyMessage.hidden = payers.length > 0;
+}
+
+// 금융자산 탭 전체를 다시 그림 (요약 + 배당 + 목록)
 function renderAssets() {
   const portfolio = calculatePortfolio(assets);
   renderAssetSummary(portfolio);
+  renderDividends(portfolio);
 
   assetList.innerHTML = "";
   sortAssetsByValue(assets).forEach(function (asset) {
