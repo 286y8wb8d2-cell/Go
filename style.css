@@ -485,6 +485,25 @@ section {
 .kind-deposit  { background: #e87ba4; } /* 분홍 */
 .kind-cash     { background: #008300; } /* 초록 */
 .kind-etc      { background: #6250d6; } /* 보라 */
+.kind-crypto   { background: #e34948; } /* 빨강 — 전체 자산의 "가상자산" */
+
+/* 회색 작은 글씨(summary-sub)라도 손익이면 빨강/파랑으로
+   (class 두 개를 함께 써서 위의 회색 규칙보다 우선하게 함) */
+.summary-sub.profit-up {
+  color: var(--up);
+}
+
+.summary-sub.profit-down {
+  color: var(--down);
+}
+
+/* 전체 자산 카드 맨 아래 가계부 한 줄: 위와 구분선으로 나눔 */
+.networth-ledger {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  word-break: keep-all;
+}
 
 /* 가상자산 코인별 색: 등록한 순서대로 0~6번, 그 뒤는 "기타" 회색
    (금융자산 종류 색과 같은 검증된 팔레트 순서) */

@@ -29,6 +29,8 @@ function loadList(key) {
 // 배열을 글자(JSON)로 바꿔 key 이름으로 저장함
 function saveList(key, list) {
   localStorage.setItem(key, JSON.stringify(list));
+  // "저장됐어요" 신호를 보냄 → 다른 탭의 합계(networth.js 등)가 듣고 다시 계산함
+  document.dispatchEvent(new CustomEvent("data-saved", { detail: { key: key } }));
 }
 
 // ---------------------------------------------
