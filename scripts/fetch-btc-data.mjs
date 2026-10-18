@@ -17,7 +17,7 @@ const PREVIOUS_URL = `https://raw.githubusercontent.com/${REPO}/data/btc-data.js
 const SITE_ORIGIN = "https://286y8wb8d2-cell.github.io";
 const HEADERS = { accept: "application/json", "user-agent": "Mozilla/5.0 (household-app data bot)" };
 
-// 받아 오기 (8초 넘으면 포기)
+// 받아 오기 (15초 넘으면 포기)
 async function get(url, options = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
@@ -113,7 +113,7 @@ await collect("etf", async () => {
   const funds = rows
     .filter((r) => r.date === lastDate)
     .sort((a, b) => (b.holdings || 0) - (a.holdings || 0));
-  return { sourceUpdated: json.updatedAt || null, days, funds, lastDate };
+  return { sourceUpdated: json.updatedAt || null, days, funds, lastDate, attribution: json.canonicalUrl || "https://xoomar.com/markets/api" };
 });
 
 // ---------- 미국 M2 통화량 (월별, 10억 달러) ----------
@@ -150,38 +150,38 @@ await collect("btcUsdMonthly", async () => {
 });
 
 // ---------- 거래소 BTC 출금 수수료 ----------
+// 거래소마다 응답 모양이 달라서 하나씩 읽음 → { onchain: 0.0002, lightning: 0.00001 | null }
+const isLightning = (name) => /lightning|^ln$|lnd/i.test(String(name || ""));
+const WITHDRAW_SOURCES = [
+  ["upbit", "https://ccx.upbit.com/api/v1/status/withdraw_fee", (json) => {
+    const rows = (json.withdraw_fee_conditions || []).filter((r) => r.currency === "BTC");
+    return rows.map((r) => ({ lightning: isLightning(r.network_name) || isLightning(r.net_type), fee: num(r.withdraw_fee) }));
+  }],
+  ["bithumb", "https://gw.bithumb.com/exchange/v1/coin-inout/info", (json) => {
+    const coin = (json.data || []).find((r) => r.coinSymbol === "BTC");
+    return (coin?.networkInfoList || []).map((n) => ({ lightning: isLightning(n.networkName), fee: num(n.withdrawFeeQuantity) }));
+  }],
+  ["korbit", "https://api.korbit.co.kr/v2/currencies", (json) => {
+    const coin = (json.data || []).find((r) => String(r.name).toLowerCase() === "btc");
+    return (coin?.networkList || []).map((n) => ({ lightning: isLightning(n.name) || isLightning(n.fullName), fee: num(n.withdrawalTxFee) }));
+  }],
+  ["binance", "https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll", (json) => {
+    const coin = (json.data || []).find((r) => r.coin === "BTC");
+    // BTC라도 다른 체인(BSC 등)으로 보내는 경우가 섞여 있어서 비트코인·라이트닝 네트워크만
+    return (coin?.networkList || [])
+      .filter((n) => n.network === "BTC" || isLightning(n.network) || isLightning(n.name))
+      .map((n) => ({ lightning: n.network !== "BTC", fee: num(n.withdrawFee) }));
+  }],
+];
 await collect("withdraw", async () => {
   const fees = {};
-  const tries = [
-    ["upbit", "https://ccx.upbit.com/api/v1/status/withdraw_fee", (json) => {
-      const rows = (json.withdraw_fee_conditions || []).filter((r) => String(r.currency || r.coin || "").toUpperCase() === "BTC");
-      log("upbit BTC 행:", sample(rows.slice(0, 3)));
-      return rows;
-    }],
-    ["bithumb", "https://gw.bithumb.com/exchange/v1/coin-inout/info", (json) => {
-      const list = json.data || json;
-      const rows = (Array.isArray(list) ? list : Object.values(list)).filter((r) => JSON.stringify(r).includes('"BTC"'));
-      log("bithumb BTC 행:", sample(rows.slice(0, 2)));
-      return rows;
-    }],
-    ["korbit", "https://api.korbit.co.kr/v2/currencies", (json) => {
-      const list = json.data || json;
-      const rows = (Array.isArray(list) ? list : Object.values(list)).filter((r) => String(r.name || r.currency || r.symbol || "").toUpperCase() === "BTC");
-      log("korbit BTC 행:", sample(rows.slice(0, 2)));
-      return rows;
-    }],
-    ["binance", "https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll", (json) => {
-      const list = json.data || [];
-      const rows = list.filter((r) => r.coin === "BTC");
-      log("binance BTC 행:", sample(rows.slice(0, 1)));
-      return rows;
-    }],
-  ];
-  for (const [name, url, pick] of tries) {
+  for (const [name, url, read] of WITHDRAW_SOURCES) {
     try {
-      const json = await (await get(url)).json();
-      const rows = pick(json);
-      fees[name] = findBtcFees(rows);
+      const options = read(await (await get(url)).json());
+      const onchain = options.find((o) => !o.lightning && o.fee !== null);
+      const lightning = options.find((o) => o.lightning && o.fee !== null);
+      if (!onchain) throw new Error("비트코인 네트워크 수수료를 못 찾음");
+      fees[name] = { onchain: onchain.fee, lightning: lightning ? lightning.fee : null };
       log(`  ${name} 수수료:`, JSON.stringify(fees[name]));
     } catch (error) {
       fees[name] = previous.withdraw?.[name] ?? null;
@@ -191,29 +191,6 @@ await collect("withdraw", async () => {
   if (!Object.values(fees).some(Boolean)) throw new Error("모든 거래소 실패");
   return fees;
 });
-
-// 응답 모양이 거래소마다 달라서, BTC 행 안에서 "fee"가 들어간 숫자 칸과 네트워크 이름을 찾아냄
-// → { onchain: 0.0002, lightning: 0.00001 | null }
-function findBtcFees(rows) {
-  const result = { onchain: null, lightning: null };
-  const visit = (node, network) => {
-    if (!node || typeof node !== "object") return;
-    const name = String(node.network || node.networkName || node.net_type || node.netType || node.chain || node.name || network || "").toLowerCase();
-    for (const [key, value] of Object.entries(node)) {
-      if (/withdraw.*fee|fee.*quantity|withdrawaltxfee|^fee$/i.test(key) && !/min|max|rate|percent|unit/i.test(key)) {
-        const fee = num(typeof value === "object" && value ? value.amount ?? value.value : value);
-        if (fee !== null && fee >= 0 && fee < 0.01) {
-          if (name.includes("lightning") || name.includes("lnd")) result.lightning ??= fee;
-          else result.onchain ??= fee;
-        }
-      }
-      if (value && typeof value === "object") visit(value, name);
-    }
-  };
-  rows.forEach((row) => visit(row, ""));
-  if (result.onchain === null && result.lightning === null) throw new Error("BTC 수수료 칸을 못 찾음");
-  return result;
-}
 
 // ---------- 예비: 공포·탐욕 지수, 도미넌스 ----------
 await collect("fng", async () => {
