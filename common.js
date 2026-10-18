@@ -49,6 +49,20 @@ function formatAmount(amount) {
   return (Math.round(amount) || 0).toLocaleString("ko-KR");
 }
 
+// 큰 금액을 "억", "만" 단위로 짧게 (예: 123,456,789 → "1.23억원", 45,670,000 → "4,567만원")
+// 좁은 칸에 금액을 넣을 때 사용. 1만 원 미만은 그대로
+function formatKoreanUnit(amount) {
+  const abs = Math.abs(amount);
+  const sign = amount < 0 ? "-" : "";
+  if (abs >= 100000000) {
+    return sign + (abs / 100000000).toLocaleString("ko-KR", { maximumFractionDigits: 2 }) + "억원";
+  }
+  if (abs >= 10000) {
+    return sign + Math.round(abs / 10000).toLocaleString("ko-KR") + "만원";
+  }
+  return formatMoney(amount);
+}
+
 // 금액 앞에 +/- 부호를 붙여 줌 (예: "+50,000원", "-3,000원", 0이면 "0원")
 function formatSignedMoney(amount) {
   const rounded = Math.round(amount);

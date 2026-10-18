@@ -8,7 +8,7 @@
   <title>나의 가계부</title>
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
   <header>
@@ -369,18 +369,103 @@
         <ul id="scenario-list" class="item-list"></ul>
         <p id="scenario-empty-message" class="empty-message">저장한 시나리오가 없습니다.</p>
       </section>
+
+      <!-- B-① 미래 적립 시뮬레이션 입력: simulate.js -->
+      <section>
+        <h2>미래 적립 시뮬레이션</h2>
+        <p class="section-desc">지금 자산에 매달 꾸준히 더 넣으면 몇 년 뒤 얼마가 될지 세 가지 수익률로 비교해요.</p>
+
+        <div class="card-form">
+          <label for="sim-start">시작 금액(원)</label>
+          <div class="inline-row">
+            <input type="number" id="sim-start" min="0" step="any" inputmode="numeric" placeholder="0">
+            <button type="button" id="sim-load-networth" class="btn-secondary">현재 자산</button>
+          </div>
+
+          <label for="sim-monthly">매월 투자금(원)</label>
+          <div class="inline-row">
+            <input type="number" id="sim-monthly" min="0" step="any" inputmode="numeric" placeholder="0">
+            <button type="button" id="sim-load-ledger" class="btn-secondary">가계부 평균</button>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label for="sim-years">기간(년)</label>
+              <input type="number" id="sim-years" min="1" max="50" step="1" inputmode="numeric">
+            </div>
+            <div>
+              <label for="sim-dividend">배당수익률(연 %)</label>
+              <input type="number" id="sim-dividend" min="0" max="30" step="any" inputmode="decimal">
+            </div>
+          </div>
+
+          <!-- 연 수익률: 가격 상승분만 (배당은 위 칸에서 따로) -->
+          <p class="form-group-title">연 기대수익률(%, 배당 제외)</p>
+          <div class="form-row form-row-3">
+            <div>
+              <label for="sim-rate-bad">비관</label>
+              <!-- 하락(-)도 넣을 수 있게 inputmode를 쓰지 않음 -->
+              <input type="number" id="sim-rate-bad" min="-50" max="50" step="any">
+            </div>
+            <div>
+              <label for="sim-rate-base">기본</label>
+              <input type="number" id="sim-rate-base" min="-50" max="50" step="any">
+            </div>
+            <div>
+              <label for="sim-rate-good">낙관</label>
+              <input type="number" id="sim-rate-good" min="-50" max="50" step="any">
+            </div>
+          </div>
+
+          <label class="checkbox-label">
+            <input type="checkbox" id="sim-reinvest"> 배당금을 다시 투자하기 (재투자)
+          </label>
+        </div>
+      </section>
+
+      <!-- B-② 시뮬레이션 결과 -->
+      <section>
+        <h2>시뮬레이션 결과</h2>
+        <div id="sim-cards" class="sim-cards"></div>
+        <p id="sim-principal" class="summary-sub"></p>
+        <p id="sim-dividend-result" class="summary-sub scenario-sub-tight"></p>
+
+        <!-- 연도별 표 (만원 단위) -->
+        <div class="table-scroll">
+          <table class="scenario-table">
+            <thead>
+              <tr>
+                <th>기간</th>
+                <th>원금</th>
+                <th>비관</th>
+                <th>기본</th>
+                <th>낙관</th>
+              </tr>
+            </thead>
+            <tbody id="sim-table-body"></tbody>
+          </table>
+        </div>
+        <p class="table-note">단위: 만원 · 각 해 말 기준 평가액</p>
+
+        <p class="disclaimer">
+          입력한 수익률이 매년 똑같이 유지된다고 가정한 단순 계산이에요. 실제 수익은 해마다 오르내리고,
+          세금·수수료·물가 상승은 반영하지 않았어요. 투자 판단의 참고용으로만 봐 주세요.
+        </p>
+      </section>
     </div>
   </main>
 
   <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
        common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
-  <script src="common.js?v=10"></script>
+  <script src="common.js?v=11"></script>
   <script src="app.js?v=9"></script>
   <script src="assets.js?v=9"></script>
   <script src="crypto.js?v=9"></script>
   <!-- 전체 자산 요약: 위 파일들의 계산 함수를 쓰므로 맨 마지막에 -->
   <script src="networth.js?v=9"></script>
   <!-- 시나리오: 위 모든 파일의 계산 함수를 씀 -->
-  <script src="scenario.js?v=10"></script>
+  <script src="scenario.js?v=11"></script>
+  <!-- 미래 적립 시뮬레이션: 전체 자산·가계부 값을 불러옴 -->
+  <script src="simulate.js?v=11"></script>
 </body>
 </html>
