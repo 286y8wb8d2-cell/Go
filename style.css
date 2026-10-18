@@ -1048,6 +1048,133 @@ section {
   word-break: keep-all;
 }
 
+/* 자산 추이 그래프 — 선 색 (검증된 팔레트 1~3번: 파랑·주황·청록) */
+:root {
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+}
+
+.history-chart-box {
+  margin-bottom: 8px;
+}
+
+/* 범례: ─ 총 자산  ─ 금융자산  ─ 가상자산 */
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 12px 0 6px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 범례 표시는 선 모양 (선 그래프이므로) */
+.legend-line {
+  display: inline-block;
+  width: 16px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+.legend-line.series-1, .readout-key.series-1 { background: var(--series-1); }
+.legend-line.series-2, .readout-key.series-2 { background: var(--series-2); }
+.legend-line.series-3, .readout-key.series-3 { background: var(--series-3); }
+
+.history-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: pan-y; /* 세로 스크롤은 그대로, 가로로 끌 때만 그래프가 반응 */
+  cursor: crosshair;
+}
+
+.history-chart:focus-visible {
+  outline: 2px solid var(--primary);
+  border-radius: 6px;
+}
+
+/* 눈금선: 연한 회색 1px */
+.chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.chart-axis-label {
+  fill: var(--text-light);
+  font-size: 10px;
+}
+
+/* 선: 2px, 끝과 꺾이는 곳을 둥글게 */
+.chart-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.chart-line.series-1 { stroke: var(--series-1); }
+.chart-line.series-2 { stroke: var(--series-2); }
+.chart-line.series-3 { stroke: var(--series-3); }
+
+/* 점: 지름 8px + 바탕색 테두리 2px (선과 겹쳐도 잘 보이게) */
+.chart-dot {
+  stroke: var(--card);
+  stroke-width: 2;
+}
+
+.chart-dot.series-1 { fill: var(--series-1); }
+.chart-dot.series-2 { fill: var(--series-2); }
+.chart-dot.series-3 { fill: var(--series-3); }
+
+/* 고른 달의 세로 안내선 */
+.chart-crosshair {
+  stroke: var(--text-light);
+  stroke-width: 1;
+}
+
+/* 그래프 아래 읽기 칸 */
+.history-readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+}
+
+.readout-title {
+  width: 100%;
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.readout-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 값 옆의 짧은 선 표시 */
+.readout-key {
+  display: inline-block;
+  width: 10px;
+  height: 2px;
+}
+
+.readout-name {
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
 /* 자산 추이 표의 작은 삭제 버튼 */
 .history-delete-btn {
   height: 26px;
