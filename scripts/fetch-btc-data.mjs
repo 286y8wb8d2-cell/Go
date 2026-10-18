@@ -280,28 +280,6 @@ for (const [name, url] of Object.entries(corsTargets)) {
 }
 log("CORS 점검:", JSON.stringify(out.cors, null, 1));
 
-// ---------- (점검용) 주식 시세 주소: 브라우저 허용 여부와 응답 모양 ----------
-const stockProbes = {
-  "야후 chart q1": "https://query1.finance.yahoo.com/v8/finance/chart/QQQ?range=1y&interval=1d&events=div",
-  "야후 chart q2": "https://query2.finance.yahoo.com/v8/finance/chart/005930.KS?range=5d&interval=1d",
-  "stooq json": "https://stooq.com/q/l/?s=qqq.us&f=sd2t2ohlcv&h&e=json",
-  "네이버 polling": "https://polling.finance.naver.com/api/realtime/domestic/stock/005930",
-  "네이버 api 해외": "https://api.stock.naver.com/stock/QQQ.O/basic",
-  "네이버 api 국내": "https://m.stock.naver.com/api/stock/005930/basic",
-  "네이버 지수": "https://m.stock.naver.com/api/index/KOSPI/basic",
-};
-out.stockProbe = {};
-for (const [name, url] of Object.entries(stockProbes)) {
-  try {
-    const response = await fetch(url, { headers: { ...HEADERS, origin: SITE_ORIGIN } });
-    const text = await response.text();
-    out.stockProbe[name] = { status: response.status, allow: response.headers.get("access-control-allow-origin") || "(없음)" };
-    log("주식점검", name, response.status, "allow=" + (response.headers.get("access-control-allow-origin") || "없음"), text.slice(0, 600).replace(/\s+/g, " "));
-  } catch (error) {
-    out.stockProbe[name] = { status: 0, allow: "실패 " + error.message };
-    log("주식점검", name, "실패", error.message);
-  }
-}
 
 await writeFile("btc-data.json", JSON.stringify(out));
 log("저장 완료:", Object.entries(out.status).map(([k, v]) => `${k}=${v}`).join(", "));

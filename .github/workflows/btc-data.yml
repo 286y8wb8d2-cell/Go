@@ -1,5 +1,6 @@
-# 비트코인 예비 데이터 모으기
-# 6시간마다 scripts/fetch-btc-data.mjs를 실행해서 btc-data.json을 "data" 가지(branch)에 올림
+# 예비 데이터 모으기 (비트코인 + 주식·ETF·지수)
+# 6시간마다 scripts/fetch-btc-data.mjs, scripts/fetch-market-data.mjs를 실행해서
+# btc-data.json, market-data.json을 "data" 가지(branch)에 올림
 # (main 가지에는 기록이 쌓이지 않도록 data 가지는 매번 새로 덮어씀)
 # 앱은 https://raw.githubusercontent.com/<저장소>/data/btc-data.json 을 읽음
 name: btc-data
@@ -19,23 +20,33 @@ concurrency:
 jobs:
   fetch:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: 데이터 모으기
+      - name: 비트코인 데이터 모으기
         run: node scripts/fetch-btc-data.mjs
+      - name: 주식·지수 시세 모으기
+        # 실패해도 다음 단계로 (지난번 파일을 그대로 씀)
+        continue-on-error: true
+        run: node scripts/fetch-market-data.mjs
+      - name: 실패한 파일은 지난번 것으로
+        run: |
+          if [ ! -f market-data.json ]; then
+            curl -sf -o market-data.json "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/data/market-data.json" || echo "지난 시세 파일 없음"
+          fi
       - name: data 가지에 올리기
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir out && cp btc-data.json out/
+          [ -f market-data.json ] && cp market-data.json out/
           cd out
           git init -q -b data
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add btc-data.json
-          git commit -q -m "btc-data $(date -u +%Y-%m-%dT%H:%MZ)"
+          git add .
+          git commit -q -m "data $(date -u +%Y-%m-%dT%H:%MZ)"
           git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data
