@@ -56,7 +56,13 @@ function isValidAsset(item) {
     isText(item.id) && isText(item.name) && isText(item.kind) &&
     isNumber(item.quantity) && isNumber(item.avgPrice) &&
     isNumber(item.currentPrice) && isNumber(item.dividendPerShare) &&
-    isText(item.memo)
+    isText(item.memo) &&
+    // 지급월은 예전 백업에는 없을 수 있음. 있으면 1~12 숫자 목록이어야 함
+    (item.payMonths === undefined ||
+      (Array.isArray(item.payMonths) &&
+        item.payMonths.every(function (month) {
+          return Number.isInteger(month) && month >= 1 && month <= 12;
+        })))
   );
 }
 

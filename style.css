@@ -648,6 +648,48 @@ section {
   color: var(--text-light);
 }
 
+/* 배당 지급월 입력 */
+.paymonth-box {
+  margin-bottom: 14px;
+}
+
+.paymonth-box .chip-row {
+  margin-bottom: 10px;
+}
+
+/* 1~12월 체크박스: 한 줄에 6개씩 두 줄 */
+.paymonth-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+/* 체크박스 하나 + "3월" 글자 (.card-form label의 "한 줄 차지"를 덮어씀) */
+.card-form .month-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 36px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+/* 체크된 달은 배경색으로 표시 */
+.card-form .month-check:has(input:checked) {
+  border-color: var(--primary);
+  background: #eef3ff;
+}
+
+.month-check input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+}
+
 /* 배당 목록 한 줄
    첫째 줄: 종목명 .............. 연 배당금
    둘째 줄: 주당 배당금 · 수익률 · 배당 비중 */

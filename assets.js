@@ -25,6 +25,14 @@ const ASSET_KINDS = {
 // 배당소득세율 (국내 기준 15.4% = 소득세 14% + 지방소득세 1.4%). 세후 금액 "추정"에만 사용
 const ASSET_DIVIDEND_TAX_RATE = 0.154;
 
+// 배당 지급월 빠른 선택 버튼
+const ASSET_PAY_PRESETS = [
+  { name: "월배당", months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+  { name: "분기", months: [3, 6, 9, 12] },
+  { name: "반기", months: [6, 12] },
+  { name: "연 1회", months: [12] },
+];
+
 // 입력할 수 있는 가장 큰 값 (실수로 0을 너무 많이 넣는 것 방지)
 const ASSET_MAX_VALUE = 1000000000000; // 1조
 
@@ -54,6 +62,12 @@ const assetAvgPriceInput = document.getElementById("asset-avg-price");
 const assetCurrentPriceInput = document.getElementById("asset-current-price");
 const assetDividendInput = document.getElementById("asset-dividend");
 const assetMemoInput = document.getElementById("asset-memo");
+const assetPayMonthBox = document.getElementById("asset-paymonth-box");
+const assetPayPresetBox = document.getElementById("asset-pay-presets");
+const assetPayMonthGrid = document.getElementById("asset-paymonth-grid");
+
+// 1~12월 체크박스를 담아 둠 (buildPayMonthControls에서 만듦): [1월 체크박스, ..., 12월 체크박스]
+const assetPayMonthChecks = [];
 const assetSubmitBtn = document.getElementById("asset-submit-btn");
 const assetCancelBtn = document.getElementById("asset-cancel-btn");
 const assetList = document.getElementById("asset-list");
@@ -286,13 +300,25 @@ function renderDividends(portfolio) {
       "주당 " + formatMoney(asset.dividendPerShare) +
       " · 수익률 " + result.dividendYield.toFixed(2) + "%" +
       " (매입가 기준 " + result.yieldOnCost.toFixed(2) + "%)" +
-      " · 배당 비중 " + formatShare(share);
+      " · 배당 비중 " + formatShare(share) +
+      " · " + describePayMonths(asset.payMonths);
 
     li.append(name, amount, detail);
     assetDivList.appendChild(li);
   });
 
   assetDivEmptyMessage.hidden = payers.length > 0;
+}
+
+// 지급월을 글로 (예: [3, 6, 9, 12] → "지급 3·6·9·12월", 12개 → "매월 지급")
+function describePayMonths(payMonths) {
+  if (!Array.isArray(payMonths) || payMonths.length === 0) {
+    return "지급월 미입력 (12월로 계산)";
+  }
+  if (payMonths.length === 12) {
+    return "매월 지급";
+  }
+  return "지급 " + payMonths.join("·") + "월";
 }
 
 // 금융자산 탭 전체를 다시 그림 (요약 + 배당 + 목록)
@@ -347,12 +373,70 @@ function validateAsset(asset) {
   if (asset.quantity > ASSET_MAX_VALUE) {
     return "수량이 너무 큽니다.";
   }
+  if (asset.dividendPerShare > 0 && asset.payMonths.length === 0) {
+    return "배당 지급월을 하나 이상 골라 주세요.";
+  }
   return "";
 }
+
+// ---------------------------------------------
+// 배당 지급월 입력
+// ---------------------------------------------
+
+// 처음 한 번: 빠른 선택 버튼과 1~12월 체크박스를 만듦
+function buildPayMonthControls() {
+  ASSET_PAY_PRESETS.forEach(function (preset) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "chip-btn";
+    button.textContent = preset.name;
+    button.addEventListener("click", function () {
+      setPayMonths(preset.months);
+    });
+    assetPayPresetBox.appendChild(button);
+  });
+
+  for (let month = 1; month <= 12; month++) {
+    const label = document.createElement("label");
+    label.className = "month-check";
+    const check = document.createElement("input");
+    check.type = "checkbox";
+    check.value = String(month);
+    label.append(check, month + "월");
+    assetPayMonthGrid.appendChild(label);
+    assetPayMonthChecks.push(check);
+  }
+}
+
+// 체크박스를 주어진 달들로 맞춤 (예: [3, 6, 9, 12])
+function setPayMonths(months) {
+  assetPayMonthChecks.forEach(function (check, index) {
+    check.checked = months.indexOf(index + 1) !== -1;
+  });
+}
+
+// 체크된 달들을 숫자 배열로 (예: [3, 6, 9, 12])
+function readPayMonths() {
+  const months = [];
+  assetPayMonthChecks.forEach(function (check, index) {
+    if (check.checked) {
+      months.push(index + 1);
+    }
+  });
+  return months;
+}
+
+// 배당금 칸에 0보다 큰 값이 있을 때만 지급월 입력을 보여 줌
+function updatePayMonthVisibility() {
+  assetPayMonthBox.hidden = !(Number(assetDividendInput.value) > 0);
+}
+
+assetDividendInput.addEventListener("input", updatePayMonthVisibility);
 
 // 폼을 처음 상태로 되돌리고 수정 모드를 끝냄
 function resetAssetForm() {
   assetForm.reset();
+  updatePayMonthVisibility(); // 배당금이 비워졌으니 지급월 입력도 숨김
   assetEditingId = null;
   assetSubmitBtn.textContent = "추가";
   assetCancelBtn.hidden = true;
@@ -369,6 +453,8 @@ function startAssetEdit(asset) {
   assetCurrentPriceInput.value = asset.currentPrice;
   // 배당이 0이면 빈칸으로 두어 "없으면 빈칸" 안내가 보이게
   assetDividendInput.value = asset.dividendPerShare > 0 ? asset.dividendPerShare : "";
+  setPayMonths(Array.isArray(asset.payMonths) ? asset.payMonths : []); // 예전 종목은 지급월이 없음
+  updatePayMonthVisibility();
   assetMemoInput.value = asset.memo;
 
   assetSubmitBtn.textContent = "수정 완료";
@@ -399,6 +485,8 @@ assetForm.addEventListener("submit", function (event) {
     dividendPerShare: readAssetNumber(assetDividendInput), // 비어 있으면 0 (배당 없음)
     memo: assetMemoInput.value.trim(),
   };
+  // 배당이 있을 때만 지급월 저장 (배당이 없으면 빈 배열)
+  asset.payMonths = asset.dividendPerShare > 0 ? readPayMonths() : [];
 
   const error = validateAsset(asset);
   if (error !== "") {
@@ -437,4 +525,6 @@ function deleteAsset(id) {
 // 시작
 // =============================================
 
+buildPayMonthControls();
+updatePayMonthVisibility();
 renderAssets();

@@ -8,7 +8,7 @@
   <title>나의 가계부</title>
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=14">
+  <link rel="stylesheet" href="style.css?v=15">
 </head>
 <body>
   <header>
@@ -226,6 +226,13 @@
             </div>
           </div>
           <p class="form-hint">예적금·현금은 수량에 1, 매입가와 현재가에 잔액을 넣으세요.</p>
+
+          <!-- 배당 지급월: 배당금을 넣으면 나타남. 버튼과 체크박스는 assets.js가 만듦 -->
+          <div id="asset-paymonth-box" class="paymonth-box" hidden>
+            <p class="form-group-title">배당 지급월</p>
+            <div id="asset-pay-presets" class="chip-row"></div>
+            <div id="asset-paymonth-grid" class="paymonth-grid"></div>
+          </div>
 
           <label for="asset-memo">메모</label>
           <input type="text" id="asset-memo" placeholder="예: 증권사 이름">
@@ -482,17 +489,17 @@
 
   <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
        common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
-  <script src="common.js?v=14"></script>
-  <script src="app.js?v=14"></script>
-  <script src="assets.js?v=14"></script>
-  <script src="crypto.js?v=14"></script>
+  <script src="common.js?v=15"></script>
+  <script src="app.js?v=15"></script>
+  <script src="assets.js?v=15"></script>
+  <script src="crypto.js?v=15"></script>
   <!-- 전체 자산 요약: 위 파일들의 계산 함수를 쓰므로 맨 마지막에 -->
-  <script src="networth.js?v=14"></script>
+  <script src="networth.js?v=15"></script>
   <!-- 시나리오: 위 모든 파일의 계산 함수를 씀 -->
-  <script src="scenario.js?v=14"></script>
+  <script src="scenario.js?v=15"></script>
   <!-- 미래 적립 시뮬레이션: 전체 자산·가계부 값을 불러옴 -->
-  <script src="simulate.js?v=14"></script>
+  <script src="simulate.js?v=15"></script>
   <!-- 데이터 백업 -->
-  <script src="backup.js?v=14"></script>
+  <script src="backup.js?v=15"></script>
 </body>
 </html>
