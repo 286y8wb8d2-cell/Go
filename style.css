@@ -113,7 +113,7 @@ section {
    ============================================= */
 
 /* 글자(label)는 입력칸 위에 한 줄로 */
-#entry-form label {
+.card-form label {
   display: block;
   font-size: 0.9rem;
   color: var(--text-light);
@@ -122,10 +122,10 @@ section {
 
 /* 입력칸은 가로로 꽉 차게, 손가락으로 누르기 쉬운 높이로
    (글자 크기 16px 이상: 아이폰에서 입력할 때 화면이 확대되는 걸 막음) */
-#entry-form input[type="date"],
-#entry-form input[type="number"],
-#entry-form input[type="text"],
-#entry-form select {
+.card-form input[type="date"],
+.card-form input[type="number"],
+.card-form input[type="text"],
+.card-form select {
   display: block;
   width: 100%;
   height: 44px;
@@ -139,13 +139,13 @@ section {
 }
 
 /* 구분(수입/지출) 묶음 */
-#entry-form fieldset {
+.card-form fieldset {
   border: none;
   padding: 0;
   margin: 0 0 14px;
 }
 
-#entry-form legend {
+.card-form legend {
   font-size: 0.9rem;
   color: var(--text-light);
   margin-bottom: 4px;
@@ -153,7 +153,7 @@ section {
 }
 
 /* 라디오 버튼은 나란히, 글자와 함께 누르기 쉽게 */
-#entry-form fieldset label {
+.card-form fieldset label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -162,14 +162,14 @@ section {
   color: var(--text);
 }
 
-#entry-form input[type="radio"] {
+.card-form input[type="radio"] {
   width: 18px;
   height: 18px;
 }
 
 /* 아이폰 사파리의 날짜 칸 바로잡기
    (기본 모양을 끄지 않으면 칸이 카드 밖으로 넘치고, 글자가 가운데 위쪽에 붙음) */
-#entry-form input[type="date"] {
+.card-form input[type="date"] {
   -webkit-appearance: none;
   appearance: none;
   min-width: 0;
@@ -177,13 +177,13 @@ section {
   text-align: left;
 }
 
-#entry-form input[type="date"]::-webkit-date-and-time-value {
+.card-form input[type="date"]::-webkit-date-and-time-value {
   text-align: left;
 }
 
 /* 추가/수정 완료 버튼과 취소 버튼 */
-#submit-btn,
-#cancel-btn {
+.btn-primary,
+.btn-secondary {
   width: 100%;
   height: 46px;
   font-size: 16px;
@@ -192,17 +192,32 @@ section {
   cursor: pointer;
 }
 
-#submit-btn {
+.btn-primary {
   border: none;
   background: var(--primary);
   color: #ffffff;
 }
 
-#cancel-btn {
+.btn-secondary {
   margin-top: 8px;
   border: 1px solid var(--border);
   background: #ffffff;
   color: var(--text);
+}
+
+/* 입력칸 두 개를 나란히 놓는 줄 */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* 입력칸 아래 작은 도움말 */
+.form-hint {
+  margin: -6px 0 14px;
+  font-size: 0.8rem;
+  color: var(--text-light);
+  word-break: keep-all; /* 단어 중간에서 끊지 않기 */
 }
 
 /* =============================================
@@ -278,7 +293,8 @@ section {
    4. 내역 목록
    ============================================= */
 
-#entry-list {
+#entry-list,
+.item-list {
   list-style: none; /* 앞의 점(•) 없애기 */
   margin: 0;
   padding: 0;
@@ -370,10 +386,73 @@ section {
 }
 
 /* 내역이 없을 때 안내 문구 */
-#empty-message {
+#empty-message,
+.empty-message {
   margin: 8px 0;
   text-align: center;
   color: var(--text-light);
+}
+
+/* =============================================
+   4-1. 금융자산 목록
+   ============================================= */
+
+/* 한 종목을 두 줄로 배치
+   첫째 줄: 종목명 [종류] ......... 현재가
+   둘째 줄: 수량 · 평균 매입가 .... 삭제 */
+.asset-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "name   price"
+    "detail delete";
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.asset-item:last-child {
+  border-bottom: none;
+}
+
+.asset-name {
+  grid-area: name;
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+/* 종목명 옆의 작은 종류 표시 (예: [국내주식]) */
+.asset-kind {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-light);
+  font-size: 0.75rem;
+  font-weight: normal;
+  vertical-align: middle;
+}
+
+.asset-price {
+  grid-area: price;
+  text-align: right;
+  font-weight: bold;
+}
+
+.asset-detail {
+  grid-area: detail;
+  font-size: 0.85rem;
+  color: var(--text-light);
+  word-break: keep-all; /* 한글·숫자를 단어 중간에서 끊지 않고 띄어쓰기에서 줄바꿈 */
+}
+
+/* 삭제 버튼은 오른쪽에 붙이고, 금액 칸 너비만큼 늘어나지 않게 */
+.asset-item .delete-btn {
+  grid-area: delete;
+  justify-self: end;
 }
 
 /* =============================================

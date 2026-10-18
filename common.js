@@ -36,8 +36,14 @@ function saveList(key, list) {
 // ---------------------------------------------
 
 // 숫자를 "3,000,000원" 모양으로 바꿔 줌 (음수면 "-50,000원")
+// 원 단위 아래(소수점)는 반올림해서 보여 줌
 function formatMoney(amount) {
-  return amount.toLocaleString("ko-KR") + "원";
+  return Math.round(amount).toLocaleString("ko-KR") + "원";
+}
+
+// 수량처럼 소수점이 있을 수 있는 숫자를 "1,234.5" 모양으로 (소수점은 8자리까지)
+function formatNumber(value) {
+  return value.toLocaleString("ko-KR", { maximumFractionDigits: 8 });
 }
 
 // 오늘 날짜를 "2026-10-16" 모양의 글자로 만들어 줌

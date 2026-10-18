@@ -8,7 +8,7 @@
   <title>나의 가계부</title>
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <header>
@@ -29,7 +29,7 @@
       <!-- ① 입력 폼: 수입/지출 한 건을 입력하는 곳 -->
       <section id="form-section">
         <h2>내역 입력</h2>
-        <form id="entry-form">
+        <form id="entry-form" class="card-form">
           <!-- 날짜 -->
           <label for="date">날짜</label>
           <input type="date" id="date" required>
@@ -59,9 +59,9 @@
           <label for="memo">메모</label>
           <input type="text" id="memo" placeholder="예: 점심 식사">
 
-          <button type="submit" id="submit-btn">추가</button>
+          <button type="submit" id="submit-btn" class="btn-primary">추가</button>
           <!-- 수정 취소 버튼: 수정 중일 때만 보임 (hidden = 처음에는 숨김) -->
-          <button type="button" id="cancel-btn" hidden>취소</button>
+          <button type="button" id="cancel-btn" class="btn-secondary" hidden>취소</button>
         </form>
       </section>
 
@@ -97,11 +97,64 @@
       </section>
     </div>
 
-    <!-- ===== 금융자산 탭 (2단계부터 채움) ===== -->
+    <!-- ===== 금융자산 탭 ===== -->
     <div id="tab-assets" class="tab-panel" role="tabpanel" hidden>
+      <!-- ① 종목 입력 폼 -->
       <section>
-        <h2>금융자산</h2>
-        <p class="placeholder">준비 중입니다.</p>
+        <h2>종목 입력</h2>
+        <form id="asset-form" class="card-form">
+          <label for="asset-name">종목명</label>
+          <input type="text" id="asset-name" maxlength="40" placeholder="예: 삼성전자" required>
+
+          <!-- 종류: value(영어)는 저장용 이름, 글자(한글)는 화면에 보이는 이름 -->
+          <label for="asset-kind">종류</label>
+          <select id="asset-kind" required>
+            <option value="kr-stock">국내주식</option>
+            <option value="us-stock">해외주식</option>
+            <option value="etf">ETF</option>
+            <option value="bond">채권</option>
+            <option value="deposit">예적금</option>
+            <option value="cash">현금</option>
+            <option value="etc">기타</option>
+          </select>
+
+          <!-- 두 칸씩 나란히 (form-row) -->
+          <div class="form-row">
+            <div>
+              <label for="asset-quantity">수량</label>
+              <!-- step="any": 소수점 수량(해외주식 소수점 매수 등)도 입력 가능 -->
+              <input type="number" id="asset-quantity" min="0" step="any" inputmode="decimal" placeholder="예: 10" required>
+            </div>
+            <div>
+              <label for="asset-avg-price">평균 매입가(원)</label>
+              <input type="number" id="asset-avg-price" min="0" step="any" inputmode="decimal" placeholder="예: 70000" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label for="asset-current-price">현재가(원)</label>
+              <input type="number" id="asset-current-price" min="0" step="any" inputmode="decimal" placeholder="예: 75000" required>
+            </div>
+            <div>
+              <label for="asset-dividend">주당 연간 배당금(원)</label>
+              <input type="number" id="asset-dividend" min="0" step="any" inputmode="decimal" placeholder="없으면 빈칸">
+            </div>
+          </div>
+          <p class="form-hint">예적금·현금은 수량에 1, 매입가와 현재가에 잔액을 넣으세요.</p>
+
+          <label for="asset-memo">메모</label>
+          <input type="text" id="asset-memo" placeholder="예: 증권사 이름">
+
+          <button type="submit" id="asset-submit-btn" class="btn-primary">추가</button>
+        </form>
+      </section>
+
+      <!-- ② 보유 종목 목록: 항목은 assets.js가 채움 -->
+      <section>
+        <h2>보유 종목</h2>
+        <ul id="asset-list" class="item-list"></ul>
+        <p id="asset-empty-message" class="empty-message">아직 등록한 종목이 없습니다.</p>
       </section>
     </div>
 
@@ -124,7 +177,8 @@
 
   <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
        common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
-  <script src="common.js?v=3"></script>
-  <script src="app.js?v=3"></script>
+  <script src="common.js?v=4"></script>
+  <script src="app.js?v=4"></script>
+  <script src="assets.js?v=4"></script>
 </body>
 </html>
