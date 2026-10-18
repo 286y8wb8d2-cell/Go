@@ -180,11 +180,11 @@ await collect("btcUsdMonthly", async () => {
   // Coin Metrics는 몇 달 늦게 올라오므로, 최근 1년은 코인게코 하루 가격으로 채움 (월말 값)
   try {
     const recent = await (await get("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=365&interval=daily")).json();
+    // Coin Metrics의 마지막 달(덜 찬 달일 수 있음)부터는 코인게코 값으로 (날짜순이라 마지막 값 = 월말)
+    const lastCoinMetricsMonth = [...byMonth.keys()].sort().pop();
     for (const [time, price] of recent.prices || []) {
       const month = new Date(time).toISOString().slice(0, 7);
-      if (!byMonth.has(month) || month > [...byMonth.keys()].sort().pop() || month >= new Date(Date.now() - 400 * 864e5).toISOString().slice(0, 7)) {
-        byMonth.set(month, Math.round(price * 100) / 100);
-      }
+      if (month >= lastCoinMetricsMonth) byMonth.set(month, Math.round(price * 100) / 100);
     }
   } catch (error) {
     log("코인게코 최근 가격 실패:", error.message);
