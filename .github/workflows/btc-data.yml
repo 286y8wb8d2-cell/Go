@@ -1,0 +1,41 @@
+# 비트코인 예비 데이터 모으기
+# 6시간마다 scripts/fetch-btc-data.mjs를 실행해서 btc-data.json을 "data" 가지(branch)에 올림
+# (main 가지에는 기록이 쌓이지 않도록 data 가지는 매번 새로 덮어씀)
+# 앱은 https://raw.githubusercontent.com/<저장소>/data/btc-data.json 을 읽음
+name: btc-data
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: btc-data
+  cancel-in-progress: true
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: 데이터 모으기
+        run: node scripts/fetch-btc-data.mjs
+      - name: data 가지에 올리기
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir out && cp btc-data.json out/
+          cd out
+          git init -q -b data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add btc-data.json
+          git commit -q -m "btc-data $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data
