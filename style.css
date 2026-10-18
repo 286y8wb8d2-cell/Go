@@ -690,6 +690,80 @@ section {
   margin: 0;
 }
 
+/* 월별 배당 막대 그래프 */
+.month-chart-box {
+  margin-top: 16px;
+}
+
+/* 12개 막대를 가로로 똑같은 너비로 */
+.month-chart {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 2px;
+  height: 150px;
+}
+
+/* 한 달 칸 (누를 수 있는 버튼): 위에 금액, 가운데 막대, 아래에 월 */
+.month-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.month-col.selected {
+  background: var(--bg);
+}
+
+.month-value {
+  height: 16px;
+  font-size: 0.65rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* 막대가 자라는 영역 (아래쪽 기준선에서 위로) */
+.month-bar-area {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  border-bottom: 1px solid var(--border); /* 기준선 */
+}
+
+/* 막대: 최대 16px 두께, 위쪽 끝만 둥글게 */
+.month-bar {
+  width: 70%;
+  max-width: 16px;
+  border-radius: 4px 4px 0 0;
+  background: var(--primary);
+}
+
+.month-label {
+  height: 18px;
+  font-size: 0.7rem;
+  line-height: 18px;
+  color: var(--text-light);
+}
+
+.month-col.selected .month-label {
+  color: var(--text);
+  font-weight: bold;
+}
+
+/* 선택한 달의 내역 */
+.month-detail {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+  word-break: keep-all;
+}
+
 /* 배당 목록 한 줄
    첫째 줄: 종목명 .............. 연 배당금
    둘째 줄: 주당 배당금 · 수익률 · 배당 비중 */

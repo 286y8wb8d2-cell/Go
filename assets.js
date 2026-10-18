@@ -84,6 +84,13 @@ const assetDivYieldText = document.getElementById("asset-div-yield");
 const assetDivAfterTaxText = document.getElementById("asset-div-after-tax");
 const assetDivList = document.getElementById("asset-div-list");
 const assetDivEmptyMessage = document.getElementById("asset-div-empty-message");
+const assetDivChartBox = document.getElementById("asset-div-chart-box");
+const assetDivChart = document.getElementById("asset-div-chart");
+const assetDivChartNote = document.getElementById("asset-div-chart-note");
+const assetDivMonthDetail = document.getElementById("asset-div-month-detail");
+
+// 월별 배당 그래프에서 지금 선택한 달 (1~12, 처음에는 배당이 가장 많은 달)
+let assetSelectedMonth = null;
 
 // =============================================
 // 3. 계산
@@ -146,6 +153,30 @@ function calculatePortfolio(list) {
     // 포트폴리오 배당수익률 = 연 배당금 합계 ÷ 총 평가금액
     dividendYield: value > 0 ? (annualDividend / value) * 100 : 0,
   };
+}
+
+// 1~12월 각각 들어올 배당과 종목별 내역을 계산해 돌려줌
+// 결과: [ { month: 1, total: 0, items: [] }, ..., { month: 12, total: 14440, items: [{ name, amount }] } ]
+// 연 배당금을 지급 횟수로 나눠서 각 지급월에 똑같이 담음 (지급월이 없는 예전 종목은 12월 한 번)
+function calculateMonthlyDividends(list) {
+  const months = [];
+  for (let month = 1; month <= 12; month++) {
+    months.push({ month: month, total: 0, items: [] });
+  }
+  list.forEach(function (asset) {
+    const annual = calculateAsset(asset).annualDividend;
+    if (annual <= 0) {
+      return;
+    }
+    const payMonths = Array.isArray(asset.payMonths) && asset.payMonths.length > 0 ? asset.payMonths : [12];
+    const perPayment = annual / payMonths.length;
+    payMonths.forEach(function (month) {
+      const slot = months[month - 1];
+      slot.total = slot.total + perPayment;
+      slot.items.push({ name: asset.name, amount: perPayment });
+    });
+  });
+  return months;
 }
 
 // 평가금액이 큰 순서로 정렬한 새 배열을 돌려줌 (같으면 먼저 등록한 것이 앞)
@@ -308,6 +339,91 @@ function renderDividends(portfolio) {
   });
 
   assetDivEmptyMessage.hidden = payers.length > 0;
+  renderDividendChart();
+}
+
+// 월별 배당 막대 그래프 (1~12월)
+function renderDividendChart() {
+  const months = calculateMonthlyDividends(assets);
+  let max = 0;
+  months.forEach(function (m) {
+    max = Math.max(max, m.total);
+  });
+
+  assetDivChartBox.hidden = max <= 0;
+  if (max <= 0) {
+    assetSelectedMonth = null;
+    return;
+  }
+
+  // 선택한 달이 없거나 그달 배당이 사라졌으면, 가장 많은 달을 선택
+  const maxMonth = months.find(function (m) {
+    return m.total === max;
+  }).month;
+  if (assetSelectedMonth === null || months[assetSelectedMonth - 1].total <= 0) {
+    assetSelectedMonth = maxMonth;
+  }
+
+  // 막대 12개: 높이 = 그달 배당 ÷ 가장 많은 달 배당
+  assetDivChart.innerHTML = "";
+  months.forEach(function (m) {
+    const column = document.createElement("button");
+    column.type = "button";
+    column.className = "month-col" + (m.month === assetSelectedMonth ? " selected" : "");
+    column.setAttribute("aria-label", m.month + "월 배당 " + formatMoney(m.total));
+
+    // 가장 많은 달 위에만 금액을 적음 (모든 막대에 숫자를 쓰면 읽기 어려움)
+    const value = document.createElement("span");
+    value.className = "month-value";
+    // 칸이 좁아서 1만 원 이상은 "4.6만"처럼 소수점 한 자리 만 단위로
+    const shortValue = m.total >= 10000 ? (m.total / 10000).toFixed(1) + "만" : formatAmount(m.total);
+    value.textContent = m.month === maxMonth ? shortValue : "";
+
+    const barArea = document.createElement("span");
+    barArea.className = "month-bar-area";
+    const bar = document.createElement("span");
+    bar.className = "month-bar";
+    bar.style.height = (m.total / max) * 100 + "%";
+    barArea.appendChild(bar);
+
+    const label = document.createElement("span");
+    label.className = "month-label";
+    label.textContent = m.month;
+
+    column.append(value, barArea, label);
+    // 막대를 누르면 그달 내역을 아래에 보여 줌
+    column.addEventListener("click", function () {
+      assetSelectedMonth = m.month;
+      renderDividendChart();
+    });
+    assetDivChart.appendChild(column);
+  });
+
+  // 배당이 없는 달 안내
+  const emptyMonths = months
+    .filter(function (m) {
+      return m.total <= 0;
+    })
+    .map(function (m) {
+      return m.month;
+    });
+  assetDivChartNote.textContent =
+    "가장 많은 달 " + maxMonth + "월" +
+    (emptyMonths.length > 0 ? " · 배당 없는 달 " + emptyMonths.join("·") + "월" : " · 매달 배당이 들어와요");
+
+  // 선택한 달의 내역: "6월 45,000원 — 삼성전자 3,610원 · TIGER 41,390원"
+  const selected = months[assetSelectedMonth - 1];
+  const parts = selected.items
+    .slice()
+    .sort(function (a, b) {
+      return b.amount - a.amount;
+    })
+    .map(function (item) {
+      return item.name + " " + formatMoney(item.amount);
+    });
+  assetDivMonthDetail.textContent =
+    selected.month + "월 " + formatMoney(selected.total) +
+    (parts.length > 0 ? " — " + parts.join(" · ") : " — 들어오는 배당 없음");
 }
 
 // 지급월을 글로 (예: [3, 6, 9, 12] → "지급 3·6·9·12월", 12개 → "매월 지급")
