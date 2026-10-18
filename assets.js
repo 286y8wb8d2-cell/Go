@@ -36,6 +36,9 @@ function saveAssets() {
   saveList(ASSET_STORAGE_KEY, assets);
 }
 
+// 지금 수정 중인 종목의 id (수정 중이 아니면 null)
+let assetEditingId = null;
+
 // =============================================
 // 화면 요소 찾기
 // =============================================
@@ -48,17 +51,91 @@ const assetAvgPriceInput = document.getElementById("asset-avg-price");
 const assetCurrentPriceInput = document.getElementById("asset-current-price");
 const assetDividendInput = document.getElementById("asset-dividend");
 const assetMemoInput = document.getElementById("asset-memo");
+const assetSubmitBtn = document.getElementById("asset-submit-btn");
+const assetCancelBtn = document.getElementById("asset-cancel-btn");
 const assetList = document.getElementById("asset-list");
 const assetEmptyMessage = document.getElementById("asset-empty-message");
+const assetTotalValueText = document.getElementById("asset-total-value");
+const assetTotalProfitText = document.getElementById("asset-total-profit");
+const assetTotalRateText = document.getElementById("asset-total-rate");
+const assetTotalCostText = document.getElementById("asset-total-cost");
+const assetAllocBar = document.getElementById("asset-alloc-bar");
+const assetAllocLegend = document.getElementById("asset-alloc-legend");
+
+// =============================================
+// 3. 계산
+// =============================================
+
+// 종목 하나의 매입금액, 평가금액, 손익, 수익률(%)을 계산해 돌려줌
+function calculateAsset(asset) {
+  const cost = asset.quantity * asset.avgPrice; // 매입금액 = 수량 × 평균 매입가
+  const value = asset.quantity * asset.currentPrice; // 평가금액 = 수량 × 현재가
+  const profit = value - cost; // 손익
+  // 수익률: 매입금액이 0이면 나눌 수 없으니 0으로
+  const rate = cost > 0 ? (profit / cost) * 100 : 0;
+  return { cost: cost, value: value, profit: profit, rate: rate };
+}
+
+// 전체 포트폴리오의 합계와 종류별 평가금액을 계산해 돌려줌
+function calculatePortfolio(list) {
+  let cost = 0;
+  let value = 0;
+  // 종류별 평가금액을 모을 상자: { "kr-stock": 0, "us-stock": 0, ... }
+  const valueByKind = {};
+  Object.keys(ASSET_KINDS).forEach(function (kind) {
+    valueByKind[kind] = 0;
+  });
+
+  list.forEach(function (asset) {
+    const result = calculateAsset(asset);
+    cost = cost + result.cost;
+    value = value + result.value;
+    const kind = ASSET_KINDS[asset.kind] ? asset.kind : "etc";
+    valueByKind[kind] = valueByKind[kind] + result.value;
+  });
+
+  const profit = value - cost;
+  return {
+    cost: cost,
+    value: value,
+    profit: profit,
+    rate: cost > 0 ? (profit / cost) * 100 : 0,
+    valueByKind: valueByKind,
+  };
+}
+
+// 평가금액이 큰 순서로 정렬한 새 배열을 돌려줌 (같으면 먼저 등록한 것이 앞)
+function sortAssetsByValue(list) {
+  return list.slice().sort(function (a, b) {
+    const diff = calculateAsset(b).value - calculateAsset(a).value;
+    if (diff !== 0) {
+      return diff;
+    }
+    return Number(a.id) - Number(b.id);
+  });
+}
 
 // =============================================
 // 4. 화면 그리기
 // =============================================
 
+// 손익 숫자에 따라 class 이름을 돌려줌 (style.css에서 색을 정함)
+function getProfitClass(amount) {
+  if (amount > 0) return "profit-up";
+  if (amount < 0) return "profit-down";
+  return "";
+}
+
 // 종목 하나로 목록의 한 줄(<li>)을 만들어 돌려줌
-function createAssetItem(asset) {
+// totalValue: 전체 평가금액 (비중 계산에 사용)
+function createAssetItem(asset, totalValue) {
+  const result = calculateAsset(asset);
+
   const li = document.createElement("li");
   li.className = "asset-item";
+  if (asset.id === assetEditingId) {
+    li.classList.add("editing");
+  }
 
   // 첫째 줄 왼쪽: 종목명 + [종류]
   const nameSpan = document.createElement("span");
@@ -70,24 +147,43 @@ function createAssetItem(asset) {
   kindSpan.textContent = ASSET_KINDS[asset.kind] || "기타";
   nameSpan.appendChild(kindSpan);
 
-  // 첫째 줄 오른쪽: 현재가
-  const priceSpan = document.createElement("span");
-  priceSpan.className = "asset-price";
-  priceSpan.textContent = formatMoney(asset.currentPrice);
+  // 첫째 줄 오른쪽: 평가금액
+  const valueSpan = document.createElement("span");
+  valueSpan.className = "asset-value";
+  valueSpan.textContent = formatMoney(result.value);
 
-  // 둘째 줄: 수량 · 평균 매입가 (· 배당금이 있으면 배당금)
+  // 수량 · 평균 매입가 · 현재가
   // 주식·ETF는 "10주", 나머지(예적금, 채권 등)는 "수량 1"로 표시
   const detailSpan = document.createElement("span");
   detailSpan.className = "asset-detail";
   const isShare = asset.kind === "kr-stock" || asset.kind === "us-stock" || asset.kind === "etf";
   const quantityText = isShare ? formatNumber(asset.quantity) + "주" : "수량 " + formatNumber(asset.quantity);
-  let detail = quantityText + " · 평균 " + formatMoney(asset.avgPrice);
-  if (asset.dividendPerShare > 0) {
-    detail = detail + " · 배당 " + formatMoney(asset.dividendPerShare);
-  }
-  detailSpan.textContent = detail;
+  detailSpan.textContent =
+    quantityText + " · 평균 " + formatMoney(asset.avgPrice) + " · 현재 " + formatMoney(asset.currentPrice);
 
-  // 삭제 버튼
+  // 손익(수익률): 수익은 빨강, 손실은 파랑
+  const profitSpan = document.createElement("span");
+  profitSpan.className = "asset-profit " + getProfitClass(result.profit);
+  profitSpan.textContent = formatSignedMoney(result.profit) + " (" + formatPercent(result.rate) + ")";
+
+  // 비중: 전체 평가금액 중 이 종목이 차지하는 %
+  const ratioSpan = document.createElement("span");
+  ratioSpan.className = "asset-ratio";
+  const ratio = totalValue > 0 ? (result.value / totalValue) * 100 : 0;
+  ratioSpan.textContent = "비중 " + ratio.toFixed(1) + "%";
+
+  // 버튼 묶음: 수정, 삭제
+  const actions = document.createElement("span");
+  actions.className = "asset-actions";
+
+  const editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "edit-btn";
+  editBtn.textContent = "수정";
+  editBtn.addEventListener("click", function () {
+    startAssetEdit(asset);
+  });
+
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
   deleteBtn.className = "delete-btn";
@@ -97,16 +193,77 @@ function createAssetItem(asset) {
       deleteAsset(asset.id);
     }
   });
+  actions.append(editBtn, deleteBtn);
 
-  li.append(nameSpan, priceSpan, detailSpan, deleteBtn);
+  li.append(nameSpan, valueSpan, profitSpan, ratioSpan, detailSpan, actions);
   return li;
 }
 
-// 종목 목록 전체를 다시 그림
+// 포트폴리오 요약(합계 카드 + 종류별 비중 막대)을 그림
+function renderAssetSummary(portfolio) {
+  assetTotalValueText.textContent = formatMoney(portfolio.value);
+
+  assetTotalProfitText.textContent = formatSignedMoney(portfolio.profit);
+  assetTotalProfitText.className = getProfitClass(portfolio.profit);
+
+  assetTotalRateText.textContent = formatPercent(portfolio.rate);
+  assetTotalRateText.className = getProfitClass(portfolio.profit);
+
+  assetTotalCostText.textContent =
+    "총 매입금액 " + formatMoney(portfolio.cost) + " · " + assets.length + "종목";
+
+  // 종류별 비중 막대와 설명(범례)을 처음부터 다시 그림
+  assetAllocBar.innerHTML = "";
+  assetAllocLegend.innerHTML = "";
+
+  // 평가금액이 0이면 비중을 계산할 수 없으니 막대를 숨김
+  const hasValue = portfolio.value > 0;
+  assetAllocBar.hidden = !hasValue;
+  assetAllocLegend.hidden = !hasValue;
+  if (!hasValue) {
+    return;
+  }
+
+  // 종류 순서는 항상 같게 (색이 종류마다 고정되도록), 금액이 0인 종류는 건너뜀
+  Object.keys(ASSET_KINDS).forEach(function (kind) {
+    const kindValue = portfolio.valueByKind[kind];
+    if (kindValue <= 0) {
+      return;
+    }
+    const ratio = (kindValue / portfolio.value) * 100;
+    const label = ASSET_KINDS[kind] + " " + ratio.toFixed(1) + "%";
+
+    // 막대 조각: 너비 = 비중(%)
+    const segment = document.createElement("span");
+    segment.className = "alloc-segment kind-" + kind;
+    segment.style.width = ratio + "%";
+    segment.title = label + " (" + formatMoney(kindValue) + ")"; // PC에서 마우스를 올리면 보임
+
+    // 범례 한 줄: ■ 국내주식 45.2% 1,234,000원
+    const item = document.createElement("li");
+    const swatch = document.createElement("span");
+    swatch.className = "alloc-swatch kind-" + kind;
+    const name = document.createElement("span");
+    name.className = "alloc-name";
+    name.textContent = label;
+    const amount = document.createElement("span");
+    amount.className = "alloc-amount";
+    amount.textContent = formatMoney(kindValue);
+    item.append(swatch, name, amount);
+
+    assetAllocBar.appendChild(segment);
+    assetAllocLegend.appendChild(item);
+  });
+}
+
+// 금융자산 탭 전체를 다시 그림 (요약 + 목록)
 function renderAssets() {
+  const portfolio = calculatePortfolio(assets);
+  renderAssetSummary(portfolio);
+
   assetList.innerHTML = "";
-  assets.forEach(function (asset) {
-    assetList.appendChild(createAssetItem(asset));
+  sortAssetsByValue(assets).forEach(function (asset) {
+    assetList.appendChild(createAssetItem(asset, portfolio.value));
   });
 
   // 종목이 하나도 없을 때만 안내 문구를 보여 줌
@@ -153,12 +310,47 @@ function validateAsset(asset) {
   return "";
 }
 
-// "추가" 버튼을 누르면 실행
+// 폼을 처음 상태로 되돌리고 수정 모드를 끝냄
+function resetAssetForm() {
+  assetForm.reset();
+  assetEditingId = null;
+  assetSubmitBtn.textContent = "추가";
+  assetCancelBtn.hidden = true;
+}
+
+// 수정 시작: 종목의 값을 폼에 채우고 "수정 모드"로 바꿈
+function startAssetEdit(asset) {
+  assetEditingId = asset.id;
+
+  assetNameInput.value = asset.name;
+  assetKindSelect.value = asset.kind;
+  assetQuantityInput.value = asset.quantity;
+  assetAvgPriceInput.value = asset.avgPrice;
+  assetCurrentPriceInput.value = asset.currentPrice;
+  // 배당이 0이면 빈칸으로 두어 "없으면 빈칸" 안내가 보이게
+  assetDividendInput.value = asset.dividendPerShare > 0 ? asset.dividendPerShare : "";
+  assetMemoInput.value = asset.memo;
+
+  assetSubmitBtn.textContent = "수정 완료";
+  assetCancelBtn.hidden = false;
+
+  renderAssets(); // 수정 중인 줄 표시
+  assetForm.scrollIntoView({ behavior: "smooth" });
+}
+
+// 취소 버튼: 수정을 그만두고 폼을 비움
+assetCancelBtn.addEventListener("click", function () {
+  resetAssetForm();
+  renderAssets();
+});
+
+// "추가" 또는 "수정 완료" 버튼을 누르면 실행
 assetForm.addEventListener("submit", function (event) {
   event.preventDefault();
 
   const asset = {
-    id: String(Date.now()),
+    // 수정 중이면 원래 id를 그대로, 새로 추가면 지금 시각으로 새 id
+    id: assetEditingId !== null ? assetEditingId : String(Date.now()),
     name: assetNameInput.value.trim(),
     kind: assetKindSelect.value,
     quantity: readAssetNumber(assetQuantityInput, NaN), // 비어 있으면 NaN → 검사에서 걸림
@@ -174,10 +366,18 @@ assetForm.addEventListener("submit", function (event) {
     return;
   }
 
-  assets.push(asset);
+  if (assetEditingId === null) {
+    assets.push(asset);
+  } else {
+    // 같은 id를 가진 종목을 찾아 새 값으로 바꿔 끼움
+    const index = assets.findIndex(function (item) {
+      return item.id === assetEditingId;
+    });
+    assets[index] = asset;
+  }
   saveAssets();
+  resetAssetForm();
   renderAssets();
-  assetForm.reset();
 });
 
 // 종목 하나를 지우고 저장한 뒤 다시 그림
@@ -186,6 +386,10 @@ function deleteAsset(id) {
     return asset.id !== id;
   });
   saveAssets();
+  // 수정 중이던 종목을 지웠다면 수정 모드도 끝냄
+  if (id === assetEditingId) {
+    resetAssetForm();
+  }
   renderAssets();
 }
 

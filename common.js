@@ -38,7 +38,24 @@ function saveList(key, list) {
 // 숫자를 "3,000,000원" 모양으로 바꿔 줌 (음수면 "-50,000원")
 // 원 단위 아래(소수점)는 반올림해서 보여 줌
 function formatMoney(amount) {
-  return Math.round(amount).toLocaleString("ko-KR") + "원";
+  // "|| 0": -0.4를 반올림하면 -0이 되어 "-0원"으로 보이는 것을 막음
+  return (Math.round(amount) || 0).toLocaleString("ko-KR") + "원";
+}
+
+// 금액 앞에 +/- 부호를 붙여 줌 (예: "+50,000원", "-3,000원", 0이면 "0원")
+function formatSignedMoney(amount) {
+  const rounded = Math.round(amount);
+  return (rounded > 0 ? "+" : "") + formatMoney(rounded);
+}
+
+// 퍼센트를 부호와 함께 소수점 둘째 자리까지 (예: "+7.14%", "-3.20%")
+function formatPercent(value) {
+  const fixed = value.toFixed(2);
+  // -0.00% 처럼 보이지 않게, 반올림해서 0이면 부호 없이
+  if (Number(fixed) === 0) {
+    return "0.00%";
+  }
+  return (value > 0 ? "+" : "") + fixed + "%";
 }
 
 // 수량처럼 소수점이 있을 수 있는 숫자를 "1,234.5" 모양으로 (소수점은 8자리까지)

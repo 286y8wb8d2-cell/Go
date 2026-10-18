@@ -8,7 +8,7 @@
   <title>나의 가계부</title>
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <header>
@@ -99,7 +99,31 @@
 
     <!-- ===== 금융자산 탭 ===== -->
     <div id="tab-assets" class="tab-panel" role="tabpanel" hidden>
-      <!-- ① 종목 입력 폼 -->
+      <!-- ① 포트폴리오 요약: 숫자와 막대는 assets.js가 채움 -->
+      <section>
+        <h2>포트폴리오 요약</h2>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <p>총 평가금액</p>
+            <p id="asset-total-value">0원</p>
+          </div>
+          <div class="summary-card">
+            <p>총 손익</p>
+            <p id="asset-total-profit">0원</p>
+          </div>
+          <div class="summary-card">
+            <p>수익률</p>
+            <p id="asset-total-rate">0.00%</p>
+          </div>
+        </div>
+        <p id="asset-total-cost" class="summary-sub">총 매입금액 0원</p>
+
+        <!-- 종류별 비중: 가로 막대 + 아래 설명(범례) -->
+        <div id="asset-alloc-bar" class="alloc-bar" hidden></div>
+        <ul id="asset-alloc-legend" class="alloc-legend" hidden></ul>
+      </section>
+
+      <!-- ② 종목 입력 폼 -->
       <section>
         <h2>종목 입력</h2>
         <form id="asset-form" class="card-form">
@@ -147,10 +171,11 @@
           <input type="text" id="asset-memo" placeholder="예: 증권사 이름">
 
           <button type="submit" id="asset-submit-btn" class="btn-primary">추가</button>
+          <button type="button" id="asset-cancel-btn" class="btn-secondary" hidden>취소</button>
         </form>
       </section>
 
-      <!-- ② 보유 종목 목록: 항목은 assets.js가 채움 -->
+      <!-- ③ 보유 종목 목록 (평가금액이 큰 순서): 항목은 assets.js가 채움 -->
       <section>
         <h2>보유 종목</h2>
         <ul id="asset-list" class="item-list"></ul>
@@ -177,8 +202,8 @@
 
   <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
        common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
-  <script src="common.js?v=4"></script>
-  <script src="app.js?v=4"></script>
-  <script src="assets.js?v=4"></script>
+  <script src="common.js?v=5"></script>
+  <script src="app.js?v=5"></script>
+  <script src="assets.js?v=5"></script>
 </body>
 </html>

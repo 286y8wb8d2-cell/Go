@@ -13,6 +13,8 @@
   --income: #2563eb;      /* 수입 (파랑) */
   --expense: #dc2626;     /* 지출 (빨강) */
   --editing: #fff7d6;     /* 수정 중인 줄 배경 (연노랑) */
+  --up: #dc2626;          /* 투자 수익(+) — 한국 증권 관례대로 빨강 */
+  --down: #2563eb;        /* 투자 손실(-) — 파랑 */
 }
 
 /* =============================================
@@ -252,7 +254,8 @@ section {
 }
 
 /* 총수입/총지출/잔액 세 칸을 가로로 똑같은 너비로 */
-#summary {
+#summary,
+.summary-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
@@ -394,18 +397,90 @@ section {
 }
 
 /* =============================================
-   4-1. 금융자산 목록
+   4-1. 금융자산
    ============================================= */
 
-/* 한 종목을 두 줄로 배치
-   첫째 줄: 종목명 [종류] ......... 현재가
-   둘째 줄: 수량 · 평균 매입가 .... 삭제 */
+/* 손익 색: 수익은 빨강, 손실은 파랑 (위 :root에서 바꿀 수 있음) */
+.profit-up {
+  color: var(--up);
+}
+
+.profit-down {
+  color: var(--down);
+}
+
+/* 요약 카드 아래 작은 글씨 (총 매입금액 · 종목 수) */
+.summary-sub {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
+
+/* 종류별 비중 막대: 조각 사이에 2px 틈을 두어 구분이 잘 되게 */
+.alloc-bar {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+  margin-top: 16px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.alloc-segment {
+  min-width: 2px; /* 아주 작은 비중도 보이게 */
+}
+
+/* 범례: ■ 국내주식 45.2% ........ 1,234,000원 */
+.alloc-legend {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.alloc-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.9rem;
+}
+
+.alloc-swatch {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.alloc-name {
+  flex: 1;
+}
+
+.alloc-amount {
+  color: var(--text-light);
+}
+
+/* 종류별 고정 색 (색은 순위가 아니라 종류를 따라감) */
+.kind-kr-stock { background: #2a78d6; } /* 파랑 */
+.kind-us-stock { background: #eb6834; } /* 주황 */
+.kind-etf      { background: #1baf7a; } /* 청록 */
+.kind-bond     { background: #eda100; } /* 노랑 */
+.kind-deposit  { background: #e87ba4; } /* 분홍 */
+.kind-cash     { background: #008300; } /* 초록 */
+.kind-etc      { background: #6250d6; } /* 보라 */
+
+/* 한 종목을 세 줄로 배치
+   첫째 줄: 종목명 [종류] ............ 평가금액
+   둘째 줄: 손익 (수익률) ............ 비중
+   셋째 줄: 수량 · 평균 매입가 · 현재가 .. 수정 삭제 */
 .asset-item {
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-areas:
-    "name   price"
-    "detail delete";
+    "name    value"
+    "profit  ratio"
+    "detail  actions";
   align-items: center;
   column-gap: 8px;
   row-gap: 4px;
@@ -415,6 +490,11 @@ section {
 
 .asset-item:last-child {
   border-bottom: none;
+}
+
+.asset-item.editing {
+  background: var(--editing);
+  border-radius: 8px;
 }
 
 .asset-name {
@@ -436,8 +516,8 @@ section {
   vertical-align: middle;
 }
 
-.asset-price {
-  grid-area: price;
+.asset-value {
+  grid-area: value;
   text-align: right;
   font-weight: bold;
 }
@@ -449,10 +529,24 @@ section {
   word-break: keep-all; /* 한글·숫자를 단어 중간에서 끊지 않고 띄어쓰기에서 줄바꿈 */
 }
 
-/* 삭제 버튼은 오른쪽에 붙이고, 금액 칸 너비만큼 늘어나지 않게 */
-.asset-item .delete-btn {
-  grid-area: delete;
-  justify-self: end;
+.asset-profit {
+  grid-area: profit;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.asset-ratio {
+  grid-area: ratio;
+  text-align: right;
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
+
+/* 수정·삭제 버튼을 오른쪽에 나란히 */
+.asset-actions {
+  grid-area: actions;
+  display: flex;
+  gap: 6px;
 }
 
 /* =============================================
