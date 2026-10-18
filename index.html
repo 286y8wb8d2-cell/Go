@@ -1,19 +1,33 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-version="33">
 <head>
   <!-- 한글이 깨지지 않게 문자 인코딩을 지정 -->
   <meta charset="UTF-8">
   <!-- 휴대폰에서 화면 폭에 맞춰 보이게 하는 설정 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>나의 자산</title>
+  <!-- 홈 화면에 추가했을 때 앱처럼 보이게: 아이콘, 이름, 주소창 없이 열기 -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <meta name="theme-color" content="#f4f5f7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="나의 자산">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=32">
+  <link rel="stylesheet" href="style.css?v=33">
 </head>
 <body>
   <header>
     <h1>나의 자산</h1>
   </header>
+  <!-- 새 버전 알림: 휴대폰이 예전 화면을 기억하고 있을 때 (common.js) -->
+  <div id="update-banner" class="update-banner" hidden>
+    <span id="update-banner-text">새 버전이 나왔어요.</span>
+    <button type="button" id="update-banner-btn" class="update-banner-btn">업데이트</button>
+  </div>
 
   <!-- 탭 메뉴: 누르면 아래에서 해당 탭(tab-panel)만 보임. data-tab 이름 = 탭 id의 뒷부분 -->
   <nav id="tabs" role="tablist">
@@ -42,7 +56,7 @@
         <p>아직 입력한 자산이 없어요.<br>금융자산·비트코인을 입력하면 대시보드가 채워져요.</p>
         <div class="backup-buttons">
           <button type="button" class="btn-primary" data-goto="assets">금융자산 입력</button>
-          <button type="button" class="btn-secondary" data-goto="crypto">비트코인 입력</button>
+          <button type="button" class="btn-secondary" data-goto="crypto" data-btc-goto="mine">비트코인 입력</button>
         </div>
       </section>
 
@@ -305,193 +319,416 @@
 
     <!-- ===== 비트코인 탭 ===== -->
     <div id="tab-crypto" class="tab-panel" role="tabpanel" hidden>
-      <!-- ① 요약: 숫자와 막대는 crypto.js가 채움 -->
-      <section>
-        <h2>비트코인 요약</h2>
-        <div class="summary-grid">
-          <div class="summary-card">
-            <p>총 평가금액</p>
-            <p id="crypto-total-value">0원</p>
-          </div>
-          <div class="summary-card">
-            <p>총 손익</p>
-            <p id="crypto-total-profit">0원</p>
-          </div>
-          <div class="summary-card">
-            <p>수익률</p>
-            <p id="crypto-total-rate">0.00%</p>
-          </div>
-        </div>
-        <p id="crypto-total-cost" class="summary-sub">총 매입금액 0원</p>
+      <!-- 작은 탭: 누르면 아래에서 그 묶음만 보임 (btc.js) -->
+      <nav class="btc-subtabs" role="tablist" aria-label="비트코인 메뉴">
+        <button type="button" class="btc-subtab" data-btc-view="market" role="tab">시세</button>
+        <button type="button" class="btc-subtab" data-btc-view="chart" role="tab">차트</button>
+        <button type="button" class="btc-subtab" data-btc-view="chain" role="tab">블록</button>
+        <button type="button" class="btc-subtab" data-btc-view="tools" role="tab">도구</button>
+        <button type="button" class="btc-subtab" data-btc-view="mine" role="tab">내 코인</button>
+      </nav>
 
-        <!-- 코인별 비중 -->
-        <div id="crypto-alloc-bar" class="alloc-bar" hidden></div>
-        <ul id="crypto-alloc-legend" class="alloc-legend" hidden></ul>
-
-        <!-- 빗썸·코인게코 시세로 현재가 한 번에 바꾸기 -->
-        <div class="price-refresh">
-          <button type="button" id="crypto-refresh-btn" class="btn-secondary">시세 불러오기</button>
-          <p id="crypto-refresh-status" class="price-refresh-status" aria-live="polite"></p>
-        </div>
-      </section>
-
-      <!-- ①-1 시세 · 김치 프리미엄 (btc.js): 이 탭을 보는 동안 30초마다 새로 받음 -->
-      <section>
-        <h2>시세 · 김치 프리미엄</h2>
-        <p class="section-desc">국내(빗썸) 비트코인 가격이 해외 가격보다 얼마나 비싼지 보여 줘요.</p>
-        <div class="btc-hero">
-          <p class="dash-label">김치 프리미엄</p>
-          <p id="btc-kimp-rate" class="btc-big">-</p>
-          <p id="btc-kimp-diff" class="btc-hero-sub">시세를 불러오는 중…</p>
-        </div>
-        <div class="btc-pair">
-          <div class="summary-card">
-            <p>국내 (빗썸)</p>
-            <p id="btc-kimp-domestic">-</p>
-            <p id="btc-kimp-domestic-sub" class="btc-card-sub"></p>
+      <!-- ===== 시세 (btc-live.js, btc-fng.js) ===== -->
+      <div data-btc-view-panel="market">
+        <!-- 실시간 가격: 웹소켓으로 거래가 있을 때마다 바뀜 -->
+        <section>
+          <div class="btc-section-head">
+            <h2>실시간 시세</h2>
+            <div class="btc-seg" role="group" aria-label="국내 거래소">
+              <button type="button" class="btc-seg-btn" data-btc-exchange="upbit">업비트</button>
+              <button type="button" class="btc-seg-btn" data-btc-exchange="bithumb">빗썸</button>
+            </div>
           </div>
-          <div class="summary-card">
-            <p>해외 (원화로 환산)</p>
-            <p id="btc-kimp-global">-</p>
-            <p id="btc-kimp-global-sub" class="btc-card-sub"></p>
+          <p id="btc-live-krw" class="btc-live-price">-</p>
+          <p id="btc-live-krw-sub" class="btc-hero-sub btc-live-center"></p>
+          <p id="btc-live-other" class="btc-hero-sub btc-live-center"></p>
+          <div class="btc-pair">
+            <div class="summary-card">
+              <p>해외 (바이낸스)</p>
+              <p id="btc-live-usd">-</p>
+              <p id="btc-live-usd-sub" class="btc-card-sub"></p>
+            </div>
+            <div class="summary-card">
+              <p>1,000원이면</p>
+              <p id="btc-live-sats">-</p>
+              <p id="btc-live-sats-sub" class="btc-card-sub"></p>
+            </div>
           </div>
-        </div>
-        <p id="btc-kimp-status" class="price-refresh-status" aria-live="polite"></p>
-      </section>
-
-      <!-- ①-1-2 공포·탐욕 지수 (btc-fng.js) -->
-      <section>
-        <h2>공포·탐욕 지수 (F&amp;G)</h2>
-        <p class="section-desc">시장 분위기를 0(극단적 공포)부터 100(극단적 탐욕)까지 점수로 나타내요. 공포일 때 싸게 사고 탐욕일 때 조심하라는 참고 지표예요.</p>
-        <div class="btc-fng-top">
-          <svg id="btc-fng-gauge" class="btc-fng-gauge" viewBox="0 0 200 112" aria-hidden="true"></svg>
-          <p id="btc-fng-value" class="btc-big btc-fng-value">-</p>
-          <p id="btc-fng-label" class="btc-fng-label">불러오는 중…</p>
-        </div>
-        <div id="btc-fng-compare" class="btc-fng-compare"></div>
-        <h3 class="btc-subtitle">최근 30일</h3>
-        <svg id="btc-fng-bars" class="btc-fng-bars" viewBox="0 0 300 60" preserveAspectRatio="none" role="img" aria-label="최근 30일 공포·탐욕 지수 막대"></svg>
-        <div class="btc-fng-axis"><span>30일 전</span><span>오늘</span></div>
-        <p id="btc-fng-status" class="price-refresh-status" aria-live="polite"></p>
-      </section>
-
-      <!-- ①-2 캔들 차트 (btc-chart.js) -->
-      <section>
-        <h2>비트코인 차트</h2>
-        <div class="btc-chip-group">
-          <div class="chip-row btc-chip-row" role="group" aria-label="봉 종류">
-            <button type="button" class="chip-btn" data-btc-interval="day">일봉</button>
-            <button type="button" class="chip-btn" data-btc-interval="week">주봉</button>
-            <button type="button" class="chip-btn" data-btc-interval="month">월봉</button>
+          <!-- 내 코인에 BTC가 있으면: 지금 가격으로 본 가치 (저장은 안 함) -->
+          <div id="btc-live-mine" class="btc-live-mine" hidden>
+            <p class="btc-live-mine-name">내 비트코인 지금 가치</p>
+            <p id="btc-live-mine-value" class="btc-live-mine-value"></p>
+            <p id="btc-live-mine-sub" class="btc-hero-sub"></p>
           </div>
+          <p id="btc-live-status" class="price-refresh-status" aria-live="polite">시세를 불러오는 중…</p>
+        </section>
+
+        <!-- 김치 프리미엄 -->
+        <section>
+          <h2>김치 프리미엄</h2>
+          <p class="section-desc">국내 비트코인 가격이 해외 가격보다 얼마나 비싼지 보여 줘요.</p>
+          <div class="btc-hero">
+            <p class="dash-label">환율 기준</p>
+            <p id="btc-kimp-rate" class="btc-big">-</p>
+            <p id="btc-kimp-diff" class="btc-hero-sub">시세를 불러오는 중…</p>
+          </div>
+          <div class="btc-pair">
+            <div class="summary-card">
+              <p>국내</p>
+              <p id="btc-kimp-domestic">-</p>
+              <p id="btc-kimp-domestic-sub" class="btc-card-sub"></p>
+            </div>
+            <div class="summary-card">
+              <p>해외 (원화로 환산)</p>
+              <p id="btc-kimp-global">-</p>
+              <p id="btc-kimp-global-sub" class="btc-card-sub"></p>
+            </div>
+          </div>
+          <p id="btc-kimp-usdt" class="summary-sub"></p>
+          <p id="btc-kimp-status" class="price-refresh-status" aria-live="polite"></p>
+        </section>
+
+        <!-- 시장 지표 4칸 -->
+        <section>
+          <h2>시장 지표</h2>
+          <div class="btc-tiles">
+            <div class="btc-tile">
+              <p class="btc-tile-name">비트코인 도미넌스</p>
+              <p id="btc-dom-value" class="btc-tile-value">-</p>
+              <p id="btc-dom-sub" class="btc-tile-sub">불러오는 중…</p>
+            </div>
+            <a class="btc-tile" href="#btc-fng-section">
+              <p class="btc-tile-name">공포·탐욕 지수</p>
+              <p id="btc-fng-mini-value" class="btc-tile-value">-</p>
+              <p id="btc-fng-mini-sub" class="btc-tile-sub">불러오는 중…</p>
+            </a>
+            <div class="btc-tile">
+              <p class="btc-tile-name">원/달러 환율</p>
+              <p id="btc-fx-value" class="btc-tile-value">-</p>
+              <p id="btc-fx-sub" class="btc-tile-sub">불러오는 중…</p>
+            </div>
+            <div class="btc-tile">
+              <p class="btc-tile-name">USDT 시세</p>
+              <p id="btc-usdt-value" class="btc-tile-value">-</p>
+              <p id="btc-usdt-sub" class="btc-tile-sub">불러오는 중…</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ①-1-2 공포·탐욕 지수 (btc-fng.js) -->
+        <section id="btc-fng-section">
+          <h2>공포·탐욕 지수 (F&amp;G)</h2>
+          <p class="section-desc">시장 분위기를 0(극단적 공포)부터 100(극단적 탐욕)까지 점수로 나타내요. 공포일 때 싸게 사고 탐욕일 때 조심하라는 참고 지표예요.</p>
+          <div class="btc-fng-top">
+            <svg id="btc-fng-gauge" class="btc-fng-gauge" viewBox="0 0 200 112" aria-hidden="true"></svg>
+            <p id="btc-fng-value" class="btc-big btc-fng-value">-</p>
+            <p id="btc-fng-label" class="btc-fng-label">불러오는 중…</p>
+          </div>
+          <div id="btc-fng-compare" class="btc-fng-compare"></div>
+          <h3 class="btc-subtitle">최근 30일</h3>
+          <svg id="btc-fng-bars" class="btc-fng-bars" viewBox="0 0 300 60" preserveAspectRatio="none" role="img" aria-label="최근 30일 공포·탐욕 지수 막대"></svg>
+          <div class="btc-fng-axis"><span>30일 전</span><span>오늘</span></div>
+          <p id="btc-fng-status" class="price-refresh-status" aria-live="polite"></p>
+        </section>
+
+      </div>
+
+      <!-- ===== 차트 (btc-chart.js, btc-cycle.js) ===== -->
+      <div data-btc-view-panel="chart" hidden>
+        <!-- ①-2 캔들 차트 (btc-chart.js) -->
+        <section>
+          <h2>비트코인 차트</h2>
+          <div class="btc-chip-group">
+            <div class="chip-row btc-chip-row" role="group" aria-label="봉 종류">
+              <button type="button" class="chip-btn" data-btc-interval="day">일봉</button>
+              <button type="button" class="chip-btn" data-btc-interval="week">주봉</button>
+              <button type="button" class="chip-btn" data-btc-interval="month">월봉</button>
+            </div>
+            <div class="chip-row btc-chip-row" role="group" aria-label="기간">
+              <button type="button" class="chip-btn" data-btc-range="3m">3개월</button>
+              <button type="button" class="chip-btn" data-btc-range="1y">1년</button>
+              <button type="button" class="chip-btn" data-btc-range="4y">4년</button>
+              <button type="button" class="chip-btn" data-btc-range="all">전체</button>
+            </div>
+          </div>
+          <label class="btc-check"><input type="checkbox" id="btc-avg-toggle" checked> 내 평균 매입가 선 보기 (내 코인에 BTC가 있을 때)</label>
+          <p id="btc-chart-change" class="btc-chart-change"></p>
+          <!-- 누르거나 끌면 그 봉의 시가·고가·저가·종가가 아래에 나옴 -->
+          <svg id="btc-chart" class="btc-chart" viewBox="0 0 340 220" tabindex="0" role="img" aria-label="비트코인 원화 가격 캔들 차트. 좌우 화살표로 봉을 옮길 수 있어요."></svg>
+          <p id="btc-chart-readout" class="history-readout"></p>
+          <p id="btc-chart-status" class="price-refresh-status"></p>
+        </section>
+
+        <!-- 반감기 사이클 비교 -->
+        <section>
+          <h2>반감기 사이클 비교</h2>
+          <p class="section-desc">반감기 날 가격을 ×1로 놓고, 그 뒤 며칠째에 몇 배였는지 사이클끼리 겹쳐 봐요. 누르거나 끌면 그날 값이 나와요.</p>
+          <svg id="btc-cycle-chart" class="btc-chart" viewBox="0 0 340 220" tabindex="0" role="img" aria-label="반감기 이후 사이클별 가격 배수 비교 차트"></svg>
+          <ul id="btc-cycle-legend" class="chart-legend"></ul>
+          <p id="btc-cycle-readout" class="history-readout"></p>
+          <p class="price-refresh-status">로그 눈금 · 과거 사이클이 그대로 반복된다는 보장은 없어요.</p>
+        </section>
+
+        <!-- 월별 등락률 -->
+        <section>
+          <h2>월별 등락률</h2>
+          <p class="section-desc">해마다 달마다 얼마나 올랐는지(빨강) 내렸는지(파랑) 보여 줘요. 단위는 %예요. 칸을 길게 누르면 정확한 값이 나와요.</p>
+          <div class="table-scroll btc-heat-scroll">
+            <table id="btc-heat-table" class="btc-heat-table"></table>
+          </div>
+          <p id="btc-heat-summary" class="summary-sub"></p>
+          <p class="price-refresh-status">이번 달·올해는 진행 중이라 점선 칸이에요. 빗썸 기록 이전은 달러 가격 × 당시 환율 기준.</p>
+        </section>
+      </div>
+
+      <!-- ===== 블록 (btc-chain.js) ===== -->
+      <div data-btc-view-panel="chain" hidden>
+        <!-- ①-3 반감기 (btc-chain.js) -->
+        <section>
+          <h2>반감기</h2>
+          <p class="section-desc">비트코인은 21만 블록(약 4년)마다 채굴 보상이 절반으로 줄어요.</p>
+          <div class="btc-hero">
+            <p id="btc-halving-title" class="dash-label">다음 반감기</p>
+            <p id="btc-halving-dday" class="btc-big">-</p>
+            <p id="btc-halving-countdown" class="btc-countdown" aria-live="off"></p>
+            <p id="btc-halving-date" class="btc-hero-sub"></p>
+          </div>
+          <div class="btc-progress" aria-hidden="true">
+            <div id="btc-halving-bar" class="btc-progress-fill"></div>
+          </div>
+          <p id="btc-halving-progress" class="summary-sub"></p>
+          <div class="btc-pair">
+            <div class="summary-card">
+              <p>현재 블록</p>
+              <p id="btc-halving-height">-</p>
+            </div>
+            <div class="summary-card">
+              <p>블록 보상</p>
+              <p id="btc-halving-reward">-</p>
+            </div>
+          </div>
+          <details class="btc-history-box">
+            <summary>지난 반감기</summary>
+            <ol id="btc-halving-list" class="btc-halving-list"></ol>
+          </details>
+          <p id="btc-halving-note" class="price-refresh-status"></p>
+        </section>
+
+        <!-- ①-4 실시간 블록 (btc-chain.js): mempool.space 정보, 30초마다 -->
+        <section>
+          <h2>실시간 블록</h2>
+          <p class="section-desc">왼쪽은 채굴을 기다리는 블록(예상), 오른쪽은 방금 채굴된 블록이에요. 옆으로 밀어 볼 수 있고, 채굴된 블록을 누르면 mempool.space에서 자세히 보여 줘요.</p>
+          <div id="btc-blocks" class="btc-blocks"></div>
+          <h3 class="btc-subtitle">추천 수수료 <span>(보통 송금 1건 기준 원화)</span></h3>
+          <div id="btc-fees" class="btc-fees"></div>
+          <p id="btc-mempool-info" class="summary-sub"></p>
+          <p id="btc-blocks-status" class="price-refresh-status" aria-live="polite">불러오는 중…</p>
+        </section>
+
+        <!-- 해시레이트 -->
+        <section>
+          <h2>해시레이트</h2>
+          <p class="section-desc">전 세계 채굴기가 1초에 하는 계산 횟수예요. 높을수록 네트워크가 더 안전해요.</p>
+          <p id="btc-hash-current" class="btc-chart-change"></p>
           <div class="chip-row btc-chip-row" role="group" aria-label="기간">
-            <button type="button" class="chip-btn" data-btc-range="3m">3개월</button>
-            <button type="button" class="chip-btn" data-btc-range="1y">1년</button>
-            <button type="button" class="chip-btn" data-btc-range="4y">4년</button>
-            <button type="button" class="chip-btn" data-btc-range="all">전체</button>
+            <button type="button" class="chip-btn" data-btc-hash-range="3m">3개월</button>
+            <button type="button" class="chip-btn" data-btc-hash-range="1y">1년</button>
+            <button type="button" class="chip-btn" data-btc-hash-range="3y">3년</button>
+            <button type="button" class="chip-btn" data-btc-hash-range="all">전체</button>
           </div>
-        </div>
-        <p id="btc-chart-change" class="btc-chart-change"></p>
-        <!-- 누르거나 끌면 그 봉의 시가·고가·저가·종가가 아래에 나옴 -->
-        <svg id="btc-chart" class="btc-chart" viewBox="0 0 340 220" tabindex="0" role="img" aria-label="비트코인 원화 가격 캔들 차트. 좌우 화살표로 봉을 옮길 수 있어요."></svg>
-        <p id="btc-chart-readout" class="history-readout"></p>
-        <p id="btc-chart-status" class="price-refresh-status"></p>
-      </section>
+          <svg id="btc-hash-chart" class="btc-chart" viewBox="0 0 340 180" tabindex="0" role="img" aria-label="비트코인 네트워크 해시레이트 차트"></svg>
+          <p id="btc-hash-readout" class="history-readout"></p>
+          <p id="btc-hash-status" class="price-refresh-status">불러오는 중…</p>
+        </section>
 
-      <!-- ①-3 반감기 (btc-chain.js) -->
-      <section>
-        <h2>반감기</h2>
-        <p class="section-desc">비트코인은 21만 블록(약 4년)마다 채굴 보상이 절반으로 줄어요.</p>
-        <div class="btc-hero">
-          <p id="btc-halving-title" class="dash-label">다음 반감기</p>
-          <p id="btc-halving-dday" class="btc-big">-</p>
-          <p id="btc-halving-date" class="btc-hero-sub"></p>
-        </div>
-        <div class="btc-progress" aria-hidden="true">
-          <div id="btc-halving-bar" class="btc-progress-fill"></div>
-        </div>
-        <p id="btc-halving-progress" class="summary-sub"></p>
-        <div class="btc-pair">
-          <div class="summary-card">
-            <p>현재 블록</p>
-            <p id="btc-halving-height">-</p>
+        <!-- 검색 -->
+        <section>
+          <h2>블록 · 거래 · 주소 검색</h2>
+          <p class="section-desc">블록 번호, 거래 ID, 비트코인 주소를 넣으면 mempool.space에서 열어 줘요.</p>
+          <form id="btc-search-form" class="card-form inline-row">
+            <input type="text" id="btc-search-input" placeholder="예: 840000 또는 bc1…" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="검색어">
+            <button type="submit" class="btn-primary">검색</button>
+          </form>
+        </section>
+      </div>
+
+      <!-- ===== 도구 (btc-tools.js) ===== -->
+      <div data-btc-view-panel="tools" hidden>
+        <!-- 계산기 -->
+        <section>
+          <h2>비트코인 계산기</h2>
+          <p class="section-desc">아무 칸에나 넣으면 나머지가 실시간 가격으로 바뀌어요. 1 BTC = 1억 사토시(sats)예요.</p>
+          <div class="card-form btc-conv">
+            <label for="btc-conv-btc">BTC</label>
+            <input type="number" id="btc-conv-btc" min="0" step="any" inputmode="decimal" value="0.01">
+            <label for="btc-conv-sats">사토시 (sats)</label>
+            <input type="number" id="btc-conv-sats" min="0" step="any" inputmode="numeric">
+            <label for="btc-conv-krw">원</label>
+            <input type="number" id="btc-conv-krw" min="0" step="any" inputmode="numeric">
+            <label for="btc-conv-usd">달러</label>
+            <input type="number" id="btc-conv-usd" min="0" step="any" inputmode="decimal">
           </div>
-          <div class="summary-card">
-            <p>블록 보상</p>
-            <p id="btc-halving-reward">-</p>
+          <p id="btc-conv-note" class="price-refresh-status"></p>
+        </section>
+
+        <!-- 적립식 시뮬레이터 -->
+        <section>
+          <h2>적립식 시뮬레이터</h2>
+          <p class="section-desc">그때부터 꾸준히 같은 금액으로 샀다면 지금 얼마가 됐을지 계산해요. (2010년 7월부터 가능)</p>
+          <form id="btc-dca-form" class="card-form">
+            <div class="form-row">
+              <div>
+                <label for="btc-dca-amount">한 번에 살 금액(원)</label>
+                <input type="number" id="btc-dca-amount" min="1000" step="any" inputmode="numeric" value="100000">
+              </div>
+              <div>
+                <label for="btc-dca-cycle">주기</label>
+                <select id="btc-dca-cycle">
+                  <option value="day">매일</option>
+                  <option value="week">매주</option>
+                  <option value="month" selected>매달</option>
+                </select>
+              </div>
+            </div>
+            <label for="btc-dca-start">시작 달</label>
+            <input type="month" id="btc-dca-start" min="2010-08">
+          </form>
+          <div id="btc-dca-result" class="btc-pair btc-result-grid"></div>
+          <svg id="btc-dca-chart" class="btc-chart" viewBox="0 0 340 200" role="img" aria-label="적립식 투자 원금과 가치 변화 차트"></svg>
+          <ul class="chart-legend">
+            <li><span class="legend-line" style="background:#2a78d6"></span>지금 가치</li>
+            <li><span class="legend-line" style="background:#eb6834"></span>투자한 돈</li>
+          </ul>
+          <p id="btc-dca-readout" class="history-readout"></p>
+          <p id="btc-dca-note" class="price-refresh-status"></p>
+        </section>
+
+        <!-- 솔로 채굴 확률 -->
+        <section>
+          <h2>솔로 채굴 확률</h2>
+          <p class="section-desc">혼자 채굴기를 돌리면 블록을 찾을 확률이 얼마나 될까요? 찾으면 블록 보상을 혼자 다 받아요.</p>
+          <div class="chip-row">
+            <button type="button" class="chip-btn" data-btc-solo="1.2">소형 (1.2 TH/s)</button>
+            <button type="button" class="chip-btn" data-btc-solo="6">중형 (6 TH/s)</button>
+            <button type="button" class="chip-btn" data-btc-solo="200">대형 (200 TH/s)</button>
           </div>
-        </div>
-        <details class="btc-history-box">
-          <summary>지난 반감기</summary>
-          <ol id="btc-halving-list" class="btc-halving-list"></ol>
-        </details>
-        <p id="btc-halving-note" class="price-refresh-status"></p>
-      </section>
-
-      <!-- ①-4 실시간 블록 (btc-chain.js): mempool.space 정보, 30초마다 -->
-      <section>
-        <h2>실시간 블록</h2>
-        <p class="section-desc">왼쪽은 채굴을 기다리는 블록(예상), 오른쪽은 방금 채굴된 블록이에요. 옆으로 밀어 볼 수 있고, 채굴된 블록을 누르면 mempool.space에서 자세히 보여 줘요.</p>
-        <div id="btc-blocks" class="btc-blocks"></div>
-        <h3 class="btc-subtitle">추천 수수료 <span>(보통 송금 1건 기준 원화)</span></h3>
-        <div id="btc-fees" class="btc-fees"></div>
-        <p id="btc-mempool-info" class="summary-sub"></p>
-        <p id="btc-blocks-status" class="price-refresh-status" aria-live="polite">불러오는 중…</p>
-      </section>
-
-      <!-- ② 코인 입력 폼 -->
-      <section>
-        <h2>코인 입력</h2>
-        <form id="crypto-form" class="card-form">
-          <div class="form-row">
-            <div>
-              <label for="crypto-name">코인명</label>
-              <input type="text" id="crypto-name" maxlength="40" placeholder="예: 비트코인" required>
-            </div>
-            <div>
-              <!-- 심볼: 시세 불러오기에 씀 (영어 대문자·숫자, 예: BTC) -->
-              <label for="crypto-symbol">심볼</label>
-              <input type="text" id="crypto-symbol" maxlength="10" placeholder="예: BTC" autocapitalize="characters" autocomplete="off">
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div>
-              <label for="crypto-quantity">수량</label>
-              <!-- step="any": 0.00012345처럼 소수점 수량 입력 가능 -->
-              <input type="number" id="crypto-quantity" min="0" step="any" inputmode="decimal" placeholder="예: 0.0523" required>
-            </div>
-            <div>
-              <label for="crypto-avg-price">평균 매입가(원)</label>
-              <input type="number" id="crypto-avg-price" min="0" step="any" inputmode="decimal" placeholder="1개 가격" required>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div>
-              <label for="crypto-current-price">현재가(원)</label>
-              <input type="number" id="crypto-current-price" min="0" step="any" inputmode="decimal" placeholder="1개 가격" required>
-            </div>
-            <div>
-              <label for="crypto-place">보관처</label>
-              <input type="text" id="crypto-place" maxlength="20" placeholder="예: 업비트">
+          <div class="card-form">
+            <label for="btc-solo-hash">내 채굴기 해시레이트</label>
+            <div class="inline-row">
+              <input type="number" id="btc-solo-hash" min="0" step="any" inputmode="decimal" value="1.2">
+              <select id="btc-solo-unit" aria-label="단위">
+                <option value="GH">GH/s</option>
+                <option value="TH" selected>TH/s</option>
+                <option value="PH">PH/s</option>
+              </select>
             </div>
           </div>
+          <div id="btc-solo-result" class="btc-pair btc-result-grid"></div>
+          <p id="btc-solo-status" class="price-refresh-status"></p>
+        </section>
+      </div>
 
-          <label for="crypto-memo">메모</label>
-          <input type="text" id="crypto-memo" placeholder="예: 장기 보유">
+      <!-- ===== 내 코인 (crypto.js, btc-tools.js의 스택 목표) ===== -->
+      <div data-btc-view-panel="mine" hidden>
+        <!-- ① 요약: 숫자와 막대는 crypto.js가 채움 -->
+        <section>
+          <h2>내 코인 요약</h2>
+          <div class="summary-grid">
+            <div class="summary-card">
+              <p>총 평가금액</p>
+              <p id="crypto-total-value">0원</p>
+            </div>
+            <div class="summary-card">
+              <p>총 손익</p>
+              <p id="crypto-total-profit">0원</p>
+            </div>
+            <div class="summary-card">
+              <p>수익률</p>
+              <p id="crypto-total-rate">0.00%</p>
+            </div>
+          </div>
+          <p id="crypto-total-cost" class="summary-sub">총 매입금액 0원</p>
 
-          <button type="submit" id="crypto-submit-btn" class="btn-primary">추가</button>
-          <button type="button" id="crypto-cancel-btn" class="btn-secondary" hidden>취소</button>
-        </form>
-      </section>
+          <!-- 코인별 비중 -->
+          <div id="crypto-alloc-bar" class="alloc-bar" hidden></div>
+          <ul id="crypto-alloc-legend" class="alloc-legend" hidden></ul>
 
-      <!-- ③ 보유 코인 목록 (평가금액이 큰 순서): 항목은 crypto.js가 채움 -->
-      <section>
-        <h2>보유 코인</h2>
-        <ul id="crypto-list" class="item-list"></ul>
-        <p id="crypto-empty-message" class="empty-message">아직 등록한 코인이 없습니다.</p>
-      </section>
+          <!-- 빗썸·코인게코 시세로 현재가 한 번에 바꾸기 -->
+          <div class="price-refresh">
+            <button type="button" id="crypto-refresh-btn" class="btn-secondary">시세 불러오기</button>
+            <p id="crypto-refresh-status" class="price-refresh-status" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <!-- 스택 목표 -->
+        <section>
+          <h2>스택 목표</h2>
+          <p class="section-desc">모으고 싶은 비트코인 수량을 정하면 얼마나 모았는지 보여 줘요.</p>
+          <form id="btc-goal-form" class="card-form inline-row">
+            <input type="number" id="btc-goal-input" min="0" step="any" inputmode="decimal" placeholder="예: 0.1" aria-label="목표 BTC 수량">
+            <button type="submit" class="btn-secondary">목표 저장</button>
+          </form>
+          <div class="btc-progress btc-goal-progress" aria-hidden="true">
+            <div id="btc-goal-bar" class="btc-progress-fill btc-goal-fill"></div>
+          </div>
+          <p id="btc-goal-text" class="btc-goal-text"></p>
+          <p id="btc-goal-sub" class="summary-sub"></p>
+        </section>
+
+        <!-- ② 코인 입력 폼 -->
+        <section>
+          <h2>코인 입력</h2>
+          <form id="crypto-form" class="card-form">
+            <div class="form-row">
+              <div>
+                <label for="crypto-name">코인명</label>
+                <input type="text" id="crypto-name" maxlength="40" placeholder="예: 비트코인" required>
+              </div>
+              <div>
+                <!-- 심볼: 시세 불러오기에 씀 (영어 대문자·숫자, 예: BTC) -->
+                <label for="crypto-symbol">심볼</label>
+                <input type="text" id="crypto-symbol" maxlength="10" placeholder="예: BTC" autocapitalize="characters" autocomplete="off">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div>
+                <label for="crypto-quantity">수량</label>
+                <!-- step="any": 0.00012345처럼 소수점 수량 입력 가능 -->
+                <input type="number" id="crypto-quantity" min="0" step="any" inputmode="decimal" placeholder="예: 0.0523" required>
+              </div>
+              <div>
+                <label for="crypto-avg-price">평균 매입가(원)</label>
+                <input type="number" id="crypto-avg-price" min="0" step="any" inputmode="decimal" placeholder="1개 가격" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div>
+                <label for="crypto-current-price">현재가(원)</label>
+                <input type="number" id="crypto-current-price" min="0" step="any" inputmode="decimal" placeholder="1개 가격" required>
+              </div>
+              <div>
+                <label for="crypto-place">보관처</label>
+                <input type="text" id="crypto-place" maxlength="20" placeholder="예: 업비트">
+              </div>
+            </div>
+
+            <label for="crypto-memo">메모</label>
+            <input type="text" id="crypto-memo" placeholder="예: 장기 보유">
+
+            <button type="submit" id="crypto-submit-btn" class="btn-primary">추가</button>
+            <button type="button" id="crypto-cancel-btn" class="btn-secondary" hidden>취소</button>
+          </form>
+        </section>
+
+        <!-- ③ 보유 코인 목록 (평가금액이 큰 순서): 항목은 crypto.js가 채움 -->
+        <section>
+          <h2>보유 코인</h2>
+          <ul id="crypto-list" class="item-list"></ul>
+          <p id="crypto-empty-message" class="empty-message">아직 등록한 코인이 없습니다.</p>
+        </section>
+      </div>
     </div>
 
     <!-- ===== 시나리오 탭 ===== -->
@@ -662,32 +899,35 @@
       <input type="file" id="backup-file-input" accept=".json,application/json" hidden>
     </section>
     <!-- 앱 버전: 휴대폰이 최신 파일을 쓰고 있는지 확인용 (파일을 고칠 때 ?v= 숫자와 같이 올림) -->
-    <p class="app-version">앱 버전 v32</p>
+    <p class="app-version">앱 버전 v33</p>
   </footer>
 
   <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
        common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
-  <script src="common.js?v=32"></script>
-  <script src="assets.js?v=32"></script>
-  <script src="crypto.js?v=32"></script>
+  <script src="common.js?v=33"></script>
+  <script src="assets.js?v=33"></script>
+  <script src="crypto.js?v=33"></script>
   <!-- 전체 자산 요약: 위 파일들의 계산 함수를 쓰므로 맨 마지막에 -->
-  <script src="networth.js?v=32"></script>
+  <script src="networth.js?v=33"></script>
   <!-- 자산 추이: 전체 자산 계산을 씀 -->
-  <script src="history.js?v=32"></script>
+  <script src="history.js?v=33"></script>
   <!-- 홈(대시보드): 모든 계산 함수를 씀 -->
-  <script src="dashboard.js?v=32"></script>
+  <script src="dashboard.js?v=33"></script>
   <!-- 시나리오: 위 모든 파일의 계산 함수를 씀 -->
-  <script src="scenario.js?v=32"></script>
+  <script src="scenario.js?v=33"></script>
   <!-- 미래 적립 시뮬레이션: 전체 자산 값을 불러옴 -->
-  <script src="simulate.js?v=32"></script>
-  <!-- 비트코인 시장 정보: 시세·김프 → 공포·탐욕 지수 → 차트 → 반감기·실시간 블록 (마지막 파일이 자동 갱신을 시작) -->
-  <script src="btc.js?v=32"></script>
-  <script src="btc-fng.js?v=32"></script>
+  <script src="simulate.js?v=33"></script>
+  <!-- 비트코인: 공통 → 시세 → 공포·탐욕 → 과거 가격 → 차트 → 사이클·월별 → 도구 → 블록 (마지막 파일이 자동 갱신을 시작) -->
+  <script src="btc.js?v=33"></script>
+  <script src="btc-live.js?v=33"></script>
+  <script src="btc-fng.js?v=33"></script>
   <!-- 2010년부터의 비트코인 과거 가격 (차트용 고정 데이터, 약 50KB) -->
-  <script src="btc-history.js?v=32"></script>
-  <script src="btc-chart.js?v=32"></script>
-  <script src="btc-chain.js?v=32"></script>
+  <script src="btc-history.js?v=33"></script>
+  <script src="btc-chart.js?v=33"></script>
+  <script src="btc-cycle.js?v=33"></script>
+  <script src="btc-tools.js?v=33"></script>
+  <script src="btc-chain.js?v=33"></script>
   <!-- 데이터 백업 -->
-  <script src="backup.js?v=32"></script>
+  <script src="backup.js?v=33"></script>
 </body>
 </html>

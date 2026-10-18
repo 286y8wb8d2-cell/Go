@@ -1,7 +1,7 @@
 // =============================================
-// 비트코인 탭 — 시장 정보 ③ 반감기 + 실시간 블록
+// 비트코인 탭 — ③ 블록: 반감기 + 실시간 블록 + 해시레이트 + 검색
 // mempool.space 공개 정보로 현재 블록 번호, 방금 채굴된 블록,
-// 채굴을 기다리는 블록(예상), 추천 수수료를 보여 줌
+// 채굴을 기다리는 블록(예상), 추천 수수료, 해시레이트를 보여 줌
 // (자동 갱신 도구와 btcDomesticPrice는 btc.js)
 // ※ 이름은 모두 btc~ / BTC~ 로 시작
 // =============================================
@@ -18,6 +18,11 @@ const BTC_BLOCKSTREAM_TIP_URL = "https://blockstream.info/api/blocks/tip/height"
 // 블록은 30초마다, 난이도 조정 정보는 5분마다
 const BTC_BLOCKS_EVERY_MS = 30000;
 const BTC_DIFFICULTY_EVERY_MS = 5 * 60 * 1000;
+const BTC_HASHRATE_EVERY_MS = 30 * 60 * 1000;
+
+// 해시레이트 차트: 기간 버튼 → mempool.space 기간 이름
+const BTC_HASH_RANGES = { "3m": "3m", "1y": "1y", "3y": "3y", all: "all" };
+const BTC_HASH_CHART = { width: 340, height: 180, left: 40, right: 10, top: 10, bottom: 24 };
 
 // 화면에 보여 줄 블록 수
 const BTC_PENDING_COUNT = 3; // 채굴 대기 (예상)
@@ -52,6 +57,12 @@ let btcTipHeight = null; // 현재 블록 번호 (받아 오기 전에는 null)
 let btcAvgBlockMs = null; // 최근 평균 블록 간격 (난이도 조정 정보에서)
 let btcLastMinedHeight = null; // 새 블록이 나왔는지 비교용
 let btcDifficulty = null; // 난이도 조정 정보
+let btcHalvingEta = null; // 다음 반감기 예상 시각 (카운트다운용)
+let btcCountdownTimer = null;
+let btcHashRange = "1y";
+const btcHashCache = {}; // 기간별로 받은 해시레이트 { "1y": [{ time, value }] }
+let btcHashPoints = [];
+let btcHashScale = null;
 
 // =============================================
 // 화면 요소
@@ -66,6 +77,15 @@ const btcHalvingHeight = document.getElementById("btc-halving-height");
 const btcHalvingReward = document.getElementById("btc-halving-reward");
 const btcHalvingList = document.getElementById("btc-halving-list");
 const btcHalvingNote = document.getElementById("btc-halving-note");
+const btcHalvingCountdown = document.getElementById("btc-halving-countdown");
+
+const btcHashChart = document.getElementById("btc-hash-chart");
+const btcHashCurrent = document.getElementById("btc-hash-current");
+const btcHashReadout = document.getElementById("btc-hash-readout");
+const btcHashStatus = document.getElementById("btc-hash-status");
+const btcHashButtons = document.querySelectorAll("[data-btc-hash-range]");
+const btcSearchForm = document.getElementById("btc-search-form");
+const btcSearchInput = document.getElementById("btc-search-input");
 
 const btcBlocksBox = document.getElementById("btc-blocks");
 const btcFeeBox = document.getElementById("btc-fees");
@@ -131,9 +151,11 @@ function renderBtcHalving() {
   const isEstimate = btcTipHeight === null;
   const height = isEstimate ? estimateBtcHeight() : btcTipHeight;
   const halving = calculateBtcHalving(height, btcAvgBlockMs || BTC_BLOCK_MS);
+  btcHalvingEta = halving.eta;
+  renderBtcCountdown();
 
   btcHalvingTitle.textContent = "다음 반감기 (" + halving.number + "번째)";
-  const days = Math.ceil((halving.eta - Date.now()) / BTC_DAY_MS); // BTC_DAY_MS: btc-chart.js
+  const days = Math.ceil((halving.eta - Date.now()) / BTC_DAY_MS); // BTC_DAY_MS: btc.js
   btcHalvingDday.textContent = "D-" + days.toLocaleString("ko-KR");
   const eta = new Date(halving.eta);
   btcHalvingDate.textContent =
@@ -151,6 +173,32 @@ function renderBtcHalving() {
     : "예상 날짜는 최근 평균 블록 간격(" +
       (btcAvgBlockMs ? (btcAvgBlockMs / 60000).toFixed(1) + "분" : "10분") +
       ")으로 계산해서 조금씩 바뀌어요.";
+}
+
+// 카운트다운: "557일 04:12:55" (1초마다)
+function renderBtcCountdown() {
+  if (btcHalvingEta === null) return;
+  const left = Math.max(0, btcHalvingEta - Date.now());
+  const days = Math.floor(left / BTC_DAY_MS);
+  const rest = left - days * BTC_DAY_MS;
+  const clock = [Math.floor(rest / 3600000), Math.floor((rest % 3600000) / 60000), Math.floor((rest % 60000) / 1000)]
+    .map(function (n) {
+      return String(n).padStart(2, "0");
+    })
+    .join(":");
+  btcHalvingCountdown.textContent = days.toLocaleString("ko-KR") + "일 " + clock;
+}
+
+// 블록 탭을 보고 있을 때만 1초마다 바꿈
+function updateBtcCountdownTimer() {
+  const run = isBtcActive() && btcView === "chain"; // btc.js
+  if (run && btcCountdownTimer === null) {
+    renderBtcCountdown();
+    btcCountdownTimer = setInterval(renderBtcCountdown, 1000);
+  } else if (!run && btcCountdownTimer !== null) {
+    clearInterval(btcCountdownTimer);
+    btcCountdownTimer = null;
+  }
 }
 
 // 지난 반감기 목록 (한 번만 그림)
@@ -259,10 +307,18 @@ function renderBtcBlocks(pendingBlocks, minedBlocks) {
 
   // 처음 그릴 때: 구분선 근처(다음 블록과 최신 블록)가 보이게 가로 위치 맞춤
   if (isFirst) {
-    btcBlocksBox.scrollLeft = Math.max(0, divider.offsetLeft - btcBlocksBox.clientWidth / 2);
+    centerBtcBlocks();
   }
   if (newest !== null) {
     btcLastMinedHeight = newest;
+  }
+}
+
+// 블록 줄을 구분선이 가운데 오게 (숨어 있을 때는 폭을 모르니 블록 탭을 열 때 다시)
+function centerBtcBlocks() {
+  const divider = btcBlocksBox.querySelector(".btc-blocks-divider");
+  if (divider && btcBlocksBox.clientWidth > 0) {
+    btcBlocksBox.scrollLeft = Math.max(0, divider.offsetLeft - btcBlocksBox.offsetLeft - btcBlocksBox.clientWidth / 2);
   }
 }
 
@@ -371,13 +427,200 @@ async function refreshBtcDifficulty() {
 }
 
 // =============================================
-// 시작
+// 6. 해시레이트 차트 (네트워크 전체 계산 능력)
 // =============================================
+
+// 해시레이트 글자: 1.05e21 H/s → "1,050 EH/s"
+function formatBtcHashrate(value) {
+  if (value >= 1e18) return formatBtcDecimal(value / 1e18, value >= 1e20 ? 0 : 1) + " EH/s";
+  if (value >= 1e15) return formatBtcDecimal(value / 1e15, 1) + " PH/s";
+  return formatBtcDecimal(value / 1e12, 1) + " TH/s";
+}
+
+// 고른 기간의 해시레이트 받기 (받은 기간은 기억해 두고 다시 씀)
+// 지금 해시레이트·난이도는 솔로 채굴 계산기(btc-tools.js)도 씀
+async function refreshBtcHashrate(force) {
+  const range = btcHashRange;
+  if (!force && btcHashCache[range]) {
+    renderBtcHashChart();
+    return true;
+  }
+  try {
+    const result = await fetchCryptoJson(BTC_MEMPOOL_API + "/v1/mining/hashrate/" + BTC_HASH_RANGES[range]);
+    btcHashCache[range] = result.hashrates
+      .map(function (item) {
+        return { time: Number(item.timestamp) * 1000, value: Number(item.avgHashrate) };
+      })
+      .filter(function (point) {
+        return point.value > 0;
+      });
+    if (result.currentHashrate > 0) {
+      btcNetwork = { hashrate: Number(result.currentHashrate), difficulty: Number(result.currentDifficulty) }; // btc-tools.js
+      document.dispatchEvent(new CustomEvent("btc-network-updated"));
+    }
+    if (range === btcHashRange) renderBtcHashChart();
+    return true;
+  } catch (error) {
+    btcHashStatus.textContent = getBtcClock() + " 해시레이트를 받지 못했어요 (" + describeBtcError(error) + ").";
+    return false;
+  }
+}
+
+function renderBtcHashChart() {
+  btcHashButtons.forEach(function (button) {
+    button.setAttribute("aria-pressed", button.dataset.btcHashRange === btcHashRange ? "true" : "false");
+  });
+  btcHashChart.innerHTML = "";
+  btcHashPoints = btcHashCache[btcHashRange] || [];
+  if (btcNetwork) {
+    btcHashCurrent.textContent =
+      "지금 " + formatBtcHashrate(btcNetwork.hashrate) + " · 난이도 " + formatBtcDecimal(btcNetwork.difficulty / 1e12, 1) + "조";
+  }
+  const points = btcHashPoints;
+  if (points.length < 2) return;
+
+  const c = BTC_HASH_CHART;
+  const plotWidth = c.width - c.left - c.right;
+  const plotHeight = c.height - c.top - c.bottom;
+  let max = 0;
+  points.forEach(function (point) {
+    max = Math.max(max, point.value);
+  });
+  // 세로축은 EH/s 단위로 깔끔하게
+  const yMax = niceMax(max / 1e18) * 1e18; // history.js
+  const t0 = points[0].time;
+  const t1 = points[points.length - 1].time;
+  function x(time) {
+    return c.left + ((time - t0) / (t1 - t0 || 1)) * plotWidth;
+  }
+  function y(value) {
+    return c.top + plotHeight - (value / yMax) * plotHeight;
+  }
+  btcHashScale = { x: x, y: y, t0: t0, t1: t1 };
+
+  for (let i = 0; i <= 4; i++) {
+    const value = (yMax / 4) * i;
+    btcHashChart.appendChild(createSvg("line", { x1: c.left, x2: c.width - c.right, y1: y(value), y2: y(value), class: "chart-grid" }));
+    const label = createSvg("text", { x: c.left - 6, y: y(value) + 4, class: "chart-axis-label", "text-anchor": "end" });
+    label.textContent = formatBtcDecimal(value / 1e18, 0);
+    btcHashChart.appendChild(label);
+  }
+  [
+    [t0, "start"],
+    [t1, "end"],
+  ].forEach(function (pair) {
+    const date = new Date(pair[0]);
+    const label = createSvg("text", { x: x(pair[0]), y: c.height - 8, class: "chart-axis-label", "text-anchor": pair[1] });
+    label.textContent = date.getFullYear() + "." + (date.getMonth() + 1);
+    btcHashChart.appendChild(label);
+  });
+
+  // 선 아래를 연하게 칠한 면 + 선
+  const line = points
+    .map(function (point) {
+      return x(point.time).toFixed(1) + "," + y(point.value).toFixed(1);
+    })
+    .join(" ");
+  btcHashChart.appendChild(
+    createSvg("polygon", { points: x(t0) + "," + y(0) + " " + line + " " + x(t1) + "," + y(0), class: "btc-hash-area" })
+  );
+  btcHashChart.appendChild(createSvg("polyline", { points: line, class: "chart-line series-1" }));
+  btcHashChart.appendChild(createSvg("line", { id: "btc-hash-cross", y1: c.top, y2: c.top + plotHeight, class: "chart-crosshair" }));
+  btcHashChart.appendChild(createSvg("circle", { id: "btc-hash-dot", r: 4, class: "chart-dot series-1" }));
+  btcHashStatus.textContent = "세로축 단위: EH/s (1초에 100경 번) · 하루 평균 값 · 출처: mempool.space";
+  selectBtcHashIndex(points.length - 1);
+}
+
+function selectBtcHashIndex(index) {
+  const point = btcHashPoints[index];
+  if (!point || !btcHashScale) return;
+  const cx = btcHashScale.x(point.time);
+  const cross = document.getElementById("btc-hash-cross");
+  cross.setAttribute("x1", cx);
+  cross.setAttribute("x2", cx);
+  const dot = document.getElementById("btc-hash-dot");
+  dot.setAttribute("cx", cx);
+  dot.setAttribute("cy", btcHashScale.y(point.value));
+  const date = new Date(point.time);
+  btcHashReadout.innerHTML = "";
+  const title = document.createElement("span");
+  title.className = "readout-title";
+  title.textContent = date.getFullYear() + "년 " + (date.getMonth() + 1) + "월 " + date.getDate() + "일";
+  const value = document.createElement("strong");
+  value.textContent = formatBtcHashrate(point.value);
+  btcHashReadout.append(title, value);
+}
+
+function selectBtcHashAt(clientX) {
+  if (!btcHashScale || btcHashPoints.length === 0) return;
+  const rect = btcHashChart.getBoundingClientRect();
+  const svgX = ((clientX - rect.left) / rect.width) * BTC_HASH_CHART.width;
+  const c = BTC_HASH_CHART;
+  const time = btcHashScale.t0 + ((svgX - c.left) / (c.width - c.left - c.right)) * (btcHashScale.t1 - btcHashScale.t0);
+  let best = 0;
+  btcHashPoints.forEach(function (point, index) {
+    if (Math.abs(point.time - time) < Math.abs(btcHashPoints[best].time - time)) best = index;
+  });
+  selectBtcHashIndex(best);
+}
+
+// =============================================
+// 7. 검색: 블록 번호 · 거래 ID · 주소 → mempool.space에서 열기
+// =============================================
+
+function getBtcSearchUrl(query) {
+  const text = query.trim();
+  if (/^\d{1,7}$/.test(text)) return BTC_MEMPOOL_SITE + "/ko/block/" + text; // 블록 번호
+  if (/^0{8}[0-9a-fA-F]{56}$/.test(text)) return BTC_MEMPOOL_SITE + "/ko/block/" + text; // 블록 해시 (0이 여러 개로 시작)
+  if (/^[0-9a-fA-F]{64}$/.test(text)) return BTC_MEMPOOL_SITE + "/ko/tx/" + text; // 거래 ID
+  if (/^(bc1|tb1)[a-zA-HJ-NP-Z0-9]{8,87}$/i.test(text) || /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(text)) {
+    return BTC_MEMPOOL_SITE + "/ko/address/" + text; // 주소
+  }
+  return null;
+}
+
+// =============================================
+// 8. 이벤트 처리 · 시작
+// =============================================
+
+btcHashButtons.forEach(function (button) {
+  button.addEventListener("click", function () {
+    btcHashRange = button.dataset.btcHashRange;
+    renderBtcHashChart();
+    refreshBtcHashrate(false);
+  });
+});
+btcHashChart.addEventListener("pointerdown", function (event) {
+  selectBtcHashAt(event.clientX);
+});
+btcHashChart.addEventListener("pointermove", function (event) {
+  if (event.pointerType === "mouse" || event.buttons > 0) selectBtcHashAt(event.clientX);
+});
+
+btcSearchForm.addEventListener("submit", function (event) {
+  event.preventDefault();
+  const url = getBtcSearchUrl(btcSearchInput.value);
+  if (!url) {
+    alert("블록 번호(예: 840000), 거래 ID(64자리), 비트코인 주소(bc1…, 1…, 3…) 중 하나를 넣어 주세요.");
+    return;
+  }
+  window.open(url, "_blank", "noopener");
+});
+
+// 블록 탭을 열거나 비트코인 탭을 들락날락하면 카운트다운 켜고 끄기 + 블록 줄 가운데 맞춤
+document.addEventListener("btc-active", updateBtcCountdownTimer);
+document.addEventListener("btc-view-shown", function (event) {
+  updateBtcCountdownTimer();
+  if (event.detail.view === "chain") centerBtcBlocks();
+});
 
 renderBtcHalvingList();
 renderBtcHalving(); // 실제 블록 번호를 받기 전에는 어림값으로
 addBtcTask(refreshBtcBlocks, BTC_BLOCKS_EVERY_MS);
 addBtcTask(refreshBtcDifficulty, BTC_DIFFICULTY_EVERY_MS);
+addBtcTask(function () {
+  return refreshBtcHashrate(true);
+}, BTC_HASHRATE_EVERY_MS);
 
 // 모든 할 일을 등록했으니, 지금 비트코인 탭이면 자동 갱신 시작 (btc.js)
 updateBtcTimer();

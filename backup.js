@@ -24,8 +24,8 @@ const BACKUP_ITEMS = [
   { key: "household-history", label: "자산 기록", unit: "개월", check: isValidHistory },
 ];
 
-// 목록이 아닌 설정값 (시뮬레이션 입력값)
-const BACKUP_SETTINGS_KEY = "household-sim-settings";
+// 목록이 아닌 설정값 (시뮬레이션 입력값, 비트코인 설정: 거래소·스택 목표)
+const BACKUP_SETTINGS_KEYS = ["household-sim-settings", "household-btc-settings"];
 
 // =============================================
 // 2. 데이터 모양 검사
@@ -105,14 +105,16 @@ function collectBackupData() {
   BACKUP_ITEMS.forEach(function (item) {
     data[item.key] = loadList(item.key);
   });
-  try {
-    const settings = JSON.parse(localStorage.getItem(BACKUP_SETTINGS_KEY));
-    if (settings && typeof settings === "object") {
-      data[BACKUP_SETTINGS_KEY] = settings;
+  BACKUP_SETTINGS_KEYS.forEach(function (key) {
+    try {
+      const settings = JSON.parse(localStorage.getItem(key));
+      if (settings && typeof settings === "object") {
+        data[key] = settings;
+      }
+    } catch (error) {
+      // 설정이 깨져 있으면 빼고 백업
     }
-  } catch (error) {
-    // 설정이 깨져 있으면 빼고 백업
-  }
+  });
   return {
     app: BACKUP_APP_NAME,
     version: BACKUP_VERSION,
@@ -243,10 +245,12 @@ backupFileInput.addEventListener("change", async function () {
       localStorage.setItem(item.key, JSON.stringify(list));
     }
   });
-  const settings = backup.data[BACKUP_SETTINGS_KEY];
-  if (settings && typeof settings === "object") {
-    localStorage.setItem(BACKUP_SETTINGS_KEY, JSON.stringify(settings));
-  }
+  BACKUP_SETTINGS_KEYS.forEach(function (key) {
+    const settings = backup.data[key];
+    if (settings && typeof settings === "object" && !Array.isArray(settings)) {
+      localStorage.setItem(key, JSON.stringify(settings));
+    }
+  });
 
   alert("불러왔어요. 화면을 새로 고칠게요.");
   // 모든 탭이 새 데이터로 처음부터 다시 그려지도록 페이지를 새로고침

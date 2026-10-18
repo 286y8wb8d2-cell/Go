@@ -1,8 +1,10 @@
 // =============================================
-// 비트코인 탭 — 시장 정보 ① 자동 갱신 + 김치 프리미엄
-// 비트코인 탭을 보고 있을 때만 정해진 간격으로 새 정보를 받아 옴
-// (다른 탭에 있거나 앱을 내려 두면 멈춰서 데이터·배터리를 아낌)
-// 차트는 btc-chart.js, 반감기·실시간 블록은 btc-chain.js
+// 비트코인 탭 — 공통 도구
+// - 작은 탭(시세 · 차트 · 블록 · 도구 · 내 코인) 바꾸기
+// - 자동 갱신: 비트코인 탭을 보고 있을 때만 정해진 간격으로 새 정보를 받아 옴
+//   (다른 탭에 있거나 앱을 내려 두면 멈춰서 데이터·배터리를 아낌)
+// - 비트코인 설정(국내 거래소 선택, 스택 목표) 저장
+// 다른 btc-*.js 파일이 여기 있는 도구를 씀
 // ※ 다른 파일과 이름이 겹치지 않게 모두 btc~ / BTC~ 로 시작
 // ※ 시세 서비스에는 아무 개인 정보도 보내지 않음 (보유량·금액 없음)
 // =============================================
@@ -11,70 +13,49 @@
 // 1. 상수
 // =============================================
 
-// 국내 가격: 빗썸 비트코인 원화 시세
-const BTC_BITHUMB_TICKER_URL = "https://api.bithumb.com/public/ticker/BTC_KRW";
-
-// 해외 가격(달러): 위에서부터 차례로 시도
-// 바이낸스는 달러와 거의 같은 테더(USDT) 가격
-const BTC_GLOBAL_SOURCES = [
-  {
-    name: "바이낸스",
-    url: "https://data-api.binance.vision/api/v3/ticker/price?symbol=BTCUSDT",
-    read: function (json) {
-      return Number(json.price);
-    },
-  },
-  {
-    name: "코인게코",
-    url: "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
-    read: function (json) {
-      return Number(json.bitcoin.usd);
-    },
-  },
-];
-
-// 원/달러 환율: 위에서부터 차례로 시도
-const BTC_FX_SOURCES = [
-  {
-    name: "ExchangeRate-API",
-    url: "https://open.er-api.com/v6/latest/USD",
-    read: function (json) {
-      return Number(json.rates.KRW);
-    },
-  },
-  {
-    // 코인게코의 비트코인 원화 가격 ÷ 달러 가격 = 코인게코가 쓰는 환율
-    name: "코인게코",
-    url: "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd,krw",
-    read: function (json) {
-      return Number(json.bitcoin.krw) / Number(json.bitcoin.usd);
-    },
-  },
-];
-
-// 환율은 자주 바뀌지 않으니 한 번 받으면 1시간 동안 다시 쓰기
-const BTC_FX_KEEP_MS = 60 * 60 * 1000;
+// 비트코인 설정 저장 이름 (백업에 포함됨)
+const BTC_SETTINGS_KEY = "household-btc-settings";
+// 마지막으로 본 작은 탭 (이 기기에서만 기억, 백업 안 함)
+const BTC_VIEW_KEY = "household-btc-view";
 
 // 자동 갱신: 5초마다 "할 때가 된 일"이 있는지 확인
 const BTC_TICK_MS = 5000;
 // 실패하면 이만큼 뒤에 다시 시도
 const BTC_RETRY_MS = 30000;
 
-// 김치 프리미엄 갱신 간격
-const BTC_KIMP_EVERY_MS = 30000;
+const BTC_DAY_MS = 24 * 60 * 60 * 1000;
 
 // =============================================
-// 2. 상태 (지금까지 받아 온 값)
+// 2. 설정 저장/불러오기
 // =============================================
 
-// 빗썸 비트코인 원화 가격 (실시간 블록의 수수료를 원화로 바꿀 때도 씀)
-let btcDomesticPrice = null;
+// { exchange: "upbit" | "bithumb", goal: 목표 BTC 수량(없으면 0) }
+function loadBtcSettings() {
+  const settings = { exchange: "upbit", goal: 0 };
+  try {
+    const saved = JSON.parse(localStorage.getItem(BTC_SETTINGS_KEY));
+    if (saved && typeof saved === "object") {
+      if (saved.exchange === "upbit" || saved.exchange === "bithumb") settings.exchange = saved.exchange;
+      if (Number.isFinite(saved.goal) && saved.goal >= 0) settings.goal = saved.goal;
+    }
+  } catch (error) {
+    // 깨져 있으면 기본값
+  }
+  return settings;
+}
 
-// 환율과 받아 온 시각
-let btcFx = null; // { value: 1390.5, name: "ExchangeRate-API", time: 1760000000000 }
+let btcSettings = loadBtcSettings();
+
+function saveBtcSettings() {
+  try {
+    localStorage.setItem(BTC_SETTINGS_KEY, JSON.stringify(btcSettings));
+  } catch (error) {
+    // 저장 공간이 막혀 있어도 화면은 그대로 동작
+  }
+}
 
 // =============================================
-// 3. 자동 갱신 도구 (btc-chart.js, btc-chain.js도 같이 씀)
+// 3. 자동 갱신 도구
 // =============================================
 
 // 할 일 목록: { run: 실행할 함수, everyMs: 간격, lastRun: 마지막 실행 시각, busy: 실행 중인지 }
@@ -113,19 +94,76 @@ function runBtcTasks() {
 }
 
 // 비트코인 탭을 보고 있고 앱이 화면에 떠 있을 때만 돌아가게
+// 켜지고 꺼질 때 "btc-active" 신호를 보냄 (실시간 연결·카운트다운이 이 신호를 들음)
 function updateBtcTimer() {
   const shouldRun = currentTab === "crypto" && !document.hidden;
   if (shouldRun && btcTimer === null) {
     runBtcTasks();
     btcTimer = setInterval(runBtcTasks, BTC_TICK_MS);
+    document.dispatchEvent(new CustomEvent("btc-active", { detail: { active: true } }));
   } else if (!shouldRun && btcTimer !== null) {
     clearInterval(btcTimer);
     btcTimer = null;
+    document.dispatchEvent(new CustomEvent("btc-active", { detail: { active: false } }));
   }
 }
 
+function isBtcActive() {
+  return btcTimer !== null;
+}
+
+// =============================================
+// 4. 작은 탭 (시세 · 차트 · 블록 · 도구 · 내 코인)
+// =============================================
+
+const btcViewButtons = document.querySelectorAll("[data-btc-view]");
+const btcViewPanels = document.querySelectorAll("[data-btc-view-panel]");
+
+let btcView = "market";
+
+function showBtcView(view, scroll) {
+  btcView = view;
+  btcViewButtons.forEach(function (button) {
+    const active = button.dataset.btcView === view;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  btcViewPanels.forEach(function (panel) {
+    panel.hidden = panel.dataset.btcViewPanel !== view;
+  });
+  try {
+    localStorage.setItem(BTC_VIEW_KEY, view);
+  } catch (error) {
+    // 무시
+  }
+  if (scroll) {
+    window.scrollTo(0, 0);
+  }
+  // 작은 탭이 바뀌었다고 알림 (숨어 있을 때 크기를 못 잰 화면이 다시 맞추도록)
+  document.dispatchEvent(new CustomEvent("btc-view-shown", { detail: { view: view } }));
+}
+
+btcViewButtons.forEach(function (button) {
+  button.addEventListener("click", function () {
+    showBtcView(button.dataset.btcView, true);
+  });
+});
+
+// 다른 곳에서 "이 작은 탭으로 가기" 버튼 (data-btc-goto="tools" 등)
+document.querySelectorAll("[data-btc-goto]").forEach(function (button) {
+  button.addEventListener("click", function () {
+    showBtcView(button.dataset.btcGoto, true);
+  });
+});
+
+// =============================================
+// 5. 작은 도구들
+// =============================================
+
 // 여러 곳 중 처음으로 성공한 곳의 숫자를 돌려줌 → { value, name }
+// sources: [{ name, url, read(json) }]
 async function tryBtcSources(sources) {
+  let lastError = null;
   for (const source of sources) {
     try {
       const value = source.read(await fetchCryptoJson(source.url)); // fetchCryptoJson: crypto.js
@@ -133,10 +171,18 @@ async function tryBtcSources(sources) {
         return { value: value, name: source.name };
       }
     } catch (error) {
-      // 이곳은 실패 → 다음 곳
+      lastError = error; // 이곳은 실패 → 다음 곳
     }
   }
-  throw new Error("모든 곳에 접속 실패");
+  throw lastError || new Error("모든 곳에 접속 실패");
+}
+
+// 실패 이유를 짧은 말로 (화면 캡처로 원인을 알 수 있게)
+function describeBtcError(error) {
+  if (!error) return "알 수 없는 오류";
+  if (error.name === "AbortError") return "응답 시간 초과";
+  if (error.name === "TypeError") return "접속 차단 또는 네트워크 오류";
+  return String(error.message || error).slice(0, 60);
 }
 
 // 지금 시각을 "18:20:15" 모양으로
@@ -154,100 +200,40 @@ function formatBtcDecimal(value, digits) {
   return value.toLocaleString("ko-KR", { maximumFractionDigits: digits });
 }
 
-// =============================================
-// 4. 김치 프리미엄
-// =============================================
-
-const btcKimpRate = document.getElementById("btc-kimp-rate");
-const btcKimpDiff = document.getElementById("btc-kimp-diff");
-const btcKimpDomestic = document.getElementById("btc-kimp-domestic");
-const btcKimpDomesticSub = document.getElementById("btc-kimp-domestic-sub");
-const btcKimpGlobal = document.getElementById("btc-kimp-global");
-const btcKimpGlobalSub = document.getElementById("btc-kimp-global-sub");
-const btcKimpStatus = document.getElementById("btc-kimp-status");
-
-// 빗썸 원화 가격 (+ 24시간 변동률)
-async function fetchBtcDomestic() {
-  const result = await fetchCryptoJson(BTC_BITHUMB_TICKER_URL);
-  if (!result || result.status !== "0000" || !result.data) {
-    throw new Error("빗썸 응답 오류");
-  }
-  return {
-    price: Number(result.data.closing_price),
-    change: Number(result.data.fluctate_rate_24H), // 24시간 변동률(%)
-  };
-}
-
-// 환율: 1시간 안에 받은 게 있으면 그대로 씀
-async function getBtcFx() {
-  if (btcFx && Date.now() - btcFx.time < BTC_FX_KEEP_MS) {
-    return btcFx;
-  }
-  const found = await tryBtcSources(BTC_FX_SOURCES);
-  btcFx = { value: found.value, name: found.name, time: Date.now() };
-  return btcFx;
-}
-
-// 세 가지를 동시에 받아서 김치 프리미엄 계산
-// 김치 프리미엄(%) = (국내 가격 ÷ 해외 가격을 원화로 바꾼 값 - 1) × 100
-async function refreshBtcKimp() {
-  const results = await Promise.allSettled([fetchBtcDomestic(), tryBtcSources(BTC_GLOBAL_SOURCES), getBtcFx()]);
-  const domestic = results[0].status === "fulfilled" ? results[0].value : null;
-  const global = results[1].status === "fulfilled" ? results[1].value : null;
-  const fx = results[2].status === "fulfilled" ? results[2].value : null;
-
-  // 국내 가격 칸
-  if (domestic && Number.isFinite(domestic.price) && domestic.price > 0) {
-    btcDomesticPrice = domestic.price;
-    btcKimpDomestic.textContent = formatMoney(domestic.price);
-    if (Number.isFinite(domestic.change)) {
-      btcKimpDomesticSub.textContent = "24시간 " + formatPercent(domestic.change);
-      btcKimpDomesticSub.className = "btc-card-sub " + getProfitClass(domestic.change);
+// 내가 가진 비트코인 (비트코인 탭 "내 코인"에서 심볼이 BTC인 것들의 합)
+// → { quantity, cost } (없으면 quantity 0)
+function getMyBtcHolding() {
+  let quantity = 0;
+  let cost = 0;
+  cryptos.forEach(function (crypto) {
+    if (getCryptoSymbol(crypto) === "BTC") {
+      // cryptos, getCryptoSymbol: crypto.js
+      quantity = quantity + crypto.quantity;
+      cost = cost + crypto.quantity * crypto.avgPrice;
     }
-  }
-
-  // 해외 가격 칸
-  const globalKrw = global && fx ? global.value * fx.value : null;
-  if (globalKrw) {
-    btcKimpGlobal.textContent = formatMoney(globalKrw);
-    btcKimpGlobalSub.textContent = "$" + formatBtcDecimal(global.value, 0) + " × " + formatBtcDecimal(fx.value, 1) + "원";
-    btcKimpGlobalSub.className = "btc-card-sub";
-  }
-
-  // 김치 프리미엄 (세 가지가 다 있어야 계산 가능)
-  if (btcDomesticPrice && globalKrw) {
-    const rate = (btcDomesticPrice / globalKrw - 1) * 100;
-    btcKimpRate.textContent = formatPercent(rate);
-    btcKimpRate.className = "btc-big " + getProfitClass(rate);
-    btcKimpDiff.textContent =
-      (rate >= 0 ? "국내가 " : "국내가 해외보다 ") +
-      formatKoreanUnit(Math.abs(btcDomesticPrice - globalKrw)) +
-      (rate >= 0 ? " 더 비싸요" : " 더 싸요");
-    btcKimpStatus.textContent =
-      getBtcClock() + " 갱신 · 30초마다 자동 · 해외: " + global.name + ", 환율: " + fx.name;
-    return true;
-  }
-
-  // 무엇이 안 됐는지 알려 줌
-  const failed = [];
-  if (!domestic) failed.push("빗썸");
-  if (!global) failed.push("해외 시세");
-  if (!fx) failed.push("환율");
-  if (btcKimpRate.textContent === "-") {
-    btcKimpDiff.textContent = "아직 계산하지 못했어요.";
-  }
-  btcKimpStatus.textContent =
-    getBtcClock() + " " + failed.join("·") + " 정보를 받지 못했어요. 잠시 뒤 다시 시도해요.";
-  return false;
+  });
+  return { quantity: quantity, cost: cost };
 }
 
-addBtcTask(refreshBtcKimp, BTC_KIMP_EVERY_MS);
-
 // =============================================
-// 5. 이벤트 처리
+// 6. 이벤트 처리
 // =============================================
 
 // 탭이 바뀌거나 앱을 내렸다 올리면 자동 갱신을 켜거나 끔
 // (처음 켜는 것은 마지막 파일 btc-chain.js 끝에서 — 모든 할 일이 등록된 뒤)
 document.addEventListener("tab-shown", updateBtcTimer);
 document.addEventListener("visibilitychange", updateBtcTimer);
+
+// 시작: 지난번에 보던 작은 탭 (없으면 시세)
+(function () {
+  let saved = null;
+  try {
+    saved = localStorage.getItem(BTC_VIEW_KEY);
+  } catch (error) {
+    // 무시
+  }
+  const exists = Array.from(btcViewButtons).some(function (button) {
+    return button.dataset.btcView === saved;
+  });
+  showBtcView(exists ? saved : "market", false);
+})();

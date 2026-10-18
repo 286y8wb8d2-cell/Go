@@ -23,7 +23,6 @@ const BTC_CHART_EVERY_MS = 10 * 60 * 1000;
 // 그래프 크기 (viewBox 기준, 실제로는 화면 폭에 맞춰 늘어남)
 const BTC_CHART = { width: 340, height: 220, left: 46, right: 8, top: 10, bottom: 24 };
 
-const BTC_DAY_MS = 24 * 60 * 60 * 1000;
 
 // 기간 버튼 → 며칠
 // (3개월: 일봉 몸통이 보일 만큼 봉이 적은 기간)
@@ -59,6 +58,7 @@ const btcChartReadout = document.getElementById("btc-chart-readout");
 const btcChartStatus = document.getElementById("btc-chart-status");
 const btcIntervalButtons = document.querySelectorAll("[data-btc-interval]");
 const btcRangeButtons = document.querySelectorAll("[data-btc-range]");
+const btcAvgToggle = document.getElementById("btc-avg-toggle");
 
 // =============================================
 // 3. 데이터 받기와 계산
@@ -160,6 +160,8 @@ function mergeBtcCandles() {
   btcDailyCandles = Array.from(byDay.values()).sort(function (a, b) {
     return a.time - b.time;
   });
+  // 다른 차트(반감기 사이클, 월별 등락률, 적립식 계산)도 이 데이터를 씀 → 바뀌었다고 알림
+  document.dispatchEvent(new CustomEvent("btc-candles-updated"));
 }
 
 // 최근 일봉 받아 오기 (빗썸 → 코인게코)
@@ -413,7 +415,23 @@ function renderBtcChart() {
     }
   });
 
-  // ④ 고른 봉 표시용 세로선 (위치는 selectBtcCandle에서 옮김)
+  // ④ 내 평균 매입가 가로 점선 (내 코인에 BTC가 있고, 그 가격이 그래프 범위 안일 때)
+  const mine = getMyBtcHolding(); // btc.js
+  const avgPrice = mine.quantity > 0 ? mine.cost / mine.quantity : 0;
+  let avgNote = "";
+  if (btcAvgToggle.checked && avgPrice > 0) {
+    const avgY = y(avgPrice);
+    if (avgY >= c.top && avgY <= c.top + plotHeight) {
+      btcChart.appendChild(createSvg("line", { x1: c.left, x2: c.width - c.right, y1: avgY, y2: avgY, class: "btc-avg-line" }));
+      const label = createSvg("text", { x: c.width - c.right - 2, y: avgY - 4, class: "btc-avg-label", "text-anchor": "end" });
+      label.textContent = "내 평단 " + formatAxisValue(avgPrice);
+      btcChart.appendChild(label);
+    } else {
+      avgNote = "내 평단(" + formatKoreanUnit(avgPrice) + ")이 이 기간 가격 범위 밖이에요";
+    }
+  }
+
+  // ⑤ 고른 봉 표시용 세로선 (위치는 selectBtcCandle에서 옮김)
   btcChart.appendChild(createSvg("line", { id: "btc-crosshair", y1: c.top, y2: c.top + plotHeight, class: "chart-crosshair" }));
 
   // 기간 전체 변화: 첫 봉 시가 → 마지막 봉 종가
@@ -449,6 +467,7 @@ function renderBtcChart() {
   if (btcLiveFailed) {
     notes.push("시세 서비스에 접속하지 못해 " + BTC_HISTORY.end.replace(/-/g, ".") + "까지의 저장된 기록만 보여요");
   }
+  if (avgNote) notes.push(avgNote);
   btcChartStatus.textContent = notes.join(" · ");
 
   if (btcSelectedIndex === null || btcSelectedIndex >= candles.length) {
@@ -534,6 +553,13 @@ btcRangeButtons.forEach(function (button) {
     btcSelectedIndex = null;
     renderBtcChart();
   });
+});
+
+btcAvgToggle.addEventListener("change", renderBtcChart);
+
+// 내 코인을 고치면 평단선도 다시
+document.addEventListener("data-saved", function (event) {
+  if (event.detail.key === CRYPTO_STORAGE_KEY) renderBtcChart();
 });
 
 btcChart.addEventListener("pointerdown", function (event) {

@@ -364,3 +364,47 @@ function hideSwipeHint() {
   });
   showTab(exists ? hashTab : "home");
 })();
+
+// ---------------------------------------------
+// 새 버전 알림
+// 휴대폰(특히 홈 화면에 추가한 앱)은 예전 화면을 한동안 기억해 둠.
+// version.json(항상 새로 받음)의 버전이 지금 화면보다 높으면 위에 "새 버전" 알림을 띄움
+// ---------------------------------------------
+
+// 지금 화면의 버전 (<html data-version="33">)
+const APP_VERSION = Number(document.documentElement.dataset.version) || 0;
+const updateBanner = document.getElementById("update-banner");
+const updateBannerText = document.getElementById("update-banner-text");
+const updateBannerBtn = document.getElementById("update-banner-btn");
+
+let lastUpdateCheck = 0;
+let newestVersion = 0;
+
+async function checkAppUpdate() {
+  // 너무 자주 확인하지 않게 (10분에 한 번)
+  if (Date.now() - lastUpdateCheck < 10 * 60 * 1000) return;
+  lastUpdateCheck = Date.now();
+  try {
+    // ?t=시각: 주소가 매번 달라져서 예전에 받아 둔 파일을 쓰지 않음
+    const response = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
+    if (!response.ok) return;
+    const info = await response.json();
+    newestVersion = Number(info.version) || 0;
+    if (newestVersion > APP_VERSION) {
+      updateBannerText.textContent = "새 버전(v" + newestVersion + ")이 나왔어요.";
+      updateBanner.hidden = false;
+    }
+  } catch (error) {
+    // 인터넷이 안 되면 다음에
+  }
+}
+
+// "업데이트" 버튼: 주소에 ?v=새버전을 붙여서 열면 예전 화면 대신 새 화면을 받아 옴
+updateBannerBtn.addEventListener("click", function () {
+  location.replace(location.pathname + "?v=" + newestVersion + location.hash);
+});
+
+checkAppUpdate();
+document.addEventListener("visibilitychange", function () {
+  if (!document.hidden) checkAppUpdate();
+});

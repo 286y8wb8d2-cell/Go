@@ -1051,6 +1051,7 @@ main {
   width: auto;
   height: 44px;
   padding: 0 18px;
+  white-space: nowrap;
 }
 
 /* 이름 입력칸 옆의 작은 보조 버튼 (현재 자산, 가계부 평균) */
@@ -1780,8 +1781,348 @@ footer {
   color: var(--text-light);
 }
 
+/* ---------- 비트코인 작은 탭 (시세 · 차트 · 블록 · 도구 · 내 코인) ---------- */
+.btc-subtabs {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.btc-subtabs::-webkit-scrollbar {
+  display: none;
+}
+
+.btc-subtab {
+  flex: 1 0 auto;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.btc-subtab.active {
+  border-color: var(--text);
+  background: var(--text);
+  color: #ffffff;
+  font-weight: bold;
+}
+
+/* 제목 옆에 작은 버튼 묶음 */
+.btc-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.btc-section-head h2 {
+  margin: 0;
+}
+
+/* 업비트 | 빗썸 고르기 */
+.btc-seg {
+  display: flex;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.btc-seg-btn {
+  height: 30px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-light);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.btc-seg-btn[aria-pressed="true"] {
+  background: var(--card);
+  color: var(--text);
+  font-weight: bold;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+/* 실시간 큰 가격 */
+.btc-live-price {
+  margin: 8px 0 2px;
+  text-align: center;
+  font-size: 2.1rem;
+  font-weight: bold;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  border-radius: 8px;
+}
+
+.btc-live-center {
+  text-align: center;
+}
+
+/* 가격이 바뀌면 잠깐 빨강(오름)/파랑(내림) 바탕 */
+@keyframes btc-tick-up {
+  from { background: rgba(220, 38, 38, 0.15); }
+  to   { background: transparent; }
+}
+
+@keyframes btc-tick-down {
+  from { background: rgba(37, 99, 235, 0.15); }
+  to   { background: transparent; }
+}
+
+.btc-tick-up { animation: btc-tick-up 0.8s ease-out; }
+.btc-tick-down { animation: btc-tick-down 0.8s ease-out; }
+
+/* 실시간 연결되면 초록 점 */
+.price-refresh-status.btc-live-on {
+  color: #0a7d0a;
+}
+
+/* 내 비트코인 지금 가치 */
+.btc-live-mine {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff7e6;
+  text-align: center;
+}
+
+.btc-live-mine p {
+  margin: 0;
+}
+
+.btc-live-mine-name {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.btc-live-mine-value {
+  font-size: 1.3rem;
+  font-weight: bold;
+}
+
+/* 시장 지표 2×2 칸 */
+.btc-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.btc-tile {
+  display: block;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.btc-tile p {
+  margin: 0;
+}
+
+.btc-tile-name,
+.btc-tile-sub {
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+.btc-tile-value {
+  font-size: 1.25rem;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 체크 상자 한 줄 */
+.btc-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
+
+.btc-check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+/* 내 평단선 (주황 점선) */
+.btc-avg-line {
+  stroke: #eb6834;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.btc-avg-label {
+  fill: #b5480f;
+  font-size: 10px;
+  font-weight: bold;
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 3px;
+}
+
+/* 반감기 카운트다운 */
+.btc-countdown {
+  margin: 0 0 2px;
+  font-size: 1.05rem;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 반감기 사이클 비교 */
+.btc-cycle-line {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.btc-cycle-line.current {
+  stroke-width: 2.5;
+}
+
+.btc-cycle-base {
+  stroke: var(--text-light);
+  stroke-width: 1;
+}
+
+.btc-cycle-today {
+  stroke: var(--text-light);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+/* 월별 등락률 표 */
+.btc-heat-scroll {
+  margin-top: 4px;
+}
+
+.btc-heat-table {
+  border-collapse: separate;
+  border-spacing: 2px;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.btc-heat-table th {
+  padding: 2px 4px;
+  font-weight: normal;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+
+.btc-heat-table tbody th {
+  text-align: right;
+}
+
+.btc-heat-table td {
+  min-width: 34px;
+  height: 26px;
+  padding: 0 2px;
+  border-radius: 4px;
+  text-align: center;
+  color: var(--text);
+}
+
+.btc-heat-table td.btc-heat-empty {
+  background: transparent;
+}
+
+/* 진행 중인 칸: 점선 테두리 */
+.btc-heat-table td.btc-heat-ongoing {
+  outline: 1.5px dashed var(--text);
+  outline-offset: -2px;
+}
+
+.btc-heat-foot th,
+.btc-heat-foot td {
+  font-weight: bold;
+}
+
+.btc-heat-table td.btc-heat-share {
+  color: var(--text-light);
+  font-weight: normal;
+}
+
+.btc-heat-foot:first-of-type th,
+.btc-heat-foot:first-of-type td {
+  border-top: 1px solid var(--border);
+}
+
+/* 해시레이트 차트: 선 아래 연한 면 */
+.btc-hash-area {
+  fill: rgba(42, 120, 214, 0.12);
+}
+
+/* 결과 칸 4개 (2×2) */
+.btc-result-grid {
+  margin: 4px 0 12px;
+}
+
+/* 한 줄 입력 + 버튼 묶음 안의 고르기 칸 */
+.inline-row select {
+  flex: 0 0 auto;
+  width: auto !important;
+  margin-bottom: 0 !important;
+}
+
+.card-form.inline-row {
+  margin-bottom: 12px;
+}
+
+/* 스택 목표 */
+.btc-goal-fill {
+  background: #2a78d6;
+}
+
+.btc-goal-text {
+  margin: 8px 0 0;
+  text-align: center;
+  font-weight: bold;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .btc-block-new { animation: none; }
+  .btc-block-new,
+  .btc-tick-up,
+  .btc-tick-down { animation: none; }
+}
+
+/* 새 버전 알림 (맨 위 띠) */
+.update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: calc(100% - 32px);
+  max-width: 568px;
+  margin: 0 auto 8px;
+  padding: 8px 12px 8px 16px;
+  background: #1f2937;
+  color: #ffffff;
+  font-size: 0.9rem;
+  border-radius: 10px;
+}
+
+.update-banner-btn {
+  height: 32px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1f2937;
+  font-weight: bold;
+  cursor: pointer;
 }
 
 /* =============================================

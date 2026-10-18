@@ -10,8 +10,13 @@
 // 1. 상수
 // =============================================
 
-// 최근 31일치 (오늘 + 30일 전까지)
-const BTC_FNG_URL = "https://api.alternative.me/fng/?limit=31";
+// 최근 31일치 (오늘 + 30일 전까지). 안 되면 다음 주소로
+// (마지막 주소는 오늘 값 하나만 주는 가장 기본 주소)
+const BTC_FNG_URLS = [
+  "https://api.alternative.me/fng/?limit=31",
+  "https://api.alternative.me/fng/?limit=31&format=json",
+  "https://api.alternative.me/fng/",
+];
 
 // 하루에 한 번 바뀌는 값이라 10분마다만 확인
 const BTC_FNG_EVERY_MS = 10 * 60 * 1000;
@@ -38,6 +43,8 @@ const btcFngLabel = document.getElementById("btc-fng-label");
 const btcFngCompare = document.getElementById("btc-fng-compare");
 const btcFngBars = document.getElementById("btc-fng-bars");
 const btcFngStatus = document.getElementById("btc-fng-status");
+const btcFngMiniValue = document.getElementById("btc-fng-mini-value");
+const btcFngMiniSub = document.getElementById("btc-fng-mini-sub");
 
 // =============================================
 // 2. 계산
@@ -146,23 +153,40 @@ function renderBtcFngBars(days) {
 // 4. 데이터 받기 (자동 갱신 할 일)
 // =============================================
 
+// 주소를 차례로 시도해서 [{ value, time }] (최신이 맨 앞)
+async function fetchBtcFngDays() {
+  let lastError = null;
+  for (const url of BTC_FNG_URLS) {
+    try {
+      const result = await fetchCryptoJson(url); // crypto.js
+      // { data: [{ value: "45", timestamp: "1760745600", ... }, ...] }
+      const days = result.data
+        .map(function (item) {
+          return { value: Number(item.value), time: Number(item.timestamp) };
+        })
+        .filter(function (day) {
+          return Number.isFinite(day.value) && day.value >= 0 && day.value <= 100;
+        });
+      if (days.length > 0) return days;
+      lastError = new Error("빈 응답");
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
 async function refreshBtcFng() {
   let days;
   try {
-    const result = await fetchCryptoJson(BTC_FNG_URL); // crypto.js
-    // 최신이 맨 앞: [{ value: "45", timestamp: "1760745600", ... }, ...]
-    days = result.data
-      .map(function (item) {
-        return { value: Number(item.value), time: Number(item.timestamp) };
-      })
-      .filter(function (day) {
-        return Number.isFinite(day.value) && day.value >= 0 && day.value <= 100;
-      });
-    if (days.length === 0) throw new Error("빈 응답");
+    days = await fetchBtcFngDays();
   } catch (error) {
-    btcFngStatus.textContent = getBtcClock() + " 지수를 받지 못했어요. 잠시 뒤 다시 시도해요."; // btc.js
+    // 실패 이유도 함께 (화면을 캡처해 주면 원인을 알 수 있게)
+    btcFngStatus.textContent =
+      getBtcClock() + " 지수를 받지 못했어요 (" + describeBtcError(error) + "). 잠시 뒤 다시 시도해요."; // btc.js
     if (btcFngValue.textContent === "-") {
       btcFngLabel.textContent = "아직 받지 못했어요";
+      btcFngMiniSub.textContent = "받지 못했어요";
     }
     return false;
   }
@@ -174,6 +198,9 @@ async function refreshBtcFng() {
   btcFngValue.style.color = zone.color;
   btcFngLabel.textContent = zone.name;
   btcFngLabel.style.color = zone.color;
+  btcFngMiniValue.textContent = today.value;
+  btcFngMiniValue.style.color = zone.color;
+  btcFngMiniSub.textContent = zone.name;
   renderBtcFngCompare(days);
   renderBtcFngBars(days);
 
