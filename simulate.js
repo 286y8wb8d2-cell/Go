@@ -20,6 +20,7 @@ const SIM_DEFAULTS = {
   dividendYield: 2,
   reinvest: true,
   rates: { bad: 2, base: 5, good: 8 }, // 비관 / 기본 / 낙관 연 수익률(%)
+  target: 0, // 목표 금액 (0이면 계산 안 함)
 };
 
 // 세 가지 경우: 저장용 이름 → 화면 이름
@@ -36,7 +37,10 @@ const SIM_LIMITS = {
   years: [1, 50],
   dividendYield: [0, 30],
   rate: [-50, 50],
+  target: [0, 10000000000000],
 };
+// 목표 도달 계산은 최대 이만큼(년)까지만
+const SIM_TARGET_MAX_YEARS = 100;
 
 // =============================================
 // 화면 요소 찾기
@@ -57,6 +61,8 @@ const simCards = document.getElementById("sim-cards");
 const simPrincipalText = document.getElementById("sim-principal");
 const simDividendText = document.getElementById("sim-dividend-result");
 const simTableBody = document.getElementById("sim-table-body");
+const simTargetInput = document.getElementById("sim-target");
+const simTargetResult = document.getElementById("sim-target-result");
 
 // =============================================
 // 2. 저장/불러오기 (입력값 기억)
@@ -111,6 +117,7 @@ function readSimSettings() {
     years: Math.round(clampSimNumber(readSimNumber(simYearsInput), SIM_LIMITS.years, 1)),
     dividendYield: clampSimNumber(readSimNumber(simDividendInput), SIM_LIMITS.dividendYield, 0),
     reinvest: simReinvestInput.checked,
+    target: clampSimNumber(readSimNumber(simTargetInput), SIM_LIMITS.target, 0),
     rates: {
       bad: clampSimNumber(readSimNumber(simRateInputs.bad), SIM_LIMITS.rate, 0),
       base: clampSimNumber(readSimNumber(simRateInputs.base), SIM_LIMITS.rate, 0),
@@ -172,6 +179,32 @@ function simulate(settings, annualRate) {
   };
 }
 
+// 목표 금액에 도달하는 데 몇 달 걸리는지 (simulate와 같은 순서로 매달 계산)
+// 100년 안에 못 가면 null
+function monthsToTarget(settings, annualRate) {
+  const monthlyRate = Math.pow(1 + annualRate / 100, 1 / 12) - 1;
+  const monthlyDividendRate = settings.dividendYield / 100 / 12;
+  let balance = settings.start;
+  let cashDividend = 0; // 재투자하지 않을 때 따로 쌓이는 배당
+  if (balance >= settings.target) return 0;
+  for (let month = 1; month <= SIM_TARGET_MAX_YEARS * 12; month++) {
+    balance = (balance + settings.monthly) * (1 + monthlyRate);
+    const dividend = balance * monthlyDividendRate;
+    if (settings.reinvest) balance = balance + dividend;
+    else cashDividend = cashDividend + dividend;
+    if (balance + cashDividend >= settings.target) return month;
+  }
+  return null;
+}
+
+// "12년 3개월"
+function formatSimMonths(months) {
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+  if (years === 0) return rest + "개월";
+  return years + "년" + (rest > 0 ? " " + rest + "개월" : "");
+}
+
 // =============================================
 // 4. 화면 그리기
 // =============================================
@@ -183,6 +216,7 @@ function fillSimInputs(settings) {
   simYearsInput.value = settings.years;
   simDividendInput.value = settings.dividendYield;
   simReinvestInput.checked = settings.reinvest;
+  simTargetInput.value = settings.target > 0 ? settings.target : "";
   SIM_CASES.forEach(function (c) {
     simRateInputs[c.key].value = settings.rates[c.key];
   });
@@ -233,6 +267,18 @@ function renderSimulation() {
     " (월 " + formatMoney(base.lastYearDividend / 12) + ") · 누적 배당 " + formatKoreanUnit(base.totalDividend) +
     (settings.reinvest ? " (재투자)" : " (현금 수령)");
 
+  // 목표 금액까지 걸리는 시간 (세 가지 수익률 각각)
+  simTargetResult.innerHTML = "";
+  if (settings.target > 0) {
+    simTargetResult.append(formatKoreanUnit(settings.target) + " 도달까지 ");
+    SIM_CASES.forEach(function (c, index) {
+      const months = monthsToTarget(settings, settings.rates[c.key]);
+      const strong = document.createElement("strong");
+      strong.textContent = c.name + " " + (months === null ? "100년 넘게" : months === 0 ? "이미 도달" : formatSimMonths(months));
+      simTargetResult.append(index > 0 ? " · " : "", strong);
+    });
+  }
+
   // ③ 연도별 표 (칸이 좁아서 만원 단위)
   simTableBody.innerHTML = "";
   base.rows.forEach(function (row, index) {
@@ -264,7 +310,7 @@ function rowTotal(result, index, settings) {
 // =============================================
 
 // 입력칸이 바뀔 때마다 다시 계산
-[simStartInput, simMonthlyInput, simYearsInput, simDividendInput, simReinvestInput]
+[simStartInput, simMonthlyInput, simYearsInput, simDividendInput, simReinvestInput, simTargetInput]
   .concat(Object.values(simRateInputs))
   .forEach(function (input) {
     input.addEventListener("input", renderSimulation);
@@ -287,3 +333,6 @@ simLoadNetworthBtn.addEventListener("click", function () {
 
 fillSimInputs(loadSimSettings());
 renderSimulation();
+
+// 시나리오 작은 탭 (common.js)
+setupSubTabs("scenario", "change");

@@ -32,6 +32,31 @@ const SCENARIO_PRESETS = [
   },
 ];
 
+// 실제로 있었던 하락장 (고점에서 바닥까지 대략 얼마나 떨어졌는지, 반올림한 값)
+// ETF는 미국 주식과 비슷하게, 예적금·현금은 0%
+const SCENARIO_HISTORY_PRESETS = [
+  {
+    name: "2008 금융위기",
+    note: "2007년 말~2009년 초. 미국·한국 주가가 절반 넘게 떨어졌어요. 비트코인은 아직 없었어요(0%로 둠).",
+    changes: { "kr-stock": -55, "us-stock": -55, etf: -50, bond: 5, crypto: 0 },
+  },
+  {
+    name: "2018 크립토 겨울",
+    note: "2017년 말 고점 뒤 1년. 비트코인이 약 84% 떨어졌고, 연말에는 주식도 20%가량 빠졌어요.",
+    changes: { "kr-stock": -25, "us-stock": -20, etf: -20, bond: 0, crypto: -84 },
+  },
+  {
+    name: "2020 코로나 급락",
+    note: "2020년 2~3월 한 달 남짓. 주가가 30%대, 비트코인이 절반가량 급락한 뒤 빠르게 회복했어요.",
+    changes: { "kr-stock": -35, "us-stock": -34, etf: -34, bond: 0, crypto: -50 },
+  },
+  {
+    name: "2022 금리 인상",
+    note: "2021년 말~2022년. 금리가 빠르게 올라 주식과 채권이 함께 떨어지고, 비트코인은 약 77% 하락했어요.",
+    changes: { "kr-stock": -35, "us-stock": -30, etf: -27, bond: -15, crypto: -77 },
+  },
+];
+
 // =============================================
 // 2. 저장/불러오기
 // =============================================
@@ -49,6 +74,8 @@ function saveScenarios() {
 // =============================================
 
 const scenarioPresetBox = document.getElementById("scenario-presets");
+const scenarioHistoryBox = document.getElementById("scenario-history-presets");
+const scenarioPresetNote = document.getElementById("scenario-preset-note");
 const scenarioInputBox = document.getElementById("scenario-inputs");
 const scenarioResetBtn = document.getElementById("scenario-reset-btn");
 const scenarioItemsBox = document.getElementById("scenario-items-box");
@@ -287,9 +314,24 @@ function buildScenarioControls() {
     button.textContent = preset.name;
     button.addEventListener("click", function () {
       fillScenarioInputs(preset.changes);
+      scenarioPresetNote.textContent = "";
       renderScenarioResult();
     });
     scenarioPresetBox.appendChild(button);
+  });
+
+  // 실제 하락장 버튼: 누르면 그때 설명도 보여 줌
+  SCENARIO_HISTORY_PRESETS.forEach(function (preset) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "chip-btn";
+    button.textContent = preset.name;
+    button.addEventListener("click", function () {
+      fillScenarioInputs(preset.changes);
+      scenarioPresetNote.textContent = preset.note + " (대략적인 고점 대비 하락폭)";
+      renderScenarioResult();
+    });
+    scenarioHistoryBox.appendChild(button);
   });
 
   NETWORTH_GROUPS.forEach(function (group) {

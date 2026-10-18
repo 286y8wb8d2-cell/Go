@@ -408,3 +408,58 @@ checkAppUpdate();
 document.addEventListener("visibilitychange", function () {
   if (!document.hidden) checkAppUpdate();
 });
+
+// ---------------------------------------------
+// 작은 탭 (탭 안의 묶음 나누기) — 금융자산·시나리오에서 씀
+// 버튼: <button data-subtab="assets:summary">  /  묶음: <div data-subtab-panel="assets:summary">
+// 고른 작은 탭은 이 기기에 기억해 두고, 바뀔 때 "subtab-shown" 신호를 보냄
+// (비트코인 탭은 btc.js에 같은 방식이 따로 있음)
+// ---------------------------------------------
+
+function setupSubTabs(group, defaultView) {
+  const storageKey = "household-subtab-" + group;
+  const buttons = document.querySelectorAll('[data-subtab^="' + group + ':"]');
+  const panels = document.querySelectorAll('[data-subtab-panel^="' + group + ':"]');
+
+  function show(view, scroll) {
+    buttons.forEach(function (button) {
+      const active = button.dataset.subtab === group + ":" + view;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    panels.forEach(function (panel) {
+      panel.hidden = panel.dataset.subtabPanel !== group + ":" + view;
+    });
+    try {
+      localStorage.setItem(storageKey, view);
+    } catch (error) {
+      // 무시
+    }
+    if (scroll) window.scrollTo(0, 0);
+    document.dispatchEvent(new CustomEvent("subtab-shown", { detail: { group: group, view: view } }));
+  }
+
+  buttons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      show(button.dataset.subtab.split(":")[1], true);
+    });
+  });
+  // 다른 곳에서 "이 작은 탭으로 가기" (data-subtab-goto="assets:holdings")
+  document.querySelectorAll('[data-subtab-goto^="' + group + ':"]').forEach(function (button) {
+    button.addEventListener("click", function () {
+      show(button.dataset.subtabGoto.split(":")[1], true);
+    });
+  });
+
+  let saved = null;
+  try {
+    saved = localStorage.getItem(storageKey);
+  } catch (error) {
+    // 무시
+  }
+  const exists = Array.from(buttons).some(function (button) {
+    return button.dataset.subtab === group + ":" + saved;
+  });
+  show(exists ? saved : defaultView, false);
+  return show;
+}

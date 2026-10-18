@@ -56,6 +56,9 @@ let assetEditingId = null;
 
 const assetForm = document.getElementById("asset-form");
 const assetNameInput = document.getElementById("asset-name");
+const assetTickerInput = document.getElementById("asset-ticker");
+const assetTickerInfo = document.getElementById("asset-ticker-info");
+const assetTickerFillBtn = document.getElementById("asset-ticker-fill");
 const assetKindSelect = document.getElementById("asset-kind");
 const assetQuantityInput = document.getElementById("asset-quantity");
 const assetAvgPriceInput = document.getElementById("asset-avg-price");
@@ -263,7 +266,48 @@ function createAssetItem(asset, totalValue) {
   });
   actions.append(editBtn, deleteBtn);
 
-  li.append(nameSpan, valueSpan, profitSpan, ratioSpan, detailSpan, actions);
+  li.append(nameSpan, valueSpan, profitSpan, ratioSpan, detailSpan);
+
+  // 시세 줄: 티커 · 최근 거래일 등락 · 52주 범위 안 위치 · 1년 추이선 (market.js)
+  const quote = getMarketQuote(asset.ticker);
+  if (asset.ticker) {
+    const market = document.createElement("span");
+    market.className = "asset-market";
+    const ticker = document.createElement("span");
+    ticker.className = "asset-ticker";
+    ticker.textContent = normalizeMarketTicker(asset.ticker).replace(/\.(KS|KQ)$/, "");
+    market.appendChild(ticker);
+    if (quote) {
+      if (Number.isFinite(quote.change)) {
+        const change = document.createElement("span");
+        change.className = getProfitClass(quote.change);
+        change.textContent = formatPercent(quote.change);
+        market.appendChild(change);
+      }
+      // 52주 최저~최고 중 지금 위치 (막대 위 점)
+      if (quote.high52 > quote.low52) {
+        const range = document.createElement("span");
+        range.className = "asset-range";
+        range.title = "52주 최저 " + formatAmount(quote.low52) + " ~ 최고 " + formatAmount(quote.high52);
+        const dot = document.createElement("span");
+        dot.className = "asset-range-dot";
+        dot.style.left = Math.min(Math.max(((quote.price - quote.low52) / (quote.high52 - quote.low52)) * 100, 0), 100) + "%";
+        range.appendChild(dot);
+        const label = document.createElement("span");
+        label.className = "asset-range-label";
+        label.textContent = "52주";
+        market.append(label, range);
+      }
+      market.appendChild(createMarketSparkline(quote.closes.slice(-12), 56, 16));
+    } else {
+      const missing = document.createElement("span");
+      missing.className = "asset-range-label";
+      missing.textContent = marketData ? "시세 없음" : "시세 불러오는 중";
+      market.appendChild(missing);
+    }
+    li.appendChild(market);
+  }
+  li.appendChild(actions);
   return li;
 }
 
@@ -492,7 +536,63 @@ function validateAsset(asset) {
   if (asset.dividendPerShare > 0 && asset.payMonths.length === 0) {
     return "배당 지급월을 하나 이상 골라 주세요.";
   }
+  if (asset.ticker && !/^[A-Z0-9.\-^=]{1,20}$/.test(asset.ticker)) {
+    return "티커는 영어·숫자로 넣어 주세요. (예: QQQ, 005930)";
+  }
   return "";
+}
+
+// ---------------------------------------------
+// 티커 입력: 시세 파일에서 찾아 미리 보여 주고, 버튼으로 칸 채우기 (market.js)
+// ---------------------------------------------
+
+function renderAssetTickerInfo() {
+  const text = assetTickerInput.value.trim();
+  assetTickerFillBtn.hidden = true;
+  if (!text) {
+    assetTickerInfo.textContent = "티커를 넣으면 현재가와 배당금이 자동으로 채워지고 계속 갱신돼요.";
+    return;
+  }
+  const quote = getMarketQuote(text);
+  if (!quote) {
+    assetTickerInfo.textContent = marketData
+      ? "이 티커는 시세 목록에 없어요. 현재가를 직접 넣어 주세요. (목록에 없는 종목은 말씀해 주시면 추가할 수 있어요)"
+      : "시세 목록을 불러오는 중…";
+    return;
+  }
+  const krw = toMarketKrw(quote.price, quote.currency);
+  const parts = [quote.name, (quote.currency === "USD" ? "$" + formatAssetUsd(quote.price) : formatMoney(quote.price)) + (quote.currency === "USD" && krw ? " (약 " + formatMoney(Math.round(krw)) + ")" : "")];
+  if (quote.divTTM > 0) {
+    // 시세 파일의 달은 배당락일 기준이라 실제 입금은 몇 주 늦을 수 있음
+    parts.push("배당 연 " + (quote.currency === "USD" ? "$" + quote.divTTM : formatMoney(quote.divTTM)) + " (" + describePayMonths(quote.divMonths) + ", 배당락 기준)");
+  }
+  assetTickerInfo.textContent = parts.join(" · ");
+  assetTickerFillBtn.hidden = false;
+}
+
+// 달러 가격 글자 (소수 2자리까지)
+function formatAssetUsd(value) {
+  return value.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
+}
+
+// "채우기" 버튼: 이름(비었을 때)·종류·현재가·배당금·지급월을 시세로 채움
+function fillAssetFromTicker() {
+  const quote = getMarketQuote(assetTickerInput.value);
+  if (!quote) return;
+  const ticker = normalizeMarketTicker(assetTickerInput.value);
+  assetTickerInput.value = ticker;
+  if (!assetNameInput.value.trim()) assetNameInput.value = quote.name;
+  const isEtf = quote.type === "ETF" || /ETF|KODEX|TIGER|SOL |ACE /i.test(quote.name);
+  assetKindSelect.value = isEtf ? "etf" : isKoreanTicker(ticker) ? "kr-stock" : "us-stock";
+  const krw = toMarketKrw(quote.price, quote.currency);
+  if (krw) assetCurrentPriceInput.value = Math.round(krw * 100) / 100;
+  if (quote.divTTM > 0 && quote.divMonths.length > 0) {
+    assetDividendInput.value = Math.round(toMarketKrw(quote.divTTM, quote.currency) * 100) / 100;
+    setPayMonths(quote.divMonths);
+  } else {
+    assetDividendInput.value = "";
+  }
+  updatePayMonthVisibility();
 }
 
 // ---------------------------------------------
@@ -552,6 +652,7 @@ assetDividendInput.addEventListener("input", updatePayMonthVisibility);
 // 폼을 처음 상태로 되돌리고 수정 모드를 끝냄
 function resetAssetForm() {
   assetForm.reset();
+  renderAssetTickerInfo();
   updatePayMonthVisibility(); // 배당금이 비워졌으니 지급월 입력도 숨김
   assetEditingId = null;
   assetSubmitBtn.textContent = "추가";
@@ -564,6 +665,8 @@ function startAssetEdit(asset) {
 
   assetNameInput.value = asset.name;
   assetKindSelect.value = asset.kind;
+  assetTickerInput.value = asset.ticker || "";
+  renderAssetTickerInfo();
   assetQuantityInput.value = asset.quantity;
   assetAvgPriceInput.value = asset.avgPrice;
   assetCurrentPriceInput.value = asset.currentPrice;
@@ -580,6 +683,13 @@ function startAssetEdit(asset) {
   assetForm.scrollIntoView({ behavior: "smooth" });
 }
 
+assetTickerInput.addEventListener("input", renderAssetTickerInfo);
+assetTickerFillBtn.addEventListener("click", fillAssetFromTicker);
+document.addEventListener("market-updated", function () {
+  renderAssetTickerInfo();
+  renderAssets(); // 종목마다 시세 줄 다시
+});
+
 // 취소 버튼: 수정을 그만두고 폼을 비움
 assetCancelBtn.addEventListener("click", function () {
   resetAssetForm();
@@ -595,6 +705,7 @@ assetForm.addEventListener("submit", function (event) {
     id: assetEditingId !== null ? assetEditingId : String(Date.now()),
     name: assetNameInput.value.trim(),
     kind: assetKindSelect.value,
+    ticker: normalizeMarketTicker(assetTickerInput.value), // 없으면 빈 글자 (market.js)
     quantity: readAssetNumber(assetQuantityInput, NaN), // 비어 있으면 NaN → 검사에서 걸림
     avgPrice: readAssetNumber(assetAvgPriceInput, NaN),
     currentPrice: readAssetNumber(assetCurrentPriceInput, NaN),
@@ -643,4 +754,5 @@ function deleteAsset(id) {
 
 buildPayMonthControls();
 updatePayMonthVisibility();
+renderAssetTickerInfo();
 renderAssets();

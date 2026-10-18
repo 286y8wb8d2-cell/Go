@@ -24,8 +24,8 @@ const BACKUP_ITEMS = [
   { key: "household-history", label: "자산 기록", unit: "개월", check: isValidHistory },
 ];
 
-// 목록이 아닌 설정값 (시뮬레이션 입력값, 비트코인 설정: 거래소·스택 목표)
-const BACKUP_SETTINGS_KEYS = ["household-sim-settings", "household-btc-settings"];
+// 목록이 아닌 설정값 (시뮬레이션 입력값, 비트코인 설정: 거래소·스택 목표, 시세 자동 갱신 설정, 자산 목표)
+const BACKUP_SETTINGS_KEYS = ["household-sim-settings", "household-btc-settings", "household-market-settings", "household-goal"];
 
 // =============================================
 // 2. 데이터 모양 검사
@@ -46,6 +46,8 @@ function isValidAsset(item) {
     isNumber(item.quantity) && isNumber(item.avgPrice) &&
     isNumber(item.currentPrice) && isNumber(item.dividendPerShare) &&
     isText(item.memo) &&
+    // 티커는 나중에 생긴 칸이라 없을 수 있음
+    (item.ticker === undefined || isText(item.ticker)) &&
     // 지급월은 예전 백업에는 없을 수 있음. 있으면 1~12 숫자 목록이어야 함
     (item.payMonths === undefined ||
       (Array.isArray(item.payMonths) &&

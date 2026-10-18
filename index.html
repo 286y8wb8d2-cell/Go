@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" data-version="34">
+<html lang="ko" data-version="35">
 <head>
   <!-- 한글이 깨지지 않게 문자 인코딩을 지정 -->
   <meta charset="UTF-8">
@@ -17,7 +17,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=34">
+  <link rel="stylesheet" href="style.css?v=35">
 </head>
 <body>
   <header>
@@ -47,6 +47,7 @@
         <p class="dash-label">총 자산</p>
         <p id="dash-total" class="dash-total">0원</p>
         <p id="dash-change" class="dash-change"></p>
+        <p id="dash-today" class="dash-today"></p>
         <svg id="dash-spark" class="dash-spark" viewBox="0 0 300 56" role="img" aria-label="최근 월별 총 자산 추이" hidden></svg>
         <p id="dash-spark-note" class="dash-spark-note"></p>
       </section>
@@ -61,6 +62,20 @@
       </section>
 
       <div id="dash-content">
+        <!-- 자산 목표 (dashboard-market.js) -->
+        <section>
+          <h2>자산 목표</h2>
+          <form id="dash-goal-form" class="card-form inline-row">
+            <input type="number" id="dash-goal-input" min="0" step="any" inputmode="numeric" placeholder="목표 총 자산 (예: 1000000000)" aria-label="목표 총 자산(원)">
+            <button type="submit" class="btn-secondary">목표 저장</button>
+          </form>
+          <div class="btc-progress" aria-hidden="true">
+            <div id="dash-goal-bar" class="btc-progress-fill btc-goal-fill"></div>
+          </div>
+          <p id="dash-goal-text" class="btc-goal-text"></p>
+          <p id="dash-goal-sub" class="summary-sub"></p>
+        </section>
+
         <!-- 자산 구성: 굵은 가로 막대 + 범례 -->
         <section>
           <div class="dash-section-head">
@@ -106,215 +121,259 @@
           </div>
           <ol id="dash-top-list" class="item-list dash-top-list"></ol>
         </section>
+
+        <!-- 시장 한눈에 (dashboard-market.js) -->
+        <section>
+          <h2>시장 한눈에</h2>
+          <div id="dash-market-tiles" class="dash-market-tiles"></div>
+          <p id="dash-market-note" class="price-refresh-status">시세를 불러오는 중…</p>
+        </section>
       </div>
     </div>
 
     <!-- ===== 금융자산 탭 ===== -->
     <div id="tab-assets" class="tab-panel" role="tabpanel" hidden>
-      <!-- ⓪ 전체 자산 = 금융자산 + 비트코인: networth.js가 채움 -->
-      <section>
-        <h2>전체 자산</h2>
-        <div class="summary-grid">
-          <div class="summary-card">
-            <p>총 자산</p>
-            <p id="networth-total">0원</p>
+      <!-- 작은 탭 (common.js의 setupSubTabs) -->
+      <nav class="btc-subtabs" role="tablist" aria-label="금융자산 메뉴">
+        <button type="button" class="btc-subtab" data-subtab="assets:summary" role="tab">요약</button>
+        <button type="button" class="btc-subtab" data-subtab="assets:trend" role="tab">추이</button>
+        <button type="button" class="btc-subtab" data-subtab="assets:dividend" role="tab">배당</button>
+        <button type="button" class="btc-subtab" data-subtab="assets:holdings" role="tab">종목</button>
+      </nav>
+
+      <div data-subtab-panel="assets:summary">
+        <!-- ⓪ 전체 자산 = 금융자산 + 비트코인: networth.js가 채움 -->
+        <section>
+          <h2>전체 자산</h2>
+          <div class="summary-grid">
+            <div class="summary-card">
+              <p>총 자산</p>
+              <p id="networth-total">0원</p>
+            </div>
+            <div class="summary-card">
+              <p>금융자산</p>
+              <p id="networth-assets">0원</p>
+            </div>
+            <div class="summary-card">
+              <p>비트코인</p>
+              <p id="networth-crypto">0원</p>
+            </div>
           </div>
-          <div class="summary-card">
-            <p>금융자산</p>
-            <p id="networth-assets">0원</p>
+          <p id="networth-profit" class="summary-sub">총 손익 0원</p>
+
+          <!-- 자산군별 비중 -->
+          <div id="networth-alloc-bar" class="alloc-bar" hidden></div>
+          <ul id="networth-alloc-legend" class="alloc-legend" hidden></ul>
+        </section>
+
+        <!-- ① 포트폴리오 요약: 숫자와 막대는 assets.js가 채움 -->
+        <section>
+          <h2>포트폴리오 요약</h2>
+          <div class="summary-grid">
+            <div class="summary-card">
+              <p>총 평가금액</p>
+              <p id="asset-total-value">0원</p>
+            </div>
+            <div class="summary-card">
+              <p>총 손익</p>
+              <p id="asset-total-profit">0원</p>
+            </div>
+            <div class="summary-card">
+              <p>수익률</p>
+              <p id="asset-total-rate">0.00%</p>
+            </div>
           </div>
-          <div class="summary-card">
-            <p>비트코인</p>
-            <p id="networth-crypto">0원</p>
+          <p id="asset-total-cost" class="summary-sub">총 매입금액 0원</p>
+
+          <!-- 종류별 비중: 가로 막대 + 아래 설명(범례) -->
+          <div id="asset-alloc-bar" class="alloc-bar" hidden></div>
+          <ul id="asset-alloc-legend" class="alloc-legend" hidden></ul>
+
+          <!-- 시세 자동 갱신 (market.js, assets-market.js) -->
+          <div class="price-refresh">
+            <p id="asset-market-status" class="price-refresh-status" aria-live="polite">시세를 불러오는 중…</p>
+            <label class="btc-check"><input type="checkbox" id="asset-auto-price"> 새 시세가 나오면 현재가 자동 갱신 (티커가 있는 종목)</label>
+            <label class="btc-check"><input type="checkbox" id="asset-auto-div"> 배당금·지급월도 함께 갱신 (최근 1년 배당, 달은 배당락 기준)</label>
+            <button type="button" id="asset-apply-btn" class="btn-secondary">지금 시세 적용</button>
           </div>
-        </div>
-        <p id="networth-profit" class="summary-sub">총 손익 0원</p>
+        </section>
 
-        <!-- 자산군별 비중 -->
-        <div id="networth-alloc-bar" class="alloc-bar" hidden></div>
-        <ul id="networth-alloc-legend" class="alloc-legend" hidden></ul>
-      </section>
+      </div>
 
-      <!-- ⓪-1 자산 추이: 매달 자동 기록 (history.js) -->
-      <section>
-        <h2>자산 추이</h2>
-        <p class="section-desc">매달 총 자산이 자동으로 기록돼요. 이번 달 기록은 자산이 바뀔 때마다 최신 값으로 바뀌어요.</p>
-        <p id="history-summary" class="summary-sub" hidden></p>
-        <!-- 선 그래프: 누르거나 끌면 그달 값이 아래에 나옴 -->
-        <div id="history-chart-box" class="history-chart-box" hidden>
-          <ul class="chart-legend">
-            <li><span class="legend-line series-1"></span>총 자산</li>
-            <li><span class="legend-line series-2"></span>금융자산</li>
-            <li><span class="legend-line series-3"></span>비트코인</li>
-          </ul>
-          <svg id="history-chart" class="history-chart" viewBox="0 0 340 200" role="img"
-               aria-label="월별 자산 추이 그래프. 왼쪽·오른쪽 화살표로 달을 옮길 수 있어요." tabindex="0"></svg>
-          <p id="history-readout" class="history-readout" aria-live="polite"></p>
-        </div>
+      <div data-subtab-panel="assets:trend" hidden>
+        <!-- ⓪-1 자산 추이: 매달 자동 기록 (history.js) -->
+        <section>
+          <h2>자산 추이</h2>
+          <p class="section-desc">매달 총 자산이 자동으로 기록돼요. 이번 달 기록은 자산이 바뀔 때마다 최신 값으로 바뀌어요.</p>
+          <p id="history-summary" class="summary-sub" hidden></p>
+          <!-- 선 그래프: 누르거나 끌면 그달 값이 아래에 나옴 -->
+          <div id="history-chart-box" class="history-chart-box" hidden>
+            <ul class="chart-legend">
+              <li><span class="legend-line series-1"></span>총 자산</li>
+              <li><span class="legend-line series-2"></span>금융자산</li>
+              <li><span class="legend-line series-3"></span>비트코인</li>
+            </ul>
+            <svg id="history-chart" class="history-chart" viewBox="0 0 340 200" role="img"
+                 aria-label="월별 자산 추이 그래프. 왼쪽·오른쪽 화살표로 달을 옮길 수 있어요." tabindex="0"></svg>
+            <p id="history-readout" class="history-readout" aria-live="polite"></p>
+          </div>
 
-        <p id="history-empty-message" class="empty-message">아직 기록이 없어요. 금융자산이나 비트코인을 입력하면 이번 달부터 기록돼요.</p>
+          <p id="history-empty-message" class="empty-message">아직 기록이 없어요. 금융자산이나 비트코인을 입력하면 이번 달부터 기록돼요.</p>
 
-        <div id="history-table-box" class="table-scroll" hidden>
-          <table class="scenario-table history-table">
-            <thead>
-              <tr>
-                <th>달</th>
-                <th>총 자산(원)<span class="history-diff">직전 대비</span></th>
-                <th><span class="visually-hidden">수정·삭제</span></th>
-              </tr>
-            </thead>
-            <tbody id="history-table-body"></tbody>
-          </table>
-        </div>
+          <div id="history-table-box" class="table-scroll" hidden>
+            <table class="scenario-table history-table">
+              <thead>
+                <tr>
+                  <th>달</th>
+                  <th>총 자산(원)<span class="history-diff">직전 대비</span></th>
+                  <th><span class="visually-hidden">수정·삭제</span></th>
+                </tr>
+              </thead>
+              <tbody id="history-table-body"></tbody>
+            </table>
+          </div>
 
-        <!-- 지난달 기록 직접 추가·수정 (접었다 펼 수 있음) -->
-        <details id="history-edit-box" class="scenario-items-box history-edit-box">
-          <summary>지난달 기록 직접 추가·수정</summary>
-          <p class="section-desc">앱을 쓰기 전 달의 자산을 넣거나, 잘못 기록된 달을 고칠 수 있어요. 이번 달은 자동으로 기록돼요.</p>
-          <form id="history-edit-form" class="card-form">
-            <label for="history-month">달</label>
-            <input type="month" id="history-month" required>
+          <!-- 지난달 기록 직접 추가·수정 (접었다 펼 수 있음) -->
+          <details id="history-edit-box" class="scenario-items-box history-edit-box">
+            <summary>지난달 기록 직접 추가·수정</summary>
+            <p class="section-desc">앱을 쓰기 전 달의 자산을 넣거나, 잘못 기록된 달을 고칠 수 있어요. 이번 달은 자동으로 기록돼요.</p>
+            <form id="history-edit-form" class="card-form">
+              <label for="history-month">달</label>
+              <input type="month" id="history-month" required>
+
+              <div class="form-row">
+                <div>
+                  <label for="history-assets">금융자산(원)</label>
+                  <input type="number" id="history-assets" min="0" step="any" inputmode="numeric" placeholder="0">
+                </div>
+                <div>
+                  <label for="history-crypto">비트코인(원)</label>
+                  <input type="number" id="history-crypto" min="0" step="any" inputmode="numeric" placeholder="0">
+                </div>
+              </div>
+              <p id="history-total-preview" class="form-hint"></p>
+
+              <button type="submit" id="history-submit-btn" class="btn-primary">기록 추가</button>
+              <button type="button" id="history-cancel-btn" class="btn-secondary" hidden>취소</button>
+            </form>
+          </details>
+        </section>
+
+      </div>
+
+      <div data-subtab-panel="assets:dividend" hidden>
+        <!-- ② 배당: 숫자와 목록은 assets.js가 채움 -->
+        <section>
+          <h2>예상 배당</h2>
+          <div class="summary-grid">
+            <div class="summary-card">
+              <p>연간</p>
+              <p id="asset-div-annual">0원</p>
+            </div>
+            <div class="summary-card">
+              <p>월평균</p>
+              <p id="asset-div-monthly">0원</p>
+            </div>
+            <div class="summary-card">
+              <p>배당수익률</p>
+              <p id="asset-div-yield">0.00%</p>
+            </div>
+          </div>
+          <p id="asset-div-after-tax" class="summary-sub">세후 연 약 0원</p>
+
+          <!-- 월별 배당 막대 그래프: 막대를 누르면 그달 내역이 아래에 나옴 -->
+          <div id="asset-div-chart-box" class="month-chart-box" hidden>
+            <p class="form-group-title">월별 예상 배당 (세전)</p>
+            <div id="asset-div-chart" class="month-chart"></div>
+            <p id="asset-div-month-detail" class="month-detail"></p>
+            <p id="asset-div-chart-note" class="table-note"></p>
+          </div>
+
+          <h3 class="btc-subtitle">다가오는 배당 <span>(세전 예상)</span></h3>
+          <ul id="asset-div-upcoming" class="asset-upcoming-list"></ul>
+
+          <h3 class="btc-subtitle">배당 종목</h3>
+          <ul id="asset-div-list" class="item-list div-list"></ul>
+          <p id="asset-div-empty-message" class="empty-message">
+            배당금을 입력한 종목이 없습니다. 종목의 "주당 연간 배당금"을 넣어 보세요.
+          </p>
+        </section>
+
+      </div>
+
+      <div data-subtab-panel="assets:holdings" hidden>
+        <!-- ④ 보유 종목 목록 (평가금액이 큰 순서): 항목은 assets.js가 채움 -->
+        <section>
+          <h2>보유 종목</h2>
+          <ul id="asset-list" class="item-list"></ul>
+          <p id="asset-empty-message" class="empty-message">아직 등록한 종목이 없습니다.</p>
+        </section>
+        <!-- ③ 종목 입력 폼 -->
+        <section>
+          <h2>종목 입력</h2>
+          <form id="asset-form" class="card-form">
+            <!-- 티커: 넣으면 현재가·배당이 시세로 채워지고 계속 갱신됨 (market.js) -->
+            <label for="asset-ticker">티커 (선택)</label>
+            <input type="text" id="asset-ticker" list="asset-ticker-list" maxlength="20" placeholder="예: QQQ, SCHD, 005930" autocapitalize="characters" autocomplete="off" spellcheck="false">
+            <datalist id="asset-ticker-list"></datalist>
+            <p id="asset-ticker-info" class="form-hint"></p>
+            <button type="button" id="asset-ticker-fill" class="btn-secondary asset-ticker-fill" hidden>현재가·배당 채우기</button>
+
+            <label for="asset-name">종목명</label>
+            <input type="text" id="asset-name" maxlength="40" placeholder="예: 삼성전자" required>
+
+            <!-- 종류: value(영어)는 저장용 이름, 글자(한글)는 화면에 보이는 이름 -->
+            <label for="asset-kind">종류</label>
+            <select id="asset-kind" required>
+              <option value="kr-stock">국내주식</option>
+              <option value="us-stock">해외주식</option>
+              <option value="etf">ETF</option>
+              <option value="bond">채권</option>
+              <option value="deposit">예적금</option>
+              <option value="cash">현금</option>
+              <option value="etc">기타</option>
+            </select>
+
+            <!-- 두 칸씩 나란히 (form-row) -->
+            <div class="form-row">
+              <div>
+                <label for="asset-quantity">수량</label>
+                <!-- step="any": 소수점 수량(해외주식 소수점 매수 등)도 입력 가능 -->
+                <input type="number" id="asset-quantity" min="0" step="any" inputmode="decimal" placeholder="예: 10" required>
+              </div>
+              <div>
+                <label for="asset-avg-price">평균 매입가(원)</label>
+                <input type="number" id="asset-avg-price" min="0" step="any" inputmode="decimal" placeholder="예: 70000" required>
+              </div>
+            </div>
 
             <div class="form-row">
               <div>
-                <label for="history-assets">금융자산(원)</label>
-                <input type="number" id="history-assets" min="0" step="any" inputmode="numeric" placeholder="0">
+                <label for="asset-current-price">현재가(원)</label>
+                <input type="number" id="asset-current-price" min="0" step="any" inputmode="decimal" placeholder="예: 75000" required>
               </div>
               <div>
-                <label for="history-crypto">비트코인(원)</label>
-                <input type="number" id="history-crypto" min="0" step="any" inputmode="numeric" placeholder="0">
+                <label for="asset-dividend">주당 연간 배당금(원)</label>
+                <input type="number" id="asset-dividend" min="0" step="any" inputmode="decimal" placeholder="없으면 빈칸">
               </div>
             </div>
-            <p id="history-total-preview" class="form-hint"></p>
+            <p class="form-hint">예적금·현금은 수량에 1, 매입가와 현재가에 잔액을 넣으세요. 해외주식도 원화로 넣어요(티커가 있으면 자동 환산).</p>
 
-            <button type="submit" id="history-submit-btn" class="btn-primary">기록 추가</button>
-            <button type="button" id="history-cancel-btn" class="btn-secondary" hidden>취소</button>
+            <!-- 배당 지급월: 배당금을 넣으면 나타남. 버튼과 체크박스는 assets.js가 만듦 -->
+            <div id="asset-paymonth-box" class="paymonth-box" hidden>
+              <p class="form-group-title">배당 지급월</p>
+              <div id="asset-pay-presets" class="chip-row"></div>
+              <div id="asset-paymonth-grid" class="paymonth-grid"></div>
+            </div>
+
+            <label for="asset-memo">메모</label>
+            <input type="text" id="asset-memo" placeholder="예: 증권사 이름">
+
+            <button type="submit" id="asset-submit-btn" class="btn-primary">추가</button>
+            <button type="button" id="asset-cancel-btn" class="btn-secondary" hidden>취소</button>
           </form>
-        </details>
-      </section>
-
-      <!-- ① 포트폴리오 요약: 숫자와 막대는 assets.js가 채움 -->
-      <section>
-        <h2>포트폴리오 요약</h2>
-        <div class="summary-grid">
-          <div class="summary-card">
-            <p>총 평가금액</p>
-            <p id="asset-total-value">0원</p>
-          </div>
-          <div class="summary-card">
-            <p>총 손익</p>
-            <p id="asset-total-profit">0원</p>
-          </div>
-          <div class="summary-card">
-            <p>수익률</p>
-            <p id="asset-total-rate">0.00%</p>
-          </div>
-        </div>
-        <p id="asset-total-cost" class="summary-sub">총 매입금액 0원</p>
-
-        <!-- 종류별 비중: 가로 막대 + 아래 설명(범례) -->
-        <div id="asset-alloc-bar" class="alloc-bar" hidden></div>
-        <ul id="asset-alloc-legend" class="alloc-legend" hidden></ul>
-      </section>
-
-      <!-- ② 배당: 숫자와 목록은 assets.js가 채움 -->
-      <section>
-        <h2>예상 배당</h2>
-        <div class="summary-grid">
-          <div class="summary-card">
-            <p>연간</p>
-            <p id="asset-div-annual">0원</p>
-          </div>
-          <div class="summary-card">
-            <p>월평균</p>
-            <p id="asset-div-monthly">0원</p>
-          </div>
-          <div class="summary-card">
-            <p>배당수익률</p>
-            <p id="asset-div-yield">0.00%</p>
-          </div>
-        </div>
-        <p id="asset-div-after-tax" class="summary-sub">세후 연 약 0원</p>
-
-        <!-- 월별 배당 막대 그래프: 막대를 누르면 그달 내역이 아래에 나옴 -->
-        <div id="asset-div-chart-box" class="month-chart-box" hidden>
-          <p class="form-group-title">월별 예상 배당 (세전)</p>
-          <div id="asset-div-chart" class="month-chart"></div>
-          <p id="asset-div-month-detail" class="month-detail"></p>
-          <p id="asset-div-chart-note" class="table-note"></p>
-        </div>
-
-        <ul id="asset-div-list" class="item-list div-list"></ul>
-        <p id="asset-div-empty-message" class="empty-message">
-          배당금을 입력한 종목이 없습니다. 종목의 "주당 연간 배당금"을 넣어 보세요.
-        </p>
-      </section>
-
-      <!-- ③ 종목 입력 폼 -->
-      <section>
-        <h2>종목 입력</h2>
-        <form id="asset-form" class="card-form">
-          <label for="asset-name">종목명</label>
-          <input type="text" id="asset-name" maxlength="40" placeholder="예: 삼성전자" required>
-
-          <!-- 종류: value(영어)는 저장용 이름, 글자(한글)는 화면에 보이는 이름 -->
-          <label for="asset-kind">종류</label>
-          <select id="asset-kind" required>
-            <option value="kr-stock">국내주식</option>
-            <option value="us-stock">해외주식</option>
-            <option value="etf">ETF</option>
-            <option value="bond">채권</option>
-            <option value="deposit">예적금</option>
-            <option value="cash">현금</option>
-            <option value="etc">기타</option>
-          </select>
-
-          <!-- 두 칸씩 나란히 (form-row) -->
-          <div class="form-row">
-            <div>
-              <label for="asset-quantity">수량</label>
-              <!-- step="any": 소수점 수량(해외주식 소수점 매수 등)도 입력 가능 -->
-              <input type="number" id="asset-quantity" min="0" step="any" inputmode="decimal" placeholder="예: 10" required>
-            </div>
-            <div>
-              <label for="asset-avg-price">평균 매입가(원)</label>
-              <input type="number" id="asset-avg-price" min="0" step="any" inputmode="decimal" placeholder="예: 70000" required>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div>
-              <label for="asset-current-price">현재가(원)</label>
-              <input type="number" id="asset-current-price" min="0" step="any" inputmode="decimal" placeholder="예: 75000" required>
-            </div>
-            <div>
-              <label for="asset-dividend">주당 연간 배당금(원)</label>
-              <input type="number" id="asset-dividend" min="0" step="any" inputmode="decimal" placeholder="없으면 빈칸">
-            </div>
-          </div>
-          <p class="form-hint">예적금·현금은 수량에 1, 매입가와 현재가에 잔액을 넣으세요.</p>
-
-          <!-- 배당 지급월: 배당금을 넣으면 나타남. 버튼과 체크박스는 assets.js가 만듦 -->
-          <div id="asset-paymonth-box" class="paymonth-box" hidden>
-            <p class="form-group-title">배당 지급월</p>
-            <div id="asset-pay-presets" class="chip-row"></div>
-            <div id="asset-paymonth-grid" class="paymonth-grid"></div>
-          </div>
-
-          <label for="asset-memo">메모</label>
-          <input type="text" id="asset-memo" placeholder="예: 증권사 이름">
-
-          <button type="submit" id="asset-submit-btn" class="btn-primary">추가</button>
-          <button type="button" id="asset-cancel-btn" class="btn-secondary" hidden>취소</button>
-        </form>
-      </section>
-
-      <!-- ④ 보유 종목 목록 (평가금액이 큰 순서): 항목은 assets.js가 채움 -->
-      <section>
-        <h2>보유 종목</h2>
-        <ul id="asset-list" class="item-list"></ul>
-        <p id="asset-empty-message" class="empty-message">아직 등록한 종목이 없습니다.</p>
-      </section>
+        </section>
+      </div>
     </div>
 
     <!-- ===== 비트코인 탭 ===== -->
@@ -884,153 +943,171 @@
 
     <!-- ===== 시나리오 탭 ===== -->
     <div id="tab-scenario" class="tab-panel" role="tabpanel" hidden>
-      <!-- A-① 변동률 입력: 예시 버튼과 입력칸은 scenario.js가 만듦 -->
-      <section>
-        <h2>가격 변동 시나리오</h2>
-        <p class="section-desc">자산군별로 가격이 몇 % 바뀌면 내 자산이 어떻게 될지 계산해요.</p>
+      <!-- 작은 탭 (common.js의 setupSubTabs) -->
+      <nav class="btc-subtabs" role="tablist" aria-label="시나리오 메뉴">
+        <button type="button" class="btc-subtab" data-subtab="scenario:change" role="tab">가격 변동</button>
+        <button type="button" class="btc-subtab" data-subtab="scenario:sim" role="tab">미래 적립</button>
+      </nav>
 
-        <div id="scenario-presets" class="chip-row"></div>
+      <div data-subtab-panel="scenario:change">
+        <!-- A-① 변동률 입력: 예시 버튼과 입력칸은 scenario.js가 만듦 -->
+        <section>
+          <h2>가격 변동 시나리오</h2>
+          <p class="section-desc">자산군별로 가격이 몇 % 바뀌면 내 자산이 어떻게 될지 계산해요.</p>
 
-        <div id="scenario-inputs" class="card-form scenario-inputs"></div>
+          <p class="form-group-title">예시</p>
+          <div id="scenario-presets" class="chip-row"></div>
+          <p class="form-group-title">실제 하락장 다시 겪어 보기</p>
+          <div id="scenario-history-presets" class="chip-row"></div>
+          <p id="scenario-preset-note" class="section-desc scenario-preset-note"></p>
 
-        <!-- 종목별 변동률 (접었다 펼 수 있음): 빈칸이면 위 자산군 값을 따름 -->
-        <details id="scenario-items-box" class="scenario-items-box">
-          <summary id="scenario-items-summary">종목별로 따로 정하기 (선택)</summary>
-          <p class="section-desc">값을 넣은 종목만 그 값으로 계산해요. 빈칸이면 위 자산군 값을 따라요.</p>
-          <div id="scenario-items" class="card-form"></div>
-        </details>
-        <button type="button" id="scenario-reset-btn" class="btn-secondary">모두 0%로 초기화</button>
-      </section>
+          <div id="scenario-inputs" class="card-form scenario-inputs"></div>
 
-      <!-- A-② 결과: 숫자를 바꾸면 바로 다시 계산됨 -->
-      <section>
-        <h2>시나리오 결과</h2>
-        <p id="scenario-no-asset-message" class="empty-message" hidden>
-          금융자산이나 비트코인을 먼저 입력해 주세요.
-        </p>
-        <div class="summary-grid">
-          <div class="summary-card">
-            <p>시나리오 후 총 자산</p>
-            <p id="scenario-total">0원</p>
-          </div>
-        </div>
-        <p class="scenario-diff-line">현재 대비 <span id="scenario-diff">0원</span></p>
-        <p id="scenario-now" class="summary-sub"></p>
-        <p id="scenario-profit" class="summary-sub scenario-sub-tight"></p>
-        <p id="scenario-dividend" class="summary-sub"></p>
+          <!-- 종목별 변동률 (접었다 펼 수 있음): 빈칸이면 위 자산군 값을 따름 -->
+          <details id="scenario-items-box" class="scenario-items-box">
+            <summary id="scenario-items-summary">종목별로 따로 정하기 (선택)</summary>
+            <p class="section-desc">값을 넣은 종목만 그 값으로 계산해요. 빈칸이면 위 자산군 값을 따라요.</p>
+            <div id="scenario-items" class="card-form"></div>
+          </details>
+          <button type="button" id="scenario-reset-btn" class="btn-secondary">모두 0%로 초기화</button>
+        </section>
 
-        <!-- 자산군별 표: 화면보다 넓으면 표만 옆으로 밀어서 볼 수 있음 -->
-        <div class="table-scroll">
-          <table class="scenario-table">
-            <thead>
-              <tr>
-                <th>자산군</th>
-                <th>현재(원)</th>
-                <th>시나리오</th>
-                <th>변화</th>
-              </tr>
-            </thead>
-            <tbody id="scenario-table-body"></tbody>
-          </table>
-        </div>
-
-        <!-- 저장 -->
-        <form id="scenario-save-form" class="card-form scenario-save">
-          <label for="scenario-name">이 시나리오 저장</label>
-          <div class="inline-row">
-            <input type="text" id="scenario-name" maxlength="30" placeholder="예: 폭락 대비">
-            <button type="submit" class="btn-primary">저장</button>
-          </div>
-        </form>
-      </section>
-
-      <!-- A-③ 저장한 시나리오 비교 -->
-      <section>
-        <h2>저장한 시나리오</h2>
-        <p class="section-desc">지금 자산 기준으로 다시 계산돼요.</p>
-        <ul id="scenario-list" class="item-list"></ul>
-        <p id="scenario-empty-message" class="empty-message">저장한 시나리오가 없습니다.</p>
-      </section>
-
-      <!-- B-① 미래 적립 시뮬레이션 입력: simulate.js -->
-      <section>
-        <h2>미래 적립 시뮬레이션</h2>
-        <p class="section-desc">지금 자산에 매달 꾸준히 더 넣으면 몇 년 뒤 얼마가 될지 세 가지 수익률로 비교해요.</p>
-
-        <div class="card-form">
-          <label for="sim-start">시작 금액(원)</label>
-          <div class="inline-row">
-            <input type="number" id="sim-start" min="0" step="any" inputmode="numeric" placeholder="0">
-            <button type="button" id="sim-load-networth" class="btn-secondary">현재 자산</button>
-          </div>
-
-          <label for="sim-monthly">매월 투자금(원)</label>
-          <input type="number" id="sim-monthly" min="0" step="any" inputmode="numeric" placeholder="0">
-
-          <div class="form-row">
-            <div>
-              <label for="sim-years">기간(년)</label>
-              <input type="number" id="sim-years" min="1" max="50" step="1" inputmode="numeric">
-            </div>
-            <div>
-              <label for="sim-dividend">배당수익률(연 %)</label>
-              <input type="number" id="sim-dividend" min="0" max="30" step="any" inputmode="decimal">
+        <!-- A-② 결과: 숫자를 바꾸면 바로 다시 계산됨 -->
+        <section>
+          <h2>시나리오 결과</h2>
+          <p id="scenario-no-asset-message" class="empty-message" hidden>
+            금융자산이나 비트코인을 먼저 입력해 주세요.
+          </p>
+          <div class="summary-grid">
+            <div class="summary-card">
+              <p>시나리오 후 총 자산</p>
+              <p id="scenario-total">0원</p>
             </div>
           </div>
+          <p class="scenario-diff-line">현재 대비 <span id="scenario-diff">0원</span></p>
+          <p id="scenario-now" class="summary-sub"></p>
+          <p id="scenario-profit" class="summary-sub scenario-sub-tight"></p>
+          <p id="scenario-dividend" class="summary-sub"></p>
 
-          <!-- 연 수익률: 가격 상승분만 (배당은 위 칸에서 따로) -->
-          <p class="form-group-title">연 기대수익률(%, 배당 제외)</p>
-          <div class="form-row form-row-3">
-            <div>
-              <label for="sim-rate-bad">비관</label>
-              <!-- 하락(-)도 넣을 수 있게 inputmode를 쓰지 않음 -->
-              <input type="number" id="sim-rate-bad" min="-50" max="50" step="any">
-            </div>
-            <div>
-              <label for="sim-rate-base">기본</label>
-              <input type="number" id="sim-rate-base" min="-50" max="50" step="any">
-            </div>
-            <div>
-              <label for="sim-rate-good">낙관</label>
-              <input type="number" id="sim-rate-good" min="-50" max="50" step="any">
-            </div>
+          <!-- 자산군별 표: 화면보다 넓으면 표만 옆으로 밀어서 볼 수 있음 -->
+          <div class="table-scroll">
+            <table class="scenario-table">
+              <thead>
+                <tr>
+                  <th>자산군</th>
+                  <th>현재(원)</th>
+                  <th>시나리오</th>
+                  <th>변화</th>
+                </tr>
+              </thead>
+              <tbody id="scenario-table-body"></tbody>
+            </table>
           </div>
 
-          <label class="checkbox-label">
-            <input type="checkbox" id="sim-reinvest"> 배당금을 다시 투자하기 (재투자)
-          </label>
-        </div>
-      </section>
+          <!-- 저장 -->
+          <form id="scenario-save-form" class="card-form scenario-save">
+            <label for="scenario-name">이 시나리오 저장</label>
+            <div class="inline-row">
+              <input type="text" id="scenario-name" maxlength="30" placeholder="예: 폭락 대비">
+              <button type="submit" class="btn-primary">저장</button>
+            </div>
+          </form>
+        </section>
 
-      <!-- B-② 시뮬레이션 결과 -->
-      <section>
-        <h2>시뮬레이션 결과</h2>
-        <div id="sim-cards" class="sim-cards"></div>
-        <p id="sim-principal" class="summary-sub"></p>
-        <p id="sim-dividend-result" class="summary-sub scenario-sub-tight"></p>
+        <!-- A-③ 저장한 시나리오 비교 -->
+        <section>
+          <h2>저장한 시나리오</h2>
+          <p class="section-desc">지금 자산 기준으로 다시 계산돼요.</p>
+          <ul id="scenario-list" class="item-list"></ul>
+          <p id="scenario-empty-message" class="empty-message">저장한 시나리오가 없습니다.</p>
+        </section>
+      </div>
 
-        <!-- 연도별 표 (만원 단위) -->
-        <div class="table-scroll">
-          <table class="scenario-table">
-            <thead>
-              <tr>
-                <th>기간</th>
-                <th>원금</th>
-                <th>비관</th>
-                <th>기본</th>
-                <th>낙관</th>
-              </tr>
-            </thead>
-            <tbody id="sim-table-body"></tbody>
-          </table>
-        </div>
-        <p class="table-note">단위: 만원 · 각 해 말 기준 평가액</p>
+      <div data-subtab-panel="scenario:sim" hidden>
+        <!-- B-① 미래 적립 시뮬레이션 입력: simulate.js -->
+        <section>
+          <h2>미래 적립 시뮬레이션</h2>
+          <p class="section-desc">지금 자산에 매달 꾸준히 더 넣으면 몇 년 뒤 얼마가 될지 세 가지 수익률로 비교해요.</p>
 
-        <p class="disclaimer">
-          입력한 수익률이 매년 똑같이 유지된다고 가정한 단순 계산이에요. 실제 수익은 해마다 오르내리고,
-          세금·수수료·물가 상승은 반영하지 않았어요. 투자 판단의 참고용으로만 봐 주세요.
-        </p>
-      </section>
+          <div class="card-form">
+            <label for="sim-start">시작 금액(원)</label>
+            <div class="inline-row">
+              <input type="number" id="sim-start" min="0" step="any" inputmode="numeric" placeholder="0">
+              <button type="button" id="sim-load-networth" class="btn-secondary">현재 자산</button>
+            </div>
+
+            <label for="sim-monthly">매월 투자금(원)</label>
+            <input type="number" id="sim-monthly" min="0" step="any" inputmode="numeric" placeholder="0">
+
+            <div class="form-row">
+              <div>
+                <label for="sim-years">기간(년)</label>
+                <input type="number" id="sim-years" min="1" max="50" step="1" inputmode="numeric">
+              </div>
+              <div>
+                <label for="sim-dividend">배당수익률(연 %)</label>
+                <input type="number" id="sim-dividend" min="0" max="30" step="any" inputmode="decimal">
+              </div>
+            </div>
+
+            <!-- 연 수익률: 가격 상승분만 (배당은 위 칸에서 따로) -->
+            <p class="form-group-title">연 기대수익률(%, 배당 제외)</p>
+            <div class="form-row form-row-3">
+              <div>
+                <label for="sim-rate-bad">비관</label>
+                <!-- 하락(-)도 넣을 수 있게 inputmode를 쓰지 않음 -->
+                <input type="number" id="sim-rate-bad" min="-50" max="50" step="any">
+              </div>
+              <div>
+                <label for="sim-rate-base">기본</label>
+                <input type="number" id="sim-rate-base" min="-50" max="50" step="any">
+              </div>
+              <div>
+                <label for="sim-rate-good">낙관</label>
+                <input type="number" id="sim-rate-good" min="-50" max="50" step="any">
+              </div>
+            </div>
+
+            <label class="checkbox-label">
+              <input type="checkbox" id="sim-reinvest"> 배당금을 다시 투자하기 (재투자)
+            </label>
+
+            <label for="sim-target">목표 금액(원, 선택)</label>
+            <input type="number" id="sim-target" min="0" step="any" inputmode="numeric" placeholder="예: 1000000000">
+          </div>
+        </section>
+
+        <!-- B-② 시뮬레이션 결과 -->
+        <section>
+          <h2>시뮬레이션 결과</h2>
+          <div id="sim-cards" class="sim-cards"></div>
+          <p id="sim-principal" class="summary-sub"></p>
+          <p id="sim-dividend-result" class="summary-sub scenario-sub-tight"></p>
+          <p id="sim-target-result" class="sim-target-result"></p>
+
+          <!-- 연도별 표 (만원 단위) -->
+          <div class="table-scroll">
+            <table class="scenario-table">
+              <thead>
+                <tr>
+                  <th>기간</th>
+                  <th>원금</th>
+                  <th>비관</th>
+                  <th>기본</th>
+                  <th>낙관</th>
+                </tr>
+              </thead>
+              <tbody id="sim-table-body"></tbody>
+            </table>
+          </div>
+          <p class="table-note">단위: 만원 · 각 해 말 기준 평가액</p>
+
+          <p class="disclaimer">
+            입력한 수익률이 매년 똑같이 유지된다고 가정한 단순 계산이에요. 실제 수익은 해마다 오르내리고,
+            세금·수수료·물가 상승은 반영하지 않았어요. 투자 판단의 참고용으로만 봐 주세요.
+          </p>
+        </section>
+      </div>
     </div>
   </main>
 
@@ -1050,38 +1127,42 @@
       <input type="file" id="backup-file-input" accept=".json,application/json" hidden>
     </section>
     <!-- 앱 버전: 휴대폰이 최신 파일을 쓰고 있는지 확인용 (파일을 고칠 때 ?v= 숫자와 같이 올림) -->
-    <p class="app-version">앱 버전 v34</p>
+    <p class="app-version">앱 버전 v35</p>
   </footer>
 
   <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
        common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
-  <script src="common.js?v=34"></script>
-  <script src="assets.js?v=34"></script>
-  <script src="crypto.js?v=34"></script>
+  <script src="common.js?v=35"></script>
+  <!-- 주식·ETF·지수 시세 (금융자산·홈에서 씀, assets.js보다 먼저) -->
+  <script src="market.js?v=35"></script>
+  <script src="assets.js?v=35"></script>
+  <script src="assets-market.js?v=35"></script>
+  <script src="crypto.js?v=35"></script>
   <!-- 전체 자산 요약: 위 파일들의 계산 함수를 쓰므로 맨 마지막에 -->
-  <script src="networth.js?v=34"></script>
+  <script src="networth.js?v=35"></script>
   <!-- 자산 추이: 전체 자산 계산을 씀 -->
-  <script src="history.js?v=34"></script>
+  <script src="history.js?v=35"></script>
   <!-- 홈(대시보드): 모든 계산 함수를 씀 -->
-  <script src="dashboard.js?v=34"></script>
+  <script src="dashboard.js?v=35"></script>
+  <script src="dashboard-market.js?v=35"></script>
   <!-- 시나리오: 위 모든 파일의 계산 함수를 씀 -->
-  <script src="scenario.js?v=34"></script>
+  <script src="scenario.js?v=35"></script>
   <!-- 미래 적립 시뮬레이션: 전체 자산 값을 불러옴 -->
-  <script src="simulate.js?v=34"></script>
+  <script src="simulate.js?v=35"></script>
   <!-- 비트코인: 공통 → 시세 → 매수/매도 → 공포·탐욕 → 과거 가격 → 차트 → 사이클·월별 → 도구 → 정보 → 사고 연표 → 블록 (마지막 파일이 자동 갱신을 시작) -->
-  <script src="btc.js?v=34"></script>
-  <script src="btc-live.js?v=34"></script>
-  <script src="btc-flow.js?v=34"></script>
-  <script src="btc-fng.js?v=34"></script>
+  <script src="btc.js?v=35"></script>
+  <script src="btc-live.js?v=35"></script>
+  <script src="btc-flow.js?v=35"></script>
+  <script src="btc-fng.js?v=35"></script>
   <!-- 2010년부터의 비트코인 과거 가격 (차트용 고정 데이터, 약 50KB) -->
-  <script src="btc-history.js?v=34"></script>
-  <script src="btc-chart.js?v=34"></script>
-  <script src="btc-cycle.js?v=34"></script>
-  <script src="btc-tools.js?v=34"></script>
-  <script src="btc-info.js?v=34"></script>
-  <script src="btc-incidents.js?v=34"></script>
-  <script src="btc-chain.js?v=34"></script>
+  <script src="btc-history.js?v=35"></script>
+  <script src="btc-chart.js?v=35"></script>
+  <script src="btc-cycle.js?v=35"></script>
+  <script src="btc-tools.js?v=35"></script>
+  <script src="btc-info.js?v=35"></script>
+  <script src="btc-incidents.js?v=35"></script>
+  <script src="btc-chain.js?v=35"></script>
   <!-- 데이터 백업 -->
-  <script src="backup.js?v=34"></script>
+  <script src="backup.js?v=35"></script>
 </body>
 </html>

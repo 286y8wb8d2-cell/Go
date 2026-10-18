@@ -51,6 +51,7 @@ const US = [
 const MARKETS = {
   "^GSPC": "S&P 500", "^IXIC": "나스닥", "^DJI": "다우", "^KS11": "코스피", "^KQ11": "코스닥",
   "^VIX": "VIX 공포지수", "^TNX": "미국 10년 금리", "KRW=X": "원/달러", "GC=F": "금", "CL=F": "WTI 유가",
+  "BTC-USD": "비트코인",
 };
 
 // ---------- 받기 ----------
@@ -97,6 +98,7 @@ async function fetchQuote(symbol) {
   const closes = (result.indicators?.quote?.[0]?.close || []).map((v) => round(v, 4)).filter((v) => v !== null);
   return {
     name: meta.longName || meta.shortName || symbol,
+    type: meta.instrumentType || "", // "ETF" | "EQUITY" | "INDEX" 등
     currency: meta.currency,
     price: round(price, 4),
     change: round(meta.regularMarketChangePercent ?? (prev ? (price / prev - 1) * 100 : null), 3),

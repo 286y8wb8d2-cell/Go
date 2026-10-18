@@ -2307,6 +2307,159 @@ footer {
   font-variant-numeric: tabular-nums;
 }
 
+/* ---------- 금융자산: 종목별 시세 줄 ---------- */
+.asset-market {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 2px;
+  font-size: 0.78rem;
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.asset-ticker {
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-weight: bold;
+}
+
+.asset-range-label {
+  font-size: 0.72rem;
+}
+
+/* 52주 최저~최고 막대 위의 지금 위치 */
+.asset-range {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--down), #cfcfcf, var(--up));
+}
+
+.asset-range-dot {
+  position: absolute;
+  top: -3px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border: 2px solid var(--card);
+  border-radius: 50%;
+  background: var(--text);
+}
+
+/* 작은 1년 추이선 */
+.market-spark {
+  width: 56px;
+  height: 16px;
+}
+
+.market-spark polyline {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.market-spark-up { stroke: var(--up); }
+.market-spark-down { stroke: var(--down); }
+
+.asset-ticker-fill {
+  margin: -6px 0 14px;
+}
+
+/* 다가오는 배당 */
+.asset-upcoming-list {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.asset-upcoming {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.asset-upcoming-amount {
+  text-align: right;
+  font-weight: bold;
+}
+
+.asset-upcoming-names {
+  grid-column: 1 / -1;
+  font-size: 0.78rem;
+  color: var(--text-light);
+  word-break: keep-all;
+}
+
+/* ---------- 홈: 시장 한눈에 · 최근 거래일 변동 ---------- */
+.dash-today {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
+
+.dash-market-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.dash-market-tile {
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.dash-market-tile p {
+  margin: 0;
+}
+
+.dash-market-value {
+  font-size: 0.95rem;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.dash-market-tile .market-spark {
+  display: block;
+  width: 100%;
+  height: 18px;
+  margin-top: 4px;
+}
+
+/* ---------- 시나리오 ---------- */
+.scenario-preset-note:empty {
+  display: none;
+}
+
+.scenario-preset-note {
+  margin: -4px 0 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.sim-target-result {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 0.9rem;
+  word-break: keep-all;
+}
+
+.sim-target-result:empty {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .btc-block-new,
   .btc-tick-up,
