@@ -565,6 +565,29 @@ section {
   word-break: keep-all;
 }
 
+/* 업비트 시세 불러오기 */
+.price-refresh {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.price-refresh .btn-secondary {
+  margin-top: 0;
+}
+
+.price-refresh .btn-secondary:disabled {
+  color: var(--text-light);
+  cursor: wait;
+}
+
+.price-refresh-status {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-light);
+  word-break: keep-all;
+}
+
 /* 가상자산 코인별 색: 등록한 순서대로 0~6번, 그 뒤는 "기타" 회색
    (금융자산 종류 색과 같은 검증된 팔레트 순서) */
 .coin-color-0     { background: #2a78d6; }

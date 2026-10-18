@@ -71,7 +71,9 @@ function isValidCrypto(item) {
   return (
     isText(item.id) && isText(item.name) &&
     isNumber(item.quantity) && isNumber(item.avgPrice) && isNumber(item.currentPrice) &&
-    isText(item.place) && isText(item.memo)
+    isText(item.place) && isText(item.memo) &&
+    // 심볼은 예전 백업에는 없을 수 있음
+    (item.symbol === undefined || isText(item.symbol))
   );
 }
 

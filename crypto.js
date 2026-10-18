@@ -18,6 +18,16 @@ const CRYPTO_MAX_VALUE = 1000000000000; // 1조
 // 이보다 많으면 나머지는 "기타"로 묶음
 const CRYPTO_COLOR_COUNT = 7;
 
+// 업비트 공개 시세 주소 (로그인이 필요 없는 공개 정보. 코인 심볼만 보내고 보유량·금액은 보내지 않음)
+const CRYPTO_UPBIT_MARKETS_URL = "https://api.upbit.com/v1/market/all";
+const CRYPTO_UPBIT_TICKER_URL = "https://api.upbit.com/v1/ticker?markets=";
+
+// 마지막으로 시세를 불러온 시각을 기억하는 이름
+const CRYPTO_PRICE_UPDATED_KEY = "household-crypto-price-updated";
+
+// 응답을 기다리는 최대 시간 (10초)
+const CRYPTO_FETCH_TIMEOUT = 10000;
+
 // =============================================
 // 2. 저장/불러오기
 // =============================================
@@ -37,6 +47,9 @@ let cryptoEditingId = null;
 
 const cryptoForm = document.getElementById("crypto-form");
 const cryptoNameInput = document.getElementById("crypto-name");
+const cryptoSymbolInput = document.getElementById("crypto-symbol");
+const cryptoRefreshBtn = document.getElementById("crypto-refresh-btn");
+const cryptoRefreshStatus = document.getElementById("crypto-refresh-status");
 const cryptoQuantityInput = document.getElementById("crypto-quantity");
 const cryptoAvgPriceInput = document.getElementById("crypto-avg-price");
 const cryptoCurrentPriceInput = document.getElementById("crypto-current-price");
@@ -244,6 +257,9 @@ function readCryptoNumber(input) {
 }
 
 function validateCrypto(crypto) {
+  if (crypto.symbol !== "" && !/^[A-Z0-9]{1,10}$/.test(crypto.symbol)) {
+    return "심볼은 영어 대문자와 숫자로만 입력해 주세요. (예: BTC)";
+  }
   if (crypto.name === "") {
     return "코인명을 입력해 주세요.";
   }
@@ -279,6 +295,7 @@ function startCryptoEdit(crypto) {
   cryptoEditingId = crypto.id;
 
   cryptoNameInput.value = crypto.name;
+  cryptoSymbolInput.value = crypto.symbol || ""; // 예전 코인에는 심볼이 없음
   cryptoQuantityInput.value = crypto.quantity;
   cryptoAvgPriceInput.value = crypto.avgPrice;
   cryptoCurrentPriceInput.value = crypto.currentPrice;
@@ -288,13 +305,15 @@ function startCryptoEdit(crypto) {
   cryptoSubmitBtn.textContent = "수정 완료";
   cryptoCancelBtn.hidden = false;
 
-  renderCryptos();
+  renderCryptoRefreshStatus();
+renderCryptos();
   cryptoForm.scrollIntoView({ behavior: "smooth" });
 }
 
 cryptoCancelBtn.addEventListener("click", function () {
   resetCryptoForm();
-  renderCryptos();
+  renderCryptoRefreshStatus();
+renderCryptos();
 });
 
 cryptoForm.addEventListener("submit", function (event) {
@@ -303,6 +322,7 @@ cryptoForm.addEventListener("submit", function (event) {
   const crypto = {
     id: cryptoEditingId !== null ? cryptoEditingId : String(Date.now()),
     name: cryptoNameInput.value.trim(),
+    symbol: cryptoSymbolInput.value.trim().toUpperCase(), // btc → BTC
     quantity: readCryptoNumber(cryptoQuantityInput),
     avgPrice: readCryptoNumber(cryptoAvgPriceInput),
     currentPrice: readCryptoNumber(cryptoCurrentPriceInput),
@@ -326,7 +346,8 @@ cryptoForm.addEventListener("submit", function (event) {
   }
   saveCryptos();
   resetCryptoForm();
-  renderCryptos();
+  renderCryptoRefreshStatus();
+renderCryptos();
 });
 
 function deleteCrypto(id) {
@@ -337,11 +358,155 @@ function deleteCrypto(id) {
   if (id === cryptoEditingId) {
     resetCryptoForm();
   }
-  renderCryptos();
+  renderCryptoRefreshStatus();
+renderCryptos();
 }
+
+// ---------------------------------------------
+// 업비트 시세 불러오기
+// ---------------------------------------------
+
+// 코인의 심볼: 심볼 칸이 있으면 그 값, 없으면 이름 속 영어 대문자 단어 (예: "비트코인 BTC" → "BTC")
+function getCryptoSymbol(crypto) {
+  if (crypto.symbol) {
+    return crypto.symbol;
+  }
+  const found = crypto.name.match(/\b[A-Z][A-Z0-9]{1,9}\b/g);
+  return found ? found[found.length - 1] : null;
+}
+
+// 주소에서 JSON을 받아 옴 (10초 넘게 걸리면 포기)
+async function fetchCryptoJson(url) {
+  const controller = new AbortController();
+  const timer = setTimeout(function () {
+    controller.abort();
+  }, CRYPTO_FETCH_TIMEOUT);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error("응답 오류 " + response.status);
+    }
+    return await response.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// "마지막 갱신" 안내를 보여 줌
+function renderCryptoRefreshStatus(message) {
+  if (message) {
+    cryptoRefreshStatus.textContent = message;
+    return;
+  }
+  let last = null;
+  try {
+    last = localStorage.getItem(CRYPTO_PRICE_UPDATED_KEY);
+  } catch (error) {
+    // 무시
+  }
+  cryptoRefreshStatus.textContent = last
+    ? "마지막 시세 갱신: " + last
+    : "심볼(예: BTC)이 있는 코인의 현재가를 업비트 원화 시세로 바꿔요.";
+}
+
+// 지금 시각을 "2026-10-18 10:32" 모양으로
+function getNowText() {
+  const now = new Date();
+  return getToday() + " " + String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+}
+
+cryptoRefreshBtn.addEventListener("click", async function () {
+  // 심볼별로 코인 묶기 (같은 코인을 거래소별로 여러 줄 넣었을 수 있음)
+  const bySymbol = {};
+  const noSymbol = [];
+  cryptos.forEach(function (crypto) {
+    const symbol = getCryptoSymbol(crypto);
+    if (symbol) {
+      (bySymbol[symbol] = bySymbol[symbol] || []).push(crypto);
+    } else {
+      noSymbol.push(crypto.name);
+    }
+  });
+  const symbols = Object.keys(bySymbol);
+  if (symbols.length === 0) {
+    alert("심볼이 있는 코인이 없어요. 코인을 수정해서 심볼(예: BTC)을 넣어 주세요.");
+    return;
+  }
+
+  cryptoRefreshBtn.disabled = true;
+  cryptoRefreshBtn.textContent = "불러오는 중…";
+  try {
+    // ① 업비트 원화 마켓 목록 (없는 코인을 물어보면 업비트가 전체를 오류로 돌려주기 때문에 먼저 걸러 냄)
+    const markets = await fetchCryptoJson(CRYPTO_UPBIT_MARKETS_URL);
+    const krwMarkets = new Set(
+      markets.map(function (item) {
+        return item.market;
+      })
+    );
+    const found = symbols.filter(function (symbol) {
+      return krwMarkets.has("KRW-" + symbol);
+    });
+    const notFound = symbols.filter(function (symbol) {
+      return !krwMarkets.has("KRW-" + symbol);
+    });
+
+    // ② 찾은 코인들의 현재가를 한 번에
+    let updatedCount = 0;
+    if (found.length > 0) {
+      const tickers = await fetchCryptoJson(
+        CRYPTO_UPBIT_TICKER_URL +
+          found
+            .map(function (symbol) {
+              return "KRW-" + symbol;
+            })
+            .join(",")
+      );
+      tickers.forEach(function (ticker) {
+        const symbol = String(ticker.market).replace("KRW-", "");
+        const price = Number(ticker.trade_price);
+        if (!bySymbol[symbol] || !Number.isFinite(price) || price < 0) {
+          return;
+        }
+        bySymbol[symbol].forEach(function (crypto) {
+          crypto.currentPrice = price;
+          updatedCount = updatedCount + 1;
+        });
+      });
+    }
+
+    if (updatedCount > 0) {
+      try {
+        localStorage.setItem(CRYPTO_PRICE_UPDATED_KEY, getNowText());
+      } catch (error) {
+        // 무시
+      }
+      saveCryptos();
+      renderCryptoRefreshStatus();
+renderCryptos();
+    }
+
+    // 결과 안내 (몇 개 바뀌었는지 + 못 찾은 코인)
+    const notes = ["마지막 시세 갱신: " + getNowText() + " (" + updatedCount + "개 코인)"];
+    if (notFound.length > 0) {
+      notes.push("업비트 원화 마켓에 없음: " + notFound.join(", ") + ".");
+    }
+    if (noSymbol.length > 0) {
+      notes.push("심볼이 없어 건너뜀: " + noSymbol.join(", ") + ".");
+    }
+    renderCryptoRefreshStatus(notes.join(" "));
+  } catch (error) {
+    renderCryptoRefreshStatus(
+      "시세를 불러오지 못했어요. 인터넷 연결을 확인하고 잠시 뒤 다시 눌러 주세요. (브라우저가 업비트 접속을 막았을 수도 있어요)"
+    );
+  } finally {
+    cryptoRefreshBtn.disabled = false;
+    cryptoRefreshBtn.textContent = "업비트 시세 불러오기";
+  }
+});
 
 // =============================================
 // 시작
 // =============================================
 
+renderCryptoRefreshStatus();
 renderCryptos();
