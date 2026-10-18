@@ -36,7 +36,8 @@ const SCENARIO_PRESETS = [
 // 2. 저장/불러오기
 // =============================================
 
-// 저장한 시나리오 목록: [{ id, name, changes: { "kr-stock": -20, ..., crypto: -50 } }]
+// 저장한 시나리오 목록: [{ id, name, changes: { "kr-stock": -20, ..., crypto: -50, items: { "asset:123": -30 } } }]
+// changes.items: 종목별로 따로 정한 변동률 (없으면 자산군 값을 따름). 이름표는 "asset:종목id" / "crypto:코인id"
 let scenarios = loadList(SCENARIO_STORAGE_KEY);
 
 function saveScenarios() {
@@ -50,6 +51,12 @@ function saveScenarios() {
 const scenarioPresetBox = document.getElementById("scenario-presets");
 const scenarioInputBox = document.getElementById("scenario-inputs");
 const scenarioResetBtn = document.getElementById("scenario-reset-btn");
+const scenarioItemsBox = document.getElementById("scenario-items-box");
+const scenarioItemsSummary = document.getElementById("scenario-items-summary");
+const scenarioItemsList = document.getElementById("scenario-items");
+
+// 종목별 입력칸을 담아 둠: { "asset:123": <input>, "crypto:456": <input> }
+let scenarioItemInputs = {};
 const scenarioTotalText = document.getElementById("scenario-total");
 const scenarioDiffText = document.getElementById("scenario-diff");
 const scenarioNowText = document.getElementById("scenario-now");
@@ -78,9 +85,13 @@ function calculateScenario(changes) {
     groups[group] = { now: 0, after: 0 };
   });
 
+  const items = changes.items || {};
+
   // 변동률(%)을 곱할 배수로: -20% → 0.8, +50% → 1.5
-  function multiplier(group) {
-    return 1 + (changes[group] || 0) / 100;
+  // 종목별 값이 있으면 그 값을, 없으면 자산군 값을 씀
+  function multiplier(group, itemKey) {
+    const change = items[itemKey] !== undefined ? items[itemKey] : changes[group] || 0;
+    return 1 + change / 100;
   }
 
   let cost = 0;
@@ -90,15 +101,18 @@ function calculateScenario(changes) {
     const result = calculateAsset(asset);
     const group = ASSET_KINDS[asset.kind] ? asset.kind : "etc";
     groups[group].now = groups[group].now + result.value;
-    groups[group].after = groups[group].after + result.value * multiplier(group);
+    groups[group].after = groups[group].after + result.value * multiplier(group, "asset:" + asset.id);
     cost = cost + result.cost;
     dividendNow = dividendNow + result.annualDividend;
   });
 
-  const cryptoTotal = calculateCryptoTotal(cryptos);
-  groups.crypto.now = cryptoTotal.value;
-  groups.crypto.after = cryptoTotal.value * multiplier("crypto");
-  cost = cost + cryptoTotal.cost;
+  // 가상자산은 코인마다 따로 (코인별 변동률이 있을 수 있어서)
+  cryptos.forEach(function (crypto) {
+    const result = calculateCrypto(crypto);
+    groups.crypto.now = groups.crypto.now + result.value;
+    groups.crypto.after = groups.crypto.after + result.value * multiplier("crypto", "crypto:" + crypto.id);
+    cost = cost + result.cost;
+  });
 
   let now = 0;
   let after = 0;
@@ -135,7 +149,26 @@ function describeChanges(changes) {
       parts.push(getNetworthGroupName(group) + " " + (value > 0 ? "+" : "") + value + "%");
     }
   });
+  // 종목별 값 (지금은 없는 종목은 건너뜀)
+  const items = changes.items || {};
+  Object.keys(items).forEach(function (key) {
+    const name = getScenarioItemName(key);
+    if (name !== null) {
+      const value = items[key];
+      parts.push(name + " " + (value > 0 ? "+" : "") + value + "%");
+    }
+  });
   return parts.length > 0 ? parts.join(" · ") : "변동 없음";
+}
+
+// "asset:123" 같은 이름표로 종목 이름을 찾음 (없으면 null)
+function getScenarioItemName(key) {
+  const id = key.slice(key.indexOf(":") + 1);
+  const list = key.startsWith("asset:") ? assets : cryptos;
+  const found = list.find(function (item) {
+    return item.id === id;
+  });
+  return found ? found.name : null;
 }
 
 // =============================================
@@ -153,6 +186,16 @@ function readScenarioChanges() {
     value = Math.min(Math.max(value, SCENARIO_MIN_CHANGE), SCENARIO_MAX_CHANGE);
     changes[group] = value;
   });
+
+  // 종목별: 값을 넣은 칸만 저장 (빈칸은 자산군을 따름)
+  changes.items = {};
+  Object.keys(scenarioItemInputs).forEach(function (key) {
+    const text = scenarioItemInputs[key].value.trim();
+    const value = Number(text);
+    if (text !== "" && Number.isFinite(value)) {
+      changes.items[key] = Math.min(Math.max(value, SCENARIO_MIN_CHANGE), SCENARIO_MAX_CHANGE);
+    }
+  });
   return changes;
 }
 
@@ -162,6 +205,77 @@ function fillScenarioInputs(changes) {
     const value = changes[group] || 0;
     scenarioInputs[group].value = value === 0 ? "" : value;
   });
+  const items = changes.items || {};
+  Object.keys(scenarioItemInputs).forEach(function (key) {
+    scenarioItemInputs[key].value = items[key] !== undefined ? items[key] : "";
+  });
+  updateScenarioItemsSummary();
+}
+
+// 종목별 입력칸을 지금 보유 종목·코인으로 다시 만듦 (이미 넣어 둔 값은 유지)
+function buildScenarioItemInputs() {
+  const keep = {};
+  Object.keys(scenarioItemInputs).forEach(function (key) {
+    keep[key] = scenarioItemInputs[key].value;
+  });
+
+  scenarioItemsList.innerHTML = "";
+  scenarioItemInputs = {};
+
+  const rows = assets
+    .map(function (asset) {
+      return { key: "asset:" + asset.id, name: asset.name, group: ASSET_KINDS[asset.kind] || "기타" };
+    })
+    .concat(
+      cryptos.map(function (crypto) {
+        return { key: "crypto:" + crypto.id, name: crypto.name, group: "가상자산" };
+      })
+    );
+
+  rows.forEach(function (row) {
+    // 한 줄: [종목명 (자산군)] [  %  ]
+    const wrapper = document.createElement("div");
+    wrapper.className = "scenario-item-row";
+
+    const label = document.createElement("label");
+    label.htmlFor = "scenario-item-" + row.key.replace(":", "-");
+    label.textContent = row.name;
+    const groupTag = document.createElement("span");
+    groupTag.className = "asset-kind";
+    groupTag.textContent = row.group;
+    label.appendChild(groupTag);
+
+    const input = document.createElement("input");
+    input.type = "number";
+    input.id = "scenario-item-" + row.key.replace(":", "-");
+    input.step = "any";
+    input.min = String(SCENARIO_MIN_CHANGE);
+    input.max = String(SCENARIO_MAX_CHANGE);
+    input.placeholder = "자산군 따름";
+    input.value = keep[row.key] !== undefined ? keep[row.key] : "";
+    input.addEventListener("input", function () {
+      updateScenarioItemsSummary();
+      renderScenarioResult();
+    });
+
+    scenarioItemInputs[row.key] = input;
+    wrapper.append(label, input);
+    scenarioItemsList.appendChild(wrapper);
+  });
+
+  scenarioItemsBox.hidden = rows.length === 0;
+  updateScenarioItemsSummary();
+}
+
+// 접힌 제목에 몇 개를 따로 정했는지 표시
+function updateScenarioItemsSummary() {
+  let count = 0;
+  Object.keys(scenarioItemInputs).forEach(function (key) {
+    if (scenarioItemInputs[key].value.trim() !== "") {
+      count = count + 1;
+    }
+  });
+  scenarioItemsSummary.textContent = "종목별로 따로 정하기" + (count > 0 ? " (" + count + "개 설정됨)" : " (선택)");
 }
 
 // 처음 한 번: 예시 버튼과 자산군별 입력칸을 만듦
@@ -360,6 +474,7 @@ scenarioSaveForm.addEventListener("submit", function (event) {
 // 다른 탭에서 자산이 바뀌면 결과를 다시 계산 (common.js의 saveList가 보내는 신호)
 document.addEventListener("data-saved", function (event) {
   if (event.detail.key !== SCENARIO_STORAGE_KEY) {
+    buildScenarioItemInputs(); // 종목이 늘거나 줄었을 수 있음
     renderScenarioResult();
     renderScenarioList();
   }
@@ -370,5 +485,6 @@ document.addEventListener("data-saved", function (event) {
 // =============================================
 
 buildScenarioControls();
+buildScenarioItemInputs();
 renderScenarioResult();
 renderScenarioList();

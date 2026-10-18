@@ -861,6 +861,39 @@ section {
   border-color: var(--expense);
 }
 
+/* 종목별 변동률: 접었다 펴는 상자 */
+.scenario-items-box {
+  margin: 4px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.scenario-items-box summary {
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.scenario-items-box[open] summary {
+  margin-bottom: 12px;
+}
+
+/* 한 줄: 종목명(왼쪽) + 변동률 칸(오른쪽, 좁게) */
+.scenario-item-row {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-form .scenario-item-row label {
+  margin: 0 0 14px;
+  color: var(--text);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
 /* 결과의 "현재 대비 -1,500,000원 (-20.00%)" 줄 */
 .scenario-diff-line {
   margin: 10px 0 0;

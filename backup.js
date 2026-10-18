@@ -77,8 +77,14 @@ function isValidCrypto(item) {
 function isValidScenario(item) {
   if (!isText(item.id) || !isText(item.name)) return false;
   if (typeof item.changes !== "object" || item.changes === null) return false;
-  // 변동률은 모두 숫자여야 함
-  return Object.values(item.changes).every(isNumber);
+  // 변동률은 모두 숫자여야 함. 단, items(종목별 변동률)는 { 이름표: 숫자 } 묶음
+  return Object.keys(item.changes).every(function (key) {
+    const value = item.changes[key];
+    if (key === "items") {
+      return typeof value === "object" && value !== null && Object.values(value).every(isNumber);
+    }
+    return isNumber(value);
+  });
 }
 
 // =============================================
