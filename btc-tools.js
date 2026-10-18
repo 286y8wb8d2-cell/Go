@@ -4,6 +4,8 @@
 // - 적립식 시뮬레이터: "그때부터 매달 10만 원씩 샀다면?" (2010년부터의 일봉으로 계산)
 // - 솔로 채굴 확률: 내 채굴기로 블록을 찾을 확률 (네트워크 해시레이트는 btc-chain.js가 받아 옴)
 // - 스택 목표: 목표 BTC 수량까지 얼마나 모았는지 (설정은 btc.js가 저장, 백업에 포함)
+// - 이 금액은 몇 BTC?: 아파트 값 같은 큰 금액이 지금·예전에 몇 BTC였는지
+// - BIP39 단어 목록: 시드 문구에 쓰는 2048개 영어 단어 (보기만, 아무것도 저장·전송 안 함)
 // ※ 이름은 모두 btc~ / BTC~ 로 시작
 // =============================================
 
@@ -20,9 +22,16 @@ const BTC_BLOCKS_PER_DAY = 144; // 10분에 한 블록
 const BTC_DCA_CHART = { width: 340, height: 200, left: 46, right: 10, top: 10, bottom: 24 };
 const BTC_DCA_COLORS = { value: "#2a78d6", invested: "#eb6834" }; // 지금 가치 · 투자한 돈
 
+// 몇 BTC 계산: 이만큼 전과 비교
+const BTC_WORTH_YEARS_AGO = [1, 2, 4, 8, 12];
+// BIP39 영어 단어 목록 (비트코인 공식 제안 문서 저장소)
+const BTC_BIP39_URL = "https://raw.githubusercontent.com/bitcoin/bips/master/bip-0039/english.txt";
+
 // =============================================
 // 2. 상태 · 화면 요소
 // =============================================
+
+let btcBip39Words = null; // 받아 온 단어 2048개
 
 // 네트워크 정보: { hashrate(H/s), difficulty } — btc-chain.js가 채움
 let btcNetwork = null;
@@ -59,6 +68,16 @@ const btcGoalInput = document.getElementById("btc-goal-input");
 const btcGoalBar = document.getElementById("btc-goal-bar");
 const btcGoalText = document.getElementById("btc-goal-text");
 const btcGoalSub = document.getElementById("btc-goal-sub");
+
+const btcWorthInput = document.getElementById("btc-worth-input");
+const btcWorthPresets = document.querySelectorAll("[data-btc-worth]");
+const btcWorthNow = document.getElementById("btc-worth-now");
+const btcWorthTableBody = document.getElementById("btc-worth-table-body");
+const btcWorthNote = document.getElementById("btc-worth-note");
+
+const btcBip39Search = document.getElementById("btc-bip39-search");
+const btcBip39List = document.getElementById("btc-bip39-list");
+const btcBip39Status = document.getElementById("btc-bip39-status");
 
 // =============================================
 // 3. 공통: 지금 가격
@@ -413,6 +432,96 @@ function renderBtcGoal() {
 }
 
 // =============================================
+// 7-1. 이 금액은 몇 BTC?
+// =============================================
+
+// 그날(또는 그 직전) 종가: 일봉에서 찾기
+function getBtcCloseAt(time) {
+  let found = null;
+  for (let i = btcDailyCandles.length - 1; i >= 0; i--) {
+    if (btcDailyCandles[i].time <= time) {
+      found = btcDailyCandles[i];
+      break;
+    }
+  }
+  return found;
+}
+
+function renderBtcWorth() {
+  btcWorthTableBody.innerHTML = "";
+  const amount = readBtcNumber(btcWorthInput);
+  const now = getBtcToolPrice();
+  if (!amount || !now) {
+    btcWorthNow.textContent = "-";
+    return;
+  }
+  btcWorthNow.textContent = formatBtcDecimal(amount / now.price, amount / now.price < 10 ? 3 : 1) + " BTC";
+  BTC_WORTH_YEARS_AGO.forEach(function (years) {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() - years);
+    const candle = getBtcCloseAt(date.getTime());
+    if (!candle) return;
+    const then = amount / candle.close;
+    const tr = document.createElement("tr");
+    const when = document.createElement("th");
+    when.scope = "row";
+    when.textContent = years + "년 전";
+    const btc = document.createElement("td");
+    btc.textContent = formatBtcDecimal(then, then < 10 ? 3 : then < 1000 ? 1 : 0) + " BTC";
+    const price = document.createElement("td");
+    price.textContent = formatKoreanUnit(candle.close);
+    const times = document.createElement("td");
+    times.textContent = "×" + formatBtcDecimal(then / (amount / now.price), 1);
+    tr.append(when, btc, price, times);
+    btcWorthTableBody.appendChild(tr);
+  });
+  btcWorthNote.textContent =
+    "같은 원화 금액이 그때는 몇 BTC였는지예요. 집값·물가가 변한 것은 넣지 않았어요. (×: 지금보다 몇 배 많은 BTC가 필요했는지)";
+}
+
+// =============================================
+// 7-2. BIP39 단어 목록
+// =============================================
+
+// 처음 도구 탭을 열 때 한 번만 받아 옴
+async function loadBtcBip39() {
+  if (btcBip39Words) return;
+  btcBip39Status.textContent = "단어 목록을 불러오는 중…";
+  try {
+    const response = await fetch(BTC_BIP39_URL);
+    if (!response.ok) throw new Error("응답 오류 " + response.status);
+    const words = (await response.text()).trim().split(/\s+/);
+    if (words.length !== 2048) throw new Error("단어 수가 2048개가 아님");
+    btcBip39Words = words;
+    renderBtcBip39();
+  } catch (error) {
+    btcBip39Status.textContent = "단어 목록을 받지 못했어요 (" + describeBtcError(error) + ").";
+  }
+}
+
+function renderBtcBip39() {
+  if (!btcBip39Words) return;
+  const query = btcBip39Search.value.trim().toLowerCase();
+  btcBip39List.innerHTML = "";
+  const matches = [];
+  btcBip39Words.forEach(function (word, index) {
+    if (!query || word.indexOf(query) === 0 || String(index + 1) === query) matches.push(index);
+  });
+  // 너무 많으면 앞의 200개만 (검색으로 좁히도록)
+  matches.slice(0, 200).forEach(function (index) {
+    const li = document.createElement("li");
+    const number = document.createElement("span");
+    number.className = "btc-bip39-num";
+    number.textContent = index + 1;
+    li.append(number, btcBip39Words[index]);
+    btcBip39List.appendChild(li);
+  });
+  btcBip39Status.textContent =
+    (query ? "'" + query + "'(으)로 시작하는 단어 " + matches.length + "개" : "전체 2048개 중 앞 200개") +
+    " · 모든 단어는 앞 4글자만으로 구분돼요.";
+}
+
+// =============================================
 // 8. 이벤트 처리
 // =============================================
 
@@ -460,13 +569,32 @@ btcGoalForm.addEventListener("submit", function (event) {
   renderBtcGoal();
 });
 
-// 가격이 바뀌면 (btc-live.js가 알림)
+btcWorthInput.addEventListener("input", renderBtcWorth);
+btcWorthPresets.forEach(function (button) {
+  button.addEventListener("click", function () {
+    btcWorthInput.value = button.dataset.btcWorth;
+    renderBtcWorth();
+  });
+});
+btcBip39Search.addEventListener("input", renderBtcBip39);
+document.addEventListener("btc-view-shown", function (event) {
+  if (event.detail.view === "tools") loadBtcBip39();
+});
+
+// 가격이 바뀌면 (btc-live.js가 알림) — 너무 자주 다시 계산하지 않게 2초에 한 번
+let btcToolsPriceTime = 0;
 document.addEventListener("btc-price-updated", function () {
+  if (Date.now() - btcToolsPriceTime < 2000) return;
+  btcToolsPriceTime = Date.now();
   renderBtcConverter();
   renderBtcGoal();
+  renderBtcWorth();
 });
-// 일봉이 새로 합쳐지면 적립식 다시 계산
-document.addEventListener("btc-candles-updated", renderBtcDca);
+// 일봉이 새로 합쳐지면 적립식·몇 BTC 다시 계산
+document.addEventListener("btc-candles-updated", function () {
+  renderBtcDca();
+  renderBtcWorth();
+});
 // 네트워크 정보가 오면 (btc-chain.js가 알림)
 document.addEventListener("btc-network-updated", renderBtcSolo);
 // 내 코인을 고치면 목표 진행률 다시
@@ -482,4 +610,6 @@ document.addEventListener("data-saved", function (event) {
   renderBtcDca();
   renderBtcSolo();
   renderBtcGoal();
+  renderBtcWorth();
+  if (btcView === "tools") loadBtcBip39(); // btc.js (지난번에 도구 탭을 보던 중이면)
 })();

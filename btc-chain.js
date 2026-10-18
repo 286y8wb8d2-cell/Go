@@ -60,7 +60,8 @@ let btcDifficulty = null; // 난이도 조정 정보
 let btcHalvingEta = null; // 다음 반감기 예상 시각 (카운트다운용)
 let btcCountdownTimer = null;
 let btcHashRange = "1y";
-const btcHashCache = {}; // 기간별로 받은 해시레이트 { "1y": [{ time, value }] }
+const btcHashCache = {}; // 기간별로 받은 값 { "1y": { hashrate: [{ time, value }], difficulty: [...] } }
+let btcHashMetric = "hashrate"; // "hashrate" | "difficulty"
 let btcHashPoints = [];
 let btcHashScale = null;
 
@@ -84,6 +85,7 @@ const btcHashCurrent = document.getElementById("btc-hash-current");
 const btcHashReadout = document.getElementById("btc-hash-readout");
 const btcHashStatus = document.getElementById("btc-hash-status");
 const btcHashButtons = document.querySelectorAll("[data-btc-hash-range]");
+const btcHashMetricButtons = document.querySelectorAll("[data-btc-hash-metric]");
 const btcSearchForm = document.getElementById("btc-search-form");
 const btcSearchInput = document.getElementById("btc-search-input");
 
@@ -447,13 +449,23 @@ async function refreshBtcHashrate(force) {
   }
   try {
     const result = await fetchCryptoJson(BTC_MEMPOOL_API + "/v1/mining/hashrate/" + BTC_HASH_RANGES[range]);
-    btcHashCache[range] = result.hashrates
-      .map(function (item) {
-        return { time: Number(item.timestamp) * 1000, value: Number(item.avgHashrate) };
-      })
-      .filter(function (point) {
-        return point.value > 0;
-      });
+    btcHashCache[range] = {
+      hashrate: result.hashrates
+        .map(function (item) {
+          return { time: Number(item.timestamp) * 1000, value: Number(item.avgHashrate) };
+        })
+        .filter(function (point) {
+          return point.value > 0;
+        }),
+      // 난이도: 약 2주(2016블록)마다 바뀌는 값
+      difficulty: (result.difficulty || [])
+        .map(function (item) {
+          return { time: Number(item.time) * 1000, value: Number(item.difficulty) };
+        })
+        .filter(function (point) {
+          return point.value > 0;
+        }),
+    };
     if (result.currentHashrate > 0) {
       btcNetwork = { hashrate: Number(result.currentHashrate), difficulty: Number(result.currentDifficulty) }; // btc-tools.js
       document.dispatchEvent(new CustomEvent("btc-network-updated"));
@@ -470,14 +482,24 @@ function renderBtcHashChart() {
   btcHashButtons.forEach(function (button) {
     button.setAttribute("aria-pressed", button.dataset.btcHashRange === btcHashRange ? "true" : "false");
   });
+  btcHashMetricButtons.forEach(function (button) {
+    button.setAttribute("aria-pressed", button.dataset.btcHashMetric === btcHashMetric ? "true" : "false");
+  });
   btcHashChart.innerHTML = "";
-  btcHashPoints = btcHashCache[btcHashRange] || [];
+  const cached = btcHashCache[btcHashRange];
+  btcHashPoints = cached ? cached[btcHashMetric] : [];
+  // 단위: 해시레이트는 EH/s(10^18), 난이도는 조(10^12)
+  const unit = btcHashMetric === "hashrate" ? 1e18 : 1e12;
   if (btcNetwork) {
     btcHashCurrent.textContent =
       "지금 " + formatBtcHashrate(btcNetwork.hashrate) + " · 난이도 " + formatBtcDecimal(btcNetwork.difficulty / 1e12, 1) + "조";
   }
   const points = btcHashPoints;
-  if (points.length < 2) return;
+  if (points.length < 2) {
+    btcHashReadout.innerHTML = "";
+    btcHashStatus.textContent = cached ? "이 기간의 기록이 없어요." : "불러오는 중…";
+    return;
+  }
 
   const c = BTC_HASH_CHART;
   const plotWidth = c.width - c.left - c.right;
@@ -486,8 +508,8 @@ function renderBtcHashChart() {
   points.forEach(function (point) {
     max = Math.max(max, point.value);
   });
-  // 세로축은 EH/s 단위로 깔끔하게
-  const yMax = niceMax(max / 1e18) * 1e18; // history.js
+  // 세로축은 단위에 맞춰 깔끔하게
+  const yMax = niceMax(max / unit) * unit; // history.js
   const t0 = points[0].time;
   const t1 = points[points.length - 1].time;
   function x(time) {
@@ -502,7 +524,7 @@ function renderBtcHashChart() {
     const value = (yMax / 4) * i;
     btcHashChart.appendChild(createSvg("line", { x1: c.left, x2: c.width - c.right, y1: y(value), y2: y(value), class: "chart-grid" }));
     const label = createSvg("text", { x: c.left - 6, y: y(value) + 4, class: "chart-axis-label", "text-anchor": "end" });
-    label.textContent = formatBtcDecimal(value / 1e18, 0);
+    label.textContent = formatBtcDecimal(value / unit, 0);
     btcHashChart.appendChild(label);
   }
   [
@@ -527,7 +549,10 @@ function renderBtcHashChart() {
   btcHashChart.appendChild(createSvg("polyline", { points: line, class: "chart-line series-1" }));
   btcHashChart.appendChild(createSvg("line", { id: "btc-hash-cross", y1: c.top, y2: c.top + plotHeight, class: "chart-crosshair" }));
   btcHashChart.appendChild(createSvg("circle", { id: "btc-hash-dot", r: 4, class: "chart-dot series-1" }));
-  btcHashStatus.textContent = "세로축 단위: EH/s (1초에 100경 번) · 하루 평균 값 · 출처: mempool.space";
+  btcHashStatus.textContent =
+    btcHashMetric === "hashrate"
+      ? "세로축 단위: EH/s (1초에 100경 번) · 하루 평균 값 · 출처: mempool.space"
+      : "세로축 단위: 조 · 약 2주(2016블록)마다 해시레이트에 맞춰 바뀌어요 · 출처: mempool.space";
   selectBtcHashIndex(points.length - 1);
 }
 
@@ -547,7 +572,7 @@ function selectBtcHashIndex(index) {
   title.className = "readout-title";
   title.textContent = date.getFullYear() + "년 " + (date.getMonth() + 1) + "월 " + date.getDate() + "일";
   const value = document.createElement("strong");
-  value.textContent = formatBtcHashrate(point.value);
+  value.textContent = btcHashMetric === "hashrate" ? formatBtcHashrate(point.value) : "난이도 " + formatBtcDecimal(point.value / 1e12, 2) + "조";
   btcHashReadout.append(title, value);
 }
 
@@ -588,6 +613,12 @@ btcHashButtons.forEach(function (button) {
     btcHashRange = button.dataset.btcHashRange;
     renderBtcHashChart();
     refreshBtcHashrate(false);
+  });
+});
+btcHashMetricButtons.forEach(function (button) {
+  button.addEventListener("click", function () {
+    btcHashMetric = button.dataset.btcHashMetric;
+    renderBtcHashChart();
   });
 });
 btcHashChart.addEventListener("pointerdown", function (event) {

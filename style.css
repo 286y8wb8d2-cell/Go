@@ -2092,6 +2092,221 @@ footer {
   font-weight: bold;
 }
 
+/* ---------- 비트코인 표 (거래소별 가격, ETF, 출금 수수료, 몇 BTC) ---------- */
+.btc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.btc-table th,
+.btc-table td {
+  padding: 7px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+}
+
+.btc-table thead th {
+  font-weight: normal;
+  color: var(--text-light);
+}
+
+.btc-table th:first-child {
+  text-align: left;
+}
+
+.btc-table tbody th {
+  font-weight: bold;
+}
+
+/* 제목 아래 단독으로 쓰는 고르기 버튼 묶음 */
+.btc-seg-inline {
+  display: inline-flex;
+  margin-bottom: 8px;
+}
+
+/* 매수 vs 매도 */
+.btc-flow-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1rem;
+}
+
+.btc-flow-bar {
+  display: flex;
+  gap: 2px;
+  height: 16px;
+  margin: 4px 0 10px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.btc-flow-buy-bar {
+  width: 50%;
+  background: var(--up);
+  transition: width 0.4s ease;
+}
+
+.btc-flow-sell-bar {
+  width: 50%;
+  background: var(--down);
+  transition: width 0.4s ease;
+}
+
+.btc-flow-rows,
+.btc-whale-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.btc-flow-row {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.8rem;
+}
+
+.btc-flow-mini {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--down);
+  overflow: hidden;
+}
+
+.btc-flow-mini-buy {
+  display: block;
+  height: 100%;
+  background: var(--up);
+}
+
+.btc-flow-amount {
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.btc-whale {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.btc-whale.empty {
+  color: var(--text-light);
+}
+
+/* 기업 보유량: 회사 이름 옆 나라 */
+#btc-treasury-list .dash-top-group {
+  margin-left: 6px;
+  font-size: 0.75rem;
+  font-weight: normal;
+  color: var(--text-light);
+}
+
+#btc-treasury-more {
+  margin-top: 8px;
+}
+
+/* 정보 탭 맨 위 예비 데이터 시각 */
+.btc-data-status {
+  margin: 0 0 10px;
+  text-align: center;
+}
+
+/* ETF 막대: 고르지 않은 막대는 흐리게 */
+.btc-bar-dim {
+  opacity: 0.45;
+}
+
+/* 거래소 사고 연표 */
+.btc-incident-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.btc-incident-year {
+  margin: 12px 0 4px;
+  font-weight: bold;
+  color: var(--text-light);
+}
+
+.btc-incident {
+  padding: 8px 0 8px 12px;
+  border-left: 3px solid var(--border);
+  margin-left: 4px;
+}
+
+.btc-incident.hack { border-left-color: #eb6834; }
+.btc-incident.collapse { border-left-color: #6250d6; }
+
+.btc-incident p {
+  margin: 0;
+}
+
+.btc-incident-head {
+  font-size: 0.9rem;
+}
+
+.btc-incident-badge {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: normal;
+  color: #ffffff;
+  vertical-align: 1px;
+}
+
+.btc-incident-badge.hack { background: #c4501f; }
+.btc-incident-badge.collapse { background: #6250d6; }
+
+.btc-incident-meta {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.btc-incident-note {
+  font-size: 0.8rem;
+  word-break: keep-all;
+}
+
+/* BIP39 */
+.btc-warning {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fff1f0;
+  color: #b42318;
+  font-size: 0.85rem;
+  word-break: keep-all;
+}
+
+.btc-bip39-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 4px 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.btc-bip39-num {
+  display: inline-block;
+  min-width: 36px;
+  color: var(--text-light);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .btc-block-new,
   .btc-tick-up,

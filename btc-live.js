@@ -1,6 +1,7 @@
 // =============================================
 // 비트코인 탭 — ① 시세: 실시간 가격 · 김치 프리미엄 · 시장 지표
-// - 실시간 가격: 업비트·빗썸·바이낸스 웹소켓 (거래가 일어날 때마다 바로 받음)
+// - 실시간 가격: 업비트·빗썸·바이낸스·코인베이스 웹소켓 (거래가 일어날 때마다 바로 받음)
+//   체결(누가 사고팔았는지)은 btc-flow.js로 넘김
 //   ※ 업비트는 일반 주소(REST)로는 브라우저에서 막혀 있지만 웹소켓은 열려 있음
 // - 웹소켓이 안 되면 30초마다 일반 주소로 (빗썸 → 해외: 바이낸스·코인게코)
 // - 김치 프리미엄: 환율 기준 + USDT(테더) 기준 두 가지
@@ -13,12 +14,30 @@
 // 1. 상수
 // =============================================
 
-// 웹소켓 주소와 받은 글을 읽는 방법
-// 업비트·빗썸: [{티켓}, {받을 종목}, {짧은 형식}]을 보내면 거래마다 { cd: 종목, tp: 가격, scr: 24시간 변동률 } 이 옴
+// 웹소켓 주소와 연결되면 보낼 글 (받을 종목 신청)
+// - 업비트·빗썸: 현재가(ticker)는 { ty: "ticker", cd: 종목, tp: 가격, scr: 24시간 변동률, hp/lp: 고가/저가, atp24h: 거래대금 }
+//               체결(trade)은 { ty: "trade", tp: 가격, tv: 수량, ab: "BID"(사는 쪽이 체결) | "ASK"(파는 쪽이 체결) }
+// - 바이낸스: 두 흐름을 한 번에 (24시간 시세 + 체결) → { stream, data }
+// - 코인베이스: 현재가(ticker)와 체결(match)
+function getBtcKoreanSubscribe() {
+  return JSON.stringify([
+    { ticket: "household-" + Math.random().toString(36).slice(2) },
+    { type: "ticker", codes: ["KRW-BTC", "KRW-USDT"] },
+    { type: "trade", codes: ["KRW-BTC"] },
+    { format: "SIMPLE" },
+  ]);
+}
 const BTC_SOCKETS = {
-  upbit: { name: "업비트", url: "wss://api.upbit.com/websocket/v1", codes: ["KRW-BTC", "KRW-USDT"] },
-  bithumb: { name: "빗썸", url: "wss://ws-api.bithumb.com/websocket/v1", codes: ["KRW-BTC", "KRW-USDT"] },
-  binance: { name: "바이낸스", url: "wss://stream.binance.com:9443/ws/btcusdt@ticker", codes: null },
+  upbit: { name: "업비트", url: "wss://api.upbit.com/websocket/v1", subscribe: getBtcKoreanSubscribe },
+  bithumb: { name: "빗썸", url: "wss://ws-api.bithumb.com/websocket/v1", subscribe: getBtcKoreanSubscribe },
+  binance: { name: "바이낸스", url: "wss://stream.binance.com:9443/stream?streams=btcusdt@ticker/btcusdt@aggTrade", subscribe: null },
+  coinbase: {
+    name: "코인베이스",
+    url: "wss://ws-feed.exchange.coinbase.com",
+    subscribe: function () {
+      return JSON.stringify({ type: "subscribe", product_ids: ["BTC-USD"], channels: ["ticker", "matches"] });
+    },
+  },
 };
 
 // 웹소켓이 끊기면 다시 연결: 2초부터 시작해 최대 30초 간격
@@ -80,8 +99,8 @@ const BTC_DOMINANCE_EVERY_MS = 10 * 60 * 1000;
 // 2. 상태
 // =============================================
 
-// 받아 온 가격: { price, change(24시간 %), time(받은 시각), via: "실시간" | "30초" }
-const btcPrices = { upbit: null, bithumb: null, usdt: null, binance: null };
+// 받아 온 가격: { price, change(24시간 %), time(받은 시각), via: "실시간" | "30초", high, low, volume(24시간 거래대금) }
+const btcPrices = { upbit: null, bithumb: null, usdt: null, binance: null, coinbase: null };
 let btcFx = null; // { value, name, time }
 let btcDominance = null; // 57.3 (%)
 
@@ -110,6 +129,8 @@ const btcLiveMine = document.getElementById("btc-live-mine");
 const btcLiveMineValue = document.getElementById("btc-live-mine-value");
 const btcLiveMineSub = document.getElementById("btc-live-mine-sub");
 const btcLiveStatus = document.getElementById("btc-live-status");
+const btcLiveStats = document.getElementById("btc-live-stats");
+const btcExchangeTableBody = document.getElementById("btc-exchange-table-body");
 
 const btcKimpRate = document.getElementById("btc-kimp-rate");
 const btcKimpDiff = document.getElementById("btc-kimp-diff");
@@ -143,7 +164,15 @@ function getBtcKrw() {
   const second = first === "upbit" ? "bithumb" : "upbit";
   const found = getFreshBtcPrice(first) || getFreshBtcPrice(second);
   if (!found) return null;
-  return { price: found.price, change: found.change, via: found.via, exchange: found === getFreshBtcPrice(first) ? first : second };
+  return {
+    price: found.price,
+    change: found.change,
+    via: found.via,
+    high: found.high,
+    low: found.low,
+    volume: found.volume,
+    exchange: found === getFreshBtcPrice(first) ? first : second,
+  };
 }
 
 // 달러 → 원 환율 (1시간 안에 받은 것)
@@ -199,6 +228,13 @@ function renderBtcLive() {
       ? BTC_SOCKETS[otherKey].name + " " + formatMoney(other.price) + " (" + formatSignedMoney(other.price - krw.price) + ")"
       : "";
 
+    // 24시간 고가 · 저가 · 거래대금
+    const stats = [];
+    if (krw.high > 0) stats.push("고가 " + formatKoreanUnit(krw.high));
+    if (krw.low > 0) stats.push("저가 " + formatKoreanUnit(krw.low));
+    if (krw.volume > 0) stats.push("거래대금 " + formatKoreanUnit(krw.volume));
+    btcLiveStats.textContent = stats.length > 0 ? "24시간 " + stats.join(" · ") : "";
+
     // 1,000원으로 살 수 있는 비트코인 (사토시 = 1억분의 1 BTC)
     btcLiveSats.textContent = formatBtcDecimal((1000 / krw.price) * 100000000, 0) + " sats";
     btcLiveSatsSub.textContent = "1 sat = " + formatBtcDecimal(krw.price / 100000000, 2) + "원";
@@ -230,6 +266,7 @@ function renderBtcLive() {
 
   renderBtcSocketStatus();
   renderBtcKimp(krw, usd, fx);
+  renderBtcExchangeTable(usd, fx);
   renderBtcTiles(fx);
   // 계산기·스택 목표 등이 새 가격으로 다시 계산하도록 알림
   document.dispatchEvent(new CustomEvent("btc-price-updated"));
@@ -294,6 +331,40 @@ function renderBtcKimp(krw, usd, fx) {
   }
 }
 
+// 거래소별 가격: 원화로 바꾼 가격과, 해외(바이낸스) 대비 몇 % 비싼지
+function renderBtcExchangeTable(usd, fx) {
+  btcExchangeTableBody.innerHTML = "";
+  const base = usd && fx ? usd.price * fx : null; // 바이낸스 가격의 원화 환산 = 기준
+  [
+    ["upbit", "업비트", "KRW"],
+    ["bithumb", "빗썸", "KRW"],
+    ["binance", "바이낸스", "USDT"],
+    ["coinbase", "코인베이스", "USD"],
+  ].forEach(function (item) {
+    const price = getFreshBtcPrice(item[0]);
+    if (!price) return;
+    const krw = item[2] === "KRW" ? price.price : fx ? price.price * fx : null;
+    const tr = document.createElement("tr");
+    const name = document.createElement("th");
+    name.scope = "row";
+    name.textContent = item[1];
+    const original = document.createElement("td");
+    original.textContent = item[2] === "KRW" ? formatMoney(price.price) : "$" + formatBtcDecimal(price.price, 0);
+    const won = document.createElement("td");
+    won.textContent = krw ? formatKoreanUnit(krw) : "-";
+    const premium = document.createElement("td");
+    if (krw && base) {
+      const rate = (krw / base - 1) * 100;
+      premium.textContent = item[0] === "binance" ? "기준" : formatPercent(rate);
+      if (item[0] !== "binance") premium.className = getProfitClass(rate);
+    } else {
+      premium.textContent = "-";
+    }
+    tr.append(name, original, won, premium);
+    btcExchangeTableBody.appendChild(tr);
+  });
+}
+
 // 시장 지표 칸: 도미넌스 · 환율 · USDT
 function renderBtcTiles(fx) {
   if (btcDominance !== null) {
@@ -330,15 +401,42 @@ function handleBtcSocketMessage(key, text) {
   }
   const now = Date.now();
   if (key === "binance") {
-    // { c: 마지막 가격, P: 24시간 변동률(%) }
-    const price = Number(data.c);
-    if (price > 0) btcPrices.binance = { price: price, change: Number(data.P), time: now, via: "실시간", source: "바이낸스" };
+    const stream = String(data.stream || "");
+    const item = data.data || data;
+    if (stream.indexOf("aggTrade") !== -1 || item.e === "aggTrade") {
+      // { p: 가격, q: 수량, m: true면 파는 쪽이 체결(매도) } → btc-flow.js
+      recordBtcTrade("binance", item.m ? "sell" : "buy", Number(item.q), Number(item.p), now);
+      return;
+    }
+    // 24시간 시세: { c: 마지막 가격, P: 변동률(%), h/l: 고가/저가, q: 거래대금(USDT) }
+    const price = Number(item.c);
+    if (price > 0) {
+      btcPrices.binance = { price: price, change: Number(item.P), time: now, via: "실시간", source: "바이낸스", high: Number(item.h), low: Number(item.l), volume: Number(item.q) };
+    }
+  } else if (key === "coinbase") {
+    if (data.type === "ticker") {
+      const price = Number(data.price);
+      const open = Number(data.open_24h);
+      if (price > 0) {
+        btcPrices.coinbase = { price: price, change: open > 0 ? (price / open - 1) * 100 : 0, time: now, via: "실시간", high: Number(data.high_24h), low: Number(data.low_24h) };
+      }
+    } else if (data.type === "match") {
+      // 코인베이스의 side는 "먼저 걸어 둔 주문" 쪽이라서 실제로 체결시킨 쪽은 반대
+      recordBtcTrade("coinbase", data.side === "buy" ? "sell" : "buy", Number(data.size), Number(data.price), now);
+      return;
+    } else {
+      return;
+    }
   } else {
     const price = Number(data.tp);
     if (!(price > 0)) return;
+    if (data.ty === "trade") {
+      if (data.cd === "KRW-BTC") recordBtcTrade(key, data.ab === "BID" ? "buy" : "sell", Number(data.tv), price, now);
+      return;
+    }
     const change = Number(data.scr) * 100; // 0.0123 → 1.23%
     if (data.cd === "KRW-BTC") {
-      btcPrices[key] = { price: price, change: change, time: now, via: "실시간" };
+      btcPrices[key] = { price: price, change: change, time: now, via: "실시간", high: Number(data.hp), low: Number(data.lp), volume: Number(data.atp24h) };
     } else if (data.cd === "KRW-USDT") {
       btcPrices.usdt = { price: price, change: change, time: now, via: "실시간" };
     }
@@ -363,15 +461,7 @@ function connectBtcSocket(key) {
   socket.onopen = function () {
     state.open = true;
     state.retryMs = BTC_SOCKET_RETRY_MIN_MS;
-    if (info.codes) {
-      socket.send(
-        JSON.stringify([
-          { ticket: "household-" + Math.random().toString(36).slice(2) },
-          { type: "ticker", codes: info.codes },
-          { format: "SIMPLE" },
-        ])
-      );
-    }
+    if (info.subscribe) socket.send(info.subscribe());
     scheduleBtcRender();
   };
   socket.onmessage = function (event) {
@@ -439,7 +529,15 @@ async function refreshBtcRest() {
         if (!result || result.status !== "0000" || !result.data) throw new Error("빗썸 응답 오류");
         const price = Number(result.data.closing_price);
         if (price > 0) {
-          btcPrices.bithumb = { price: price, change: Number(result.data.fluctate_rate_24H), time: Date.now(), via: "30초" };
+          btcPrices.bithumb = {
+            price: price,
+            change: Number(result.data.fluctate_rate_24H),
+            time: Date.now(),
+            via: "30초",
+            high: Number(result.data.max_price),
+            low: Number(result.data.min_price),
+            volume: Number(result.data.acc_trade_value_24H),
+          };
         }
       })
     );
@@ -478,6 +576,17 @@ async function refreshBtcDominance() {
     renderBtcTiles(getBtcFxValue());
     return true;
   } catch (error) {
+    // 예비 데이터(btc-info.js)에 있으면 그 값
+    try {
+      const data = await getBtcData();
+      if (data.dominance > 0) {
+        btcDominance = data.dominance;
+        renderBtcTiles(getBtcFxValue());
+        return true;
+      }
+    } catch (fallbackError) {
+      // 예비 데이터도 없음
+    }
     if (btcDominance === null) btcDomSub.textContent = "받지 못했어요";
     return false;
   }

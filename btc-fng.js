@@ -173,6 +173,13 @@ async function fetchBtcFngDays() {
       lastError = error;
     }
   }
+  // 직접 못 받으면 GitHub Actions가 모아 둔 예비 데이터 (getBtcData: btc-info.js)
+  try {
+    const data = await getBtcData();
+    if (data.fng && data.fng.length > 0) return data.fng;
+  } catch (error) {
+    // 예비 데이터도 없음
+  }
   throw lastError;
 }
 
