@@ -529,10 +529,38 @@ function wkOpenMotion(ex, reps) {
   document.getElementById("wk-sheet-eq").innerHTML = wkEqTags(ex.eq);
   document.getElementById("wk-sheet").hidden = false;
   document.body.classList.add("wk-noscroll");
+  const mus = WK_MUSCLES_EX[ex.n] || WK_MUSCLES[key] || { p: [] };
+  const chips = (list, cls) => list.map((id) => `<span class="wk-mus ${cls}">${WK_MUSCLE_NAMES[id]}</span>`).join("");
+  document.getElementById("wk-sheet-muscles").innerHTML =
+    `<div><b>주로</b>${chips(mus.p || [], "hot")}</div>` + (mus.s && mus.s.length ? `<div><b>보조</b>${chips(mus.s, "help")}</div>` : "");
+  // 3D 사람 모형 (처음엔 라이브러리를 받는 동안 막대 그림을 잠깐 보여 줌)
+  const box = document.getElementById("wk-sheet-anim");
   if (wkStopMotion) wkStopMotion();
-  wkStopMotion = moPlay(document.getElementById("wk-sheet-anim"), key, weight);
+  wkStopMotion = null;
+  const token = (wkMotionToken = (wkMotionToken || 0) + 1);
+  const start3d = () => {
+    const stop = m3Play(box, key, weight, ex.n);
+    if (stop) {
+      if (wkStopMotion) wkStopMotion();
+      wkStopMotion = stop;
+      document.getElementById("wk-sheet-hint").hidden = false;
+    }
+  };
+  document.getElementById("wk-sheet-hint").hidden = true;
+  if (window.THREE) return start3d();
+  wkStopMotion = moPlay(box, key, weight);
+  m3Load().then((ok) => {
+    if (ok && token === wkMotionToken && !document.getElementById("wk-sheet").hidden) {
+      if (wkStopMotion) wkStopMotion();
+      wkStopMotion = null;
+      start3d();
+      if (!wkStopMotion) wkStopMotion = moPlay(box, key, weight); // 3D가 안 되는 기기
+    }
+  });
 }
+let wkMotionToken = 0;
 function wkCloseMotion() {
+  wkMotionToken++;
   if (wkStopMotion) wkStopMotion();
   wkStopMotion = null;
   document.getElementById("wk-sheet").hidden = true;

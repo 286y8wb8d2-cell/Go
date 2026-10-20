@@ -13,7 +13,7 @@ const MO_GROUND = 110;
 //   hd/hd2: 손 [x,y]   hr/hr2: 어깨 기준 손 [dx,dy] (없으면 차렷 자세로 늘어뜨림)
 //   ft/ft2: 발 [x,y]   ks/ks2: 무릎 꺾이는 쪽(-1 기본=앞)   es/es2: 팔꿈치 꺾이는 쪽(1 기본)
 // 동작 옵션: d(한 구간 초), seq(true면 처음→끝→처음 순환, 아니면 왕복), view:"front"(앞모습),
-//   bench:[x, 윗면y, 너비], bar: y, noGround
+//   bench:[x, 윗면y, 너비], bar: y, noGround, flip(3D에서 좌우 뒤집기: 등 대고 눕는 동작)
 const WK_MOTIONS = {
   squat: { d: 1.1, f: [
     { h: [80, 70], s: [80, 0], hr: [11, 6], ft: [82, 110] },
@@ -55,7 +55,7 @@ const WK_MOTIONS = {
     { h: [62, 77], s: [89, 90], hd: [106, 110], ft: [40, 110] },
     { h: [62, 77], s: [81, 100], hd: [106, 110], ft: [40, 110] },
   ] },
-  benchPress: { bench: [38, 92, 76], d: 1.2, f: [
+  benchPress: { flip: true, bench: [38, 92, 76], d: 1.2, f: [
     { h: [70, 88], s: [100, 88], hd: [100, 57], ft: [48, 110], ks: 1 },
     { h: [70, 88], s: [100, 88], hd: [103, 78], ft: [48, 110], ks: 1 },
   ] },
@@ -147,13 +147,13 @@ const WK_MOTIONS = {
     { h: [80, 70], s: [80, 0], hr: [1, 30], ft: [80, 110] },
     { h: [80, 63], s: [80, 0], hr: [1, 30], ft: [80, 103] },
   ] },
-  sidePlank: { d: 1.6, f: [
-    { h: [62, 102], s: [94, 88], hd: [108, 108], ft: [30, 109] },
-    { h: [62, 95], s: [94, 87], hd: [108, 108], ft: [30, 109] },
+  sidePlank: { view: "front", d: 1.6, f: [
+    { h: [62, 101], s: [100, 93], hd: [96, 109], hd2: [90, 52], ft: [24, 108], ft2: [24, 102] },
+    { h: [62, 93], s: [100, 91], hd: [96, 109], hd2: [90, 50], ft: [24, 108], ft2: [24, 102] },
   ] },
-  copenhagen: { bench: [10, 90, 36], d: 1.6, f: [
-    { h: [62, 100], s: [94, 92], hd: [108, 108], ft: [28, 89], ft2: [40, 108] },
-    { h: [62, 94], s: [94, 90], hd: [108, 108], ft: [28, 89], ft2: [40, 104] },
+  copenhagen: { view: "front", bench: [8, 90, 30], d: 1.6, f: [
+    { h: [62, 101], s: [100, 93], hd: [96, 109], hd2: [72, 86], ft: [36, 108], ft2: [22, 89] },
+    { h: [62, 94], s: [100, 91], hd: [96, 109], hd2: [72, 80], ft: [34, 104], ft2: [22, 89] },
   ] },
   plank: { d: 1.6, f: [
     { h: [68, 100], s: [100, 96], hd: [112, 109], ft: [36, 110] },
@@ -167,17 +167,17 @@ const WK_MOTIONS = {
     { h: [72, 106], s: [40, 106], hd: [56, 109], ft: [98, 110], ft2: [106, 84] },
     { h: [74, 90], s: [40, 104], hd: [56, 109], ft: [98, 110], ft2: [110, 68] },
   ] },
-  abduction: { d: 0.9, f: [
-    { h: [78, 104], s: [40, 104], hd: [38, 92], hd2: [60, 108], ft: [118, 108], ft2: [118, 104] },
-    { h: [78, 104], s: [40, 104], hd: [38, 92], hd2: [60, 108], ft: [118, 108], ft2: [112, 80] },
+  abduction: { view: "front", d: 0.9, f: [
+    { h: [80, 103], s: [40, 101], hd: [68, 96], hd2: [32, 92], ft: [120, 101], ft2: [120, 109] },
+    { h: [80, 103], s: [40, 101], hd: [68, 96], hd2: [32, 92], ft: [116, 78], ft2: [120, 109] },
   ] },
-  deadbug: { seq: true, d: 0.9, f: [
+  deadbug: { flip: true, seq: true, d: 0.9, f: [
     { h: [60, 104], s: [100, 104], hd: [90, 73], hd2: [90, 73], ft: [80, 84], ft2: [80, 84] },
     { h: [60, 104], s: [100, 104], hd: [119, 100], hd2: [90, 73], ft: [80, 84], ft2: [22, 101] },
     { h: [60, 104], s: [100, 104], hd: [90, 73], hd2: [90, 73], ft: [80, 84], ft2: [80, 84] },
     { h: [60, 104], s: [100, 104], hd: [90, 73], hd2: [119, 100], ft: [22, 101], ft2: [80, 84] },
   ] },
-  hollow: { d: 1.4, f: [
+  hollow: { flip: true, d: 1.4, f: [
     { h: [70, 104], s: [100, 96], hd: [124, 90], ft: [32, 98] },
     { h: [70, 104], s: [100, 94], hd: [124, 87], ft: [32, 95] },
   ] },
@@ -240,6 +240,71 @@ const WK_MOTION_OF = {
   "행잉 니 레이즈": "kneeRaise", "행잉 레그 레이즈": "legRaise", "플랭크": "plank", "데드버그": "deadbug", "할로우 바디 홀드": "hollow", "사이드 플랭크": "sidePlank", "러시안 트위스트": "twist",
   "수트케이스 캐리": "walk", "터키쉬 겟업": "getup", "커틀벨 랙 캐리": "rackWalk", "데드 행": "hang",
   "커틀벨 클린 앤 프레스": "cleanPress", "버피": "burpee", "덤벨 맨메이커 (가볍게)": "manmaker", "커틀벨 스내치": "snatch",
+};
+
+// 동작별 쓰는 근육: p 주로(빨강), s 보조(주황), hot 힘이 가장 많이 드는 자세 번호("all"이면 계속)
+const WK_MUSCLE_NAMES = {
+  chest: "가슴", back: "등", shoulder: "어깨", biceps: "팔 앞(이두)", triceps: "팔 뒤(삼두)", forearm: "아래팔·악력",
+  abs: "복근", obliques: "옆구리", lowback: "허리", glutes: "엉덩이", hipabd: "엉덩이 옆", quads: "허벅지 앞",
+  hams: "허벅지 뒤", adductors: "허벅지 안쪽", calves: "종아리",
+};
+const WK_MUSCLES = {
+  squat: { p: ["quads", "glutes"], s: ["adductors", "lowback", "abs"] },
+  thruster: { p: ["quads", "glutes", "shoulder"], s: ["triceps", "abs"], hot: [0, 1] },
+  jumpSquat: { p: ["quads", "glutes", "calves"], s: ["hams"], hot: [0] },
+  pullup: { p: ["back", "biceps"], s: ["forearm", "shoulder", "abs"] },
+  hang: { p: ["forearm"], s: ["back", "shoulder"], hot: "all" },
+  kneeRaise: { p: ["abs"], s: ["forearm", "obliques"] },
+  legRaise: { p: ["abs"], s: ["forearm", "obliques", "quads"] },
+  pushup: { p: ["chest", "triceps"], s: ["shoulder", "abs"] },
+  pushupDecline: { p: ["chest", "shoulder"], s: ["triceps", "abs"] },
+  pike: { p: ["shoulder", "triceps"], s: ["chest", "abs"] },
+  benchPress: { p: ["chest", "triceps"], s: ["shoulder"] },
+  row: { p: ["back", "biceps"], s: ["forearm", "shoulder", "lowback"] },
+  proneRow: { p: ["back"], s: ["biceps", "shoulder"] },
+  press: { p: ["shoulder", "triceps"], s: ["abs", "obliques", "glutes"] },
+  seatedPress: { p: ["shoulder", "triceps"], s: ["abs"] },
+  curl: { p: ["biceps"], s: ["forearm"] },
+  benchDip: { p: ["triceps"], s: ["chest", "shoulder"] },
+  lateral: { p: ["shoulder"], s: ["back"] },
+  halo: { p: ["shoulder"], s: ["abs", "obliques", "triceps"], hot: "all" },
+  cossack: { p: ["adductors", "quads", "glutes"], s: ["hams", "abs"], hot: [1, 3] },
+  splitSquat: { p: ["quads", "glutes"], s: ["adductors", "hams", "abs"] },
+  lunge: { p: ["quads", "glutes"], s: ["adductors", "hams", "calves"] },
+  splitJump: { p: ["quads", "glutes", "calves"], s: ["hams"], hot: "all" },
+  stepUp: { p: ["quads", "glutes"], s: ["calves", "hipabd"], hot: [1, 2] },
+  rdl: { p: ["hams", "glutes"], s: ["lowback", "forearm"] },
+  slRdl: { p: ["hams", "glutes"], s: ["hipabd", "lowback", "calves"] },
+  hipThrust: { p: ["glutes"], s: ["hams", "quads"] },
+  slHipThrust: { p: ["glutes"], s: ["hams", "hipabd"] },
+  swing: { p: ["glutes", "hams"], s: ["lowback", "abs", "forearm", "shoulder"] },
+  snatch: { p: ["glutes", "hams", "shoulder"], s: ["back", "lowback", "forearm"] },
+  calf: { p: ["calves"] },
+  sidePlank: { p: ["obliques"], s: ["abs", "hipabd", "shoulder"], hot: "all" },
+  copenhagen: { p: ["adductors", "obliques"], s: ["abs", "shoulder"], hot: "all" },
+  plank: { p: ["abs"], s: ["shoulder", "glutes", "quads"], hot: "all" },
+  bridge: { p: ["glutes"], s: ["hams"] },
+  slBridge: { p: ["glutes", "hams"], s: ["hipabd", "abs"] },
+  abduction: { p: ["hipabd"], s: ["glutes"] },
+  deadbug: { p: ["abs"], s: ["obliques"], hot: "all" },
+  hollow: { p: ["abs"], s: ["quads"], hot: "all" },
+  twist: { p: ["obliques"], s: ["abs"], hot: "all" },
+  walk: { p: ["obliques", "forearm"], s: ["abs", "hipabd", "shoulder"], hot: "all" },
+  rackWalk: { p: ["abs", "forearm"], s: ["obliques", "biceps", "shoulder"], hot: "all" },
+  getup: { p: ["shoulder", "abs"], s: ["glutes", "quads", "obliques", "triceps"], hot: "all" },
+  cleanPress: { p: ["glutes", "shoulder"], s: ["hams", "triceps", "back", "abs"], hot: [1, 2] },
+  burpee: { p: ["quads", "chest"], s: ["triceps", "shoulder", "abs", "glutes", "calves"], hot: "all" },
+  manmaker: { p: ["chest", "back", "shoulder", "quads"], s: ["triceps", "biceps", "glutes", "abs"], hot: "all" },
+};
+// 같은 그림이라도 운동마다 근육이 다른 경우
+const WK_MUSCLES_EX = {
+  "친업 (언더핸드)": { p: ["biceps", "back"], s: ["forearm", "abs"] },
+  "다이아몬드 푸시업": { p: ["triceps", "chest"], s: ["shoulder", "abs"] },
+  "덤벨 리어델트 플라이": { p: ["shoulder", "back"], s: [] },
+  "커틀벨 바텀업 프레스": { p: ["shoulder", "forearm"], s: ["triceps", "abs"] },
+  "커틀벨 원암 스윙": { p: ["glutes", "hams", "obliques"], s: ["lowback", "forearm", "shoulder"] },
+  "벤치 스텝다운 (3초)": { p: ["quads"], s: ["glutes", "hipabd"], hot: [1, 2] },
+  "싱글레그 카프 레이즈": { p: ["calves"], s: [] },
 };
 
 // 동작별 "이렇게 하세요" (2~3줄)

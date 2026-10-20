@@ -158,3 +158,12 @@ footer { color: var(--text-light); font-size: 0.75rem; text-align: center; paddi
 .wk-sheet-anim { background: #f6f8fa; border-radius: 14px; margin-bottom: 12px; padding: 4px; }
 .wk-sheet-how { padding-left: 20px; margin: 8px 0; }
 .wk-sheet-how li { margin: 4px 0; }
+
+/* 3D 동작 그림 · 근육 표시 */
+.m3-canvas { display: block; width: 100%; height: auto; touch-action: pan-y; border-radius: 12px; }
+.wk-sheet-hint { margin: -6px 0 8px; text-align: center; font-size: 0.75rem; color: var(--text-light); }
+.wk-sheet-muscles { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; font-size: 0.85rem; }
+.wk-sheet-muscles b { display: inline-block; width: 34px; color: var(--text-light); font-weight: 600; }
+.wk-mus { display: inline-block; border-radius: 12px; padding: 2px 9px; margin: 0 4px 2px 0; font-size: 0.8rem; font-weight: 600; }
+.wk-mus.hot { background: #fde4e4; color: #b42828; }
+.wk-mus.help { background: #fdf0d2; color: #8a5f00; }
