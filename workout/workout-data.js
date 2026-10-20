@@ -130,7 +130,11 @@ const WK_TYPES = {
   lsd: { title: "LSD (긴 러닝)", short: "LSD", min: 75, color: "#008300" },
   combo: { title: "이지런 + 전신 서킷", short: "런+근력", min: 45, color: "#eda100" },
   recovery: { title: "회복 · 가동성", short: "회복", min: 25, color: "#777777" },
+  indoor: { title: "실내 근력 (러닝 대신)", short: "실내", min: 40, color: "#8a5f00" },
 };
+
+// 비 오는 날 "실내 근력으로 바꾸기"를 보여 줄 러닝 세션
+const WK_RUN_TYPES = ["runQ", "easy", "lsd", "combo"];
 
 // 며칠 하느냐에 따라 어떤 세션을 할지 (LSD는 따로 주말에 놓음)
 const WK_TEMPLATES = {
@@ -181,7 +185,25 @@ function wkItem(pool, w, offset, sets) {
   return { pool: pool, idx: w + offset, sets: sets };
 }
 
-function wkBuildSession(type, w, p, dayNo) {
+// 겹치지 않는 동작 고르기: used(이름→점수, 이번 주 2·지난주 1)가 가장 낮은 것을
+// start 자리부터 차례로 찾음. picked는 이 세션에서 이미 고른 이름
+function wkFresh(pool, start, used, picked, sets) {
+  const list = WK_POOLS[pool];
+  let best = -1;
+  let bestScore = Infinity;
+  for (let k = 0; k < list.length; k++) {
+    const i = (start + k) % list.length;
+    const score = (used[list[i].n] || 0) + (picked[list[i].n] ? 10 : 0);
+    if (score < bestScore) {
+      best = i;
+      bestScore = score;
+    }
+  }
+  picked[list[best].n] = true;
+  return { pool: pool, idx: best, sets: sets };
+}
+
+function wkBuildSession(type, w, p, dayNo, used) {
   const ph = WK_PHASES[p];
   const s = ph.sets;
   const t = WK_TYPES[type];
@@ -268,6 +290,23 @@ function wkBuildSession(type, w, p, dayNo) {
       { name: "이지런 20분", run: true, text: ["편한 속도로 20분 — 이게 워밍업 겸 유산소"], tip: "끝나고 바로 근력으로" },
       { name: `전신 서킷 ${rounds}라운드 (라운드 끝 90초 휴식)`, rest: 90, circuit: rounds,
         items: [wkItem("power", w, o, 1), wkItem("pullV", w, o, 1), wkItem("pushH", w, o, 1), wkItem("squat", w, o, 1), wkItem("core", w, o, 1)] },
+    ];
+  } else if (type === "indoor") {
+    // 러닝 대신 실내에서: 심박을 올리는 서킷 + EMOM, 이번 주·지난주에 한 동작은 피함
+    const u = used || {};
+    const pk = {};
+    const rounds = [3, 4, 4, 2][p];
+    const mins = [8, 10, 10, 6][p];
+    const st = w + dayNo;
+    base.note = "비 오는 날 러닝 대신이에요. 이번 주와 지난주에 한 동작은 빼고 골랐어요.";
+    base.blocks = [
+      warm,
+      { name: `A. 서킷 ${rounds}라운드 (동작 사이 20초, 라운드 끝 90초 휴식)`, rest: 90, circuit: rounds,
+        items: [wkFresh("squat", st, u, pk, 1), wkFresh("pullV", st, u, pk, 1), wkFresh("pushV", st, u, pk, 1), wkFresh("hinge", st, u, pk, 1)] },
+      { name: `B. EMOM ${mins}분 — 홀수 분엔 첫 동작, 짝수 분엔 둘째 동작 (러닝처럼 숨차게)`, emom: mins, rest: 60,
+        items: [wkFresh("power", st, u, pk, 1), wkFresh("combo", st, u, pk, 1)] },
+      { name: "C. 러너 보강 + 코어 (번갈아)", rest: 45,
+        items: [wkFresh("runner", st, u, pk, Math.max(2, ph.sets - 1)), wkFresh("core", st, u, pk, Math.max(2, ph.sets - 1)), wkFresh("carry", st, u, pk, 2)] },
     ];
   } else if (type === "recovery") {
     base.blocks = [

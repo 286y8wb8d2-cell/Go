@@ -123,3 +123,38 @@ footer { color: var(--text-light); font-size: 0.75rem; text-align: center; paddi
 .wk-cal-mark { font-size: 0.75rem; line-height: 1; }
 .wk-cal-day .wk-dot { width: 6px; height: 6px; }
 .wk-cal-sum { margin: 10px 0 0; font-size: 0.9rem; }
+
+/* 동작 그림 (workout-motion.js) */
+.mo-svg { width: 100%; height: auto; display: block; }
+.mo-ground { stroke: #cfd4da; stroke-width: 2; }
+.mo-bench { fill: #b9aee8; }
+.mo-bench-leg { stroke: #b9aee8; stroke-width: 3; }
+.mo-bar { stroke: #8a5f00; stroke-width: 3; stroke-linecap: round; }
+.mo-near polyline, .mo-far polyline { fill: none; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.mo-near polyline { stroke: #2b2f36; }
+.mo-far polyline { stroke: #a3abb5; }
+.mo-near .mo-torso { stroke-width: 7; }
+.mo-head { fill: #2b2f36; }
+.mo-kb circle { fill: #eb6834; }
+.mo-kb-handle { fill: none; stroke: #eb6834; stroke-width: 2; }
+.mo-db rect { fill: #2a78d6; }
+
+/* 운동 이름 = 동작 보기 버튼 */
+.wk-ex-name { border: 0; background: none; padding: 0; text-align: left; font-weight: 700; font-size: 1rem; display: flex; align-items: center; gap: 6px; }
+.wk-play { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--primary); color: #fff; font-size: 0.55rem; display: inline-flex; align-items: center; justify-content: center; padding-left: 2px; }
+
+/* 비 오는 날 실내 근력 */
+.wk-rain { display: block; width: 100%; border: 1.5px dashed #8a5f00; background: #fdf8ec; color: #6b4a00; border-radius: 12px; padding: 10px; margin: 10px 0 2px; font-weight: 600; }
+.wk-indoor-note { background: #fdf8ec; color: #6b4a00; border-radius: 10px; padding: 8px 12px; font-size: 0.85rem; margin: 10px 0 0; }
+.wk-ghost-sm { padding: 8px; font-size: 0.85rem; margin-top: 6px; }
+
+/* 동작 보기 창 */
+.wk-noscroll { overflow: hidden; }
+.wk-sheet { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; }
+.wk-sheet-bg { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.4); }
+.wk-sheet-box { position: relative; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; background: var(--card); border-radius: 18px 18px 0 0; padding: 16px 16px calc(20px + env(safe-area-inset-bottom)); animation: wk-up 0.2s ease-out; }
+@keyframes wk-up { from { transform: translateY(40px); opacity: 0; } }
+.wk-sheet-x { position: absolute; top: 10px; right: 10px; border: 0; background: var(--bg); width: 34px; height: 34px; border-radius: 50%; font-size: 0.9rem; z-index: 1; }
+.wk-sheet-anim { background: #f6f8fa; border-radius: 14px; margin-bottom: 12px; padding: 4px; }
+.wk-sheet-how { padding-left: 20px; margin: 8px 0; }
+.wk-sheet-how li { margin: 4px 0; }

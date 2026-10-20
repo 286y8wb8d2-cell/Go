@@ -225,6 +225,45 @@ function wkEqTags(eqs) {
   return eqs.map((e) => `<span class="wk-eq wk-eq-${e}">${WK_EQ[e]}</span>`).join("");
 }
 
+// 한 요일 세션에서 실제로 하는 동작들 (바꾸기 반영)
+function wkExercisesOf(week, slot, ses) {
+  const out = [];
+  ses.blocks.forEach((blk, bi) => (blk.items || []).forEach((it, ii) => {
+    const pool = WK_POOLS[it.pool];
+    out.push(pool[(it.idx + (week.swaps[`${slot.day}-${bi}-${ii}`] || 0)) % pool.length]);
+  }));
+  return out;
+}
+
+// 실내 근력 날이 피해야 할 동작: 이번 주 다른 날 2점, 지난주 1점
+function wkUsedMap(week, day) {
+  const used = {};
+  const prevKey = wkDateKey(wkAddDays(wkMon, -7));
+  [[wkState.weeks[prevKey], 1], [week, 2]].forEach(([wk, score]) => {
+    if (!wk) return;
+    wk.slots.forEach((s, i) => {
+      if ((wk === week && s.day === day) || s.type === "indoor") return;
+      wkExercisesOf(wk, s, wkBuildSession(s.type, wk.w, wk.p, i)).forEach((ex) => {
+        used[ex.n] = Math.max(used[ex.n] || 0, score);
+      });
+    });
+  });
+  return used;
+}
+
+function wkSessionFor(week, slot) {
+  const dayNo = week.slots.indexOf(slot);
+  const used = slot.type === "indoor" ? wkUsedMap(week, slot.day) : null;
+  return wkBuildSession(slot.type, week.w, week.p, dayNo, used);
+}
+
+// 그 요일의 체크·바꾸기 기록 지우기 (세션 종류를 바꿀 때)
+function wkClearDay(week, d) {
+  [week.checks, week.swaps].forEach((obj) => Object.keys(obj).forEach((k) => {
+    if (k.split("-")[0] === String(d)) delete obj[k];
+  }));
+}
+
 function wkRenderSession(week) {
   const box = document.getElementById("wk-session");
   const d = wkViewDay;
@@ -239,9 +278,9 @@ function wkRenderSession(week) {
     return;
   }
 
-  const dayNo = week.slots.indexOf(slot);
-  const ses = wkBuildSession(slot.type, week.w, week.p, dayNo);
+  const ses = wkSessionFor(week, slot);
   const allEq = {};
+  const exByKey = {};
   const card = document.createElement("div");
   card.className = "wk-card wk-session";
   if (week.done[d]) card.classList.add("is-done");
@@ -249,6 +288,13 @@ function wkRenderSession(week) {
   let html = `<p class="wk-day-label">${dayLabel}</p>
     <h2><span class="wk-dot" style="background:${WK_TYPES[slot.type].color}"></span>${ses.title}</h2>
     <p class="wk-note">약 ${ses.min}분</p><div class="wk-eq-row" data-eq-row></div>`;
+  if (WK_RUN_TYPES.indexOf(slot.type) >= 0 && !week.done[d]) {
+    html += `<button type="button" class="wk-rain" data-indoor>🌧 비 와요 · 실내 근력으로 바꾸기</button>`;
+  }
+  if (slot.type === "indoor") {
+    html += `<p class="wk-indoor-note">${ses.note}</p>`;
+    if (!week.done[d]) html += `<button type="button" class="wk-ghost wk-ghost-sm" data-outdoor>↩ 원래 러닝(${WK_TYPES[slot.orig || "easy"].short})으로 되돌리기</button>`;
+  }
 
   ses.blocks.forEach((blk, bi) => {
     html += `<div class="wk-block"><div class="wk-block-head"><h3>${blk.name}</h3>`;
@@ -275,10 +321,11 @@ function wkRenderSession(week) {
       const key = `${d}-${bi}-${ii}`;
       const pool = WK_POOLS[it.pool];
       const ex = pool[(it.idx + (week.swaps[key] || 0)) % pool.length];
+      exByKey[key] = ex;
       ex.eq.forEach((e) => (allEq[e] = true));
       const reps = wkRepsText(ex, week.p);
       const got = week.checks[key] || 0;
-      html += `<div class="wk-ex"><div class="wk-ex-top"><div><b>${ex.n}</b>
+      html += `<div class="wk-ex"><div class="wk-ex-top"><div><button type="button" class="wk-ex-name" data-show="${key}" data-reps="${blk.circuit || blk.emom ? reps : `${it.sets}세트 × ${reps}`}"><span class="wk-play">▶</span>${ex.n}</button>
         <div class="wk-ex-meta">${blk.circuit || blk.emom ? reps : `${it.sets}세트 × ${reps}`}</div></div>
         <button type="button" class="wk-swap" data-swap="${key}" aria-label="다른 동작으로 바꾸기">↻ 바꾸기</button></div>
         <p class="wk-tip">${ex.tip}</p><div class="wk-ex-bottom"><span>${wkEqTags(ex.eq)}</span>`;
@@ -321,6 +368,25 @@ function wkRenderSession(week) {
     wkSave();
     wkRenderSession(week);
   }));
+  card.querySelectorAll("[data-show]").forEach((b) => b.addEventListener("click", () => {
+    wkOpenMotion(exByKey[b.dataset.show], b.dataset.reps);
+  }));
+  const indoorBtn = card.querySelector("[data-indoor]");
+  if (indoorBtn) indoorBtn.addEventListener("click", () => {
+    slot.orig = slot.type;
+    slot.type = "indoor";
+    wkClearDay(week, d);
+    wkSave();
+    wkRenderPlan();
+  });
+  const outdoorBtn = card.querySelector("[data-outdoor]");
+  if (outdoorBtn) outdoorBtn.addEventListener("click", () => {
+    slot.type = slot.orig || "easy";
+    delete slot.orig;
+    wkClearDay(week, d);
+    wkSave();
+    wkRenderPlan();
+  });
   card.querySelectorAll("[data-rest]").forEach((b) => b.addEventListener("click", () => wkStartTimer(Number(b.dataset.rest))));
   card.querySelector("[data-finish]").addEventListener("click", () => {
     week.done[d] = !week.done[d];
@@ -413,7 +479,7 @@ function wkRenderCal() {
       b.classList.add("done");
       count++;
       if (["runQ", "easy", "lsd"].indexOf(type) >= 0) runs++;
-      else if (["upper", "upperB", "lower", "full"].indexOf(type) >= 0) strength++;
+      else if (["upper", "upperB", "lower", "full", "indoor"].indexOf(type) >= 0) strength++;
     }
     b.disabled = future || dk.slice(0, 7) < wkState.calStart;
     const color = plan ? WK_TYPES[plan.slot.type].color : "";
@@ -449,6 +515,30 @@ document.getElementById("wk-cal-next").addEventListener("click", () => {
   if (wkCalM > 11) { wkCalM = 0; wkCalY++; }
   wkRenderCal();
 });
+
+// ---------- 동작 보기 (아래에서 올라오는 창) ----------
+let wkStopMotion = null;
+
+function wkOpenMotion(ex, reps) {
+  const key = WK_MOTION_OF[ex.n];
+  const weight = ex.eq.indexOf("db") >= 0 ? "db" : ex.eq.indexOf("kb4") >= 0 || ex.eq.indexOf("kb12") >= 0 ? "kb" : null;
+  document.getElementById("wk-sheet-title").textContent = ex.n;
+  document.getElementById("wk-sheet-reps").textContent = reps;
+  document.getElementById("wk-sheet-how").innerHTML = (WK_HOW[key] || []).map((t) => `<li>${t}</li>`).join("");
+  document.getElementById("wk-sheet-tip").textContent = "💡 " + ex.tip;
+  document.getElementById("wk-sheet-eq").innerHTML = wkEqTags(ex.eq);
+  document.getElementById("wk-sheet").hidden = false;
+  document.body.classList.add("wk-noscroll");
+  if (wkStopMotion) wkStopMotion();
+  wkStopMotion = moPlay(document.getElementById("wk-sheet-anim"), key, weight);
+}
+function wkCloseMotion() {
+  if (wkStopMotion) wkStopMotion();
+  wkStopMotion = null;
+  document.getElementById("wk-sheet").hidden = true;
+  document.body.classList.remove("wk-noscroll");
+}
+document.querySelectorAll("[data-sheet-close]").forEach((b) => b.addEventListener("click", wkCloseMotion));
 
 // ---------- 휴식 타이머 ----------
 let wkTimerEnd = 0;
