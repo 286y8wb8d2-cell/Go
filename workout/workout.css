@@ -187,3 +187,16 @@ footer { color: var(--text-light); font-size: 0.75rem; text-align: center; paddi
 .wk-date { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 0.9rem; white-space: nowrap; }
 .wk-date .wk-input { flex: 1; min-width: 0; }
 .wk-summary { font-size: 0.85rem; color: var(--primary-dark); font-weight: 600; border-bottom: 0 !important; }
+
+/* 요일별로 정하기 · 하루 바꾸기 · 장소 */
+#wk-mode-seg { margin-bottom: 4px; }
+.wk-manual-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.wk-man-row { display: flex; align-items: center; gap: 10px; }
+.wk-man-row > b { width: 18px; flex: none; }
+.wk-chip-sm { padding: 6px 10px; font-size: 0.85rem; }
+.wk-change { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+.wk-change > span { display: block; font-size: 0.8rem; color: var(--text-light); margin-bottom: 6px; }
+.wk-place { display: inline-block; margin-left: 6px; font-size: 0.72rem; padding: 1px 7px; border-radius: 10px; background: #e3f6ee; color: #0f7a53; font-weight: 600; vertical-align: middle; }
+.wk-place.gym { background: #e7f0fb; color: #1d5ca8; }
+.wk-main-tip { background: #f3f7ff; border-radius: 8px; padding: 6px 10px; }
+.wk-eq-gym { background: #e7f0fb; color: #1d5ca8; }

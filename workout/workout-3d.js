@@ -356,6 +356,21 @@ function m3Play(box, key, weight, exName) {
     }
   }
 
+  if (weight === "bb") {
+    // 바벨: 봉 + 양쪽 원판 (양손 가운데에, 몸 옆 방향으로)
+    const g = new T.Group();
+    g.add(new T.Mesh(track(new T.CylinderGeometry(0.7, 0.7, 50, 10)), track(m3Mat(0x8a8f96, { metalness: 0.7, roughness: 0.3 }))));
+    const plateMat = track(m3Mat(0x2b2f36, { roughness: 0.6 }));
+    [-1, 1].forEach((sd) => {
+      const plate = new T.Mesh(track(new T.CylinderGeometry(6.5, 6.5, 2.4, 24)), plateMat);
+      plate.position.y = sd * 19;
+      plate.castShadow = true;
+      g.add(plate);
+    });
+    scene.add(g);
+    weights.push(g);
+  }
+
   // 손가락: 무언가 쥐는 동작이면 더 구부림 (바닥 짚을 땐 폄)
   const grip = weight || mo.bar ? 1.1 : 0.35;
   function setFingers(hand, amt) {
@@ -475,7 +490,7 @@ function m3Play(box, key, weight, exName) {
     m3SetWorld(B.pelvis, H.clone().add(L.pelvisOff.clone().applyQuaternion(Rb)), Rb.clone().multiply(M.restQ.pelvis));
 
     // 팔·다리: 옆모습이면 카메라 쪽(+Z, 오른쪽)이 1번, 앞모습이면 그림 오른쪽(-Z, 왼쪽)이 1번
-    const together = Math.hypot(p.hand[0] - p.hand2[0], p.hand[1] - p.hand2[1]) < 4;
+    const together = weight === "kb" && Math.hypot(p.hand[0] - p.hand2[0], p.hand[1] - p.hand2[1]) < 4; // 커틀벨 하나를 두 손으로
     const sides = front ? [["l", 0], ["r", 1]] : [["r", 0], ["l", 1]];
     const palms = {};
     sides.forEach(([sd, n]) => {
@@ -503,6 +518,10 @@ function m3Play(box, key, weight, exName) {
     // 기구: 손바닥에 붙이기
     if (weight === "kb") {
       weights[0].position.copy(together ? palms.l.clone().lerp(palms.r, 0.5) : palms[sides[0][0]]);
+    }
+    if (weight === "bb") {
+      weights[0].position.copy(palms.l.clone().lerp(palms.r, 0.5));
+      weights[0].quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), l);
     }
     if (weight === "db") {
       ["r", "l"].forEach((sd, n) => {

@@ -13,6 +13,7 @@ const WK_EQ = {
   run: "러닝",
   band: "저항 밴드",
   rope: "줄넘기",
+  gym: "헬스장",
 };
 
 // 동작 묶음(같은 역할끼리). 주마다, 또는 "바꾸기" 버튼으로 돌아가며 나옴
@@ -126,6 +127,54 @@ const WK_POOLS = {
     { n: "커틀벨 스내치", eq: ["kb12"], r: [6, 8], u: "회(한쪽)", tip: "스윙에서 바로 머리 위로. 처음엔 4kg로 연습" },
     { n: "줄넘기 빠르게", eq: ["rope"], r: [30, 40], u: "초", tip: "최대한 빠르게. 숨이 차오르게" },
   ],
+  // ---------- 헬스장 (바벨·머신·케이블). wt: 3D 그림에서 손에 드는 것 ----------
+  gSquat: [
+    { n: "바벨 백스쿼트", eq: ["gym"], wt: "bb", r: [5, 8], u: "회", tip: "봉을 등 위쪽에 얹고 엉덩이를 뒤로 빼며 허벅지가 평행 아래까지" },
+    { n: "레그 프레스", eq: ["gym"], r: [10, 12], u: "회", tip: "허리가 등받이에서 뜨지 않을 만큼만 내리기. 무릎 끝까지 펴서 잠그지 않기" },
+    { n: "스미스 머신 스쿼트", eq: ["gym"], wt: "bb", r: [8, 10], u: "회", tip: "발을 살짝 앞에 두고, 3초 내려가기" },
+  ],
+  gHinge: [
+    { n: "데드리프트", eq: ["gym"], wt: "bb", r: [4, 6], u: "회", tip: "봉을 정강이에 붙이고 등은 곧게, 바닥을 밀며 일어서기" },
+    { n: "바벨 루마니안 데드리프트", eq: ["gym"], wt: "bb", r: [8, 10], u: "회", tip: "무릎 살짝 굽히고 엉덩이를 뒤로, 봉이 허벅지를 타고 내려가게" },
+    { n: "바벨 힙 쓰러스트", eq: ["gym", "bench"], wt: "bb", r: [8, 12], u: "회", tip: "등 위쪽을 벤치에, 봉은 골반 위(패드). 위에서 2초 쥐기" },
+  ],
+  gLegAcc: [
+    { n: "레그 익스텐션", eq: ["gym"], r: [12, 15], u: "회", tip: "위에서 1초 멈추고 천천히 내리기" },
+    { n: "라잉 레그 컬", eq: ["gym"], r: [10, 12], u: "회", tip: "엉덩이가 들리지 않게, 발뒤꿈치를 엉덩이 쪽으로" },
+    { n: "머신 카프 레이즈", eq: ["gym"], r: [12, 15], u: "회", tip: "끝까지 내렸다가 최대한 높이" },
+    { n: "덤벨 워킹 런지", eq: ["gym"], wt: "db", r: [10, 12], u: "걸음(한쪽)", tip: "덤벨 들고 앞으로 걸어가며 런지" },
+  ],
+  gPushH: [
+    { n: "바벨 벤치프레스", eq: ["gym", "bench"], wt: "bb", r: [5, 8], u: "회", tip: "날개뼈 모으고 발은 바닥에, 봉을 가슴 아래쪽까지 내렸다 밀기" },
+    { n: "덤벨 인클라인 프레스", eq: ["gym", "bench"], wt: "db", r: [8, 10], u: "회", tip: "벤치를 30도로 세우고 윗가슴으로 밀기" },
+    { n: "체스트 프레스 머신", eq: ["gym"], r: [10, 12], u: "회", tip: "손잡이를 가슴 높이에 맞추고 팔을 끝까지 밀기" },
+    { n: "케이블 플라이", eq: ["gym"], r: [12, 15], u: "회", tip: "팔꿈치 살짝 굽힌 채 큰 원을 그리며 가슴 앞에서 모으기" },
+  ],
+  gPushV: [
+    { n: "바벨 오버헤드 프레스", eq: ["gym"], wt: "bb", r: [5, 8], u: "회", tip: "서서 엉덩이·배에 힘, 봉을 얼굴 앞으로 지나 머리 위로" },
+    { n: "덤벨 숄더 프레스", eq: ["gym", "bench"], wt: "db", r: [8, 10], u: "회", tip: "등받이에 기대 앉아 귀 옆에서 머리 위로" },
+    { n: "머신 숄더 프레스", eq: ["gym"], r: [10, 12], u: "회", tip: "허리를 등받이에 붙이고 밀기" },
+  ],
+  gPullV: [
+    { n: "랫 풀다운", eq: ["gym"], wt: "bb", r: [8, 12], u: "회", tip: "봉을 쇄골 쪽으로, 팔꿈치를 옆구리로 끌어내리기" },
+    { n: "어시스트 턱걸이 머신", eq: ["gym"], r: [6, 10], u: "회", tip: "도움 무게를 조금씩 줄여 가기. 가슴을 봉 쪽으로" },
+  ],
+  gPullH: [
+    { n: "바벨 로우", eq: ["gym"], wt: "bb", r: [6, 8], u: "회", tip: "상체를 45도로 숙이고 봉을 배꼽 쪽으로 당기기" },
+    { n: "시티드 케이블 로우", eq: ["gym"], r: [10, 12], u: "회", tip: "가슴을 펴고 손잡이를 배 쪽으로, 날개뼈 모으기" },
+    { n: "원암 덤벨 로우", eq: ["gym", "bench"], wt: "db", r: [8, 10], u: "회(한쪽)", tip: "한 손·한 무릎을 벤치에. 무겁게" },
+    { n: "페이스 풀", eq: ["gym"], r: [12, 15], u: "회", tip: "로프를 얼굴 쪽으로 당기며 팔꿈치를 높게. 어깨 뒤쪽" },
+  ],
+  gArms: [
+    { n: "바벨 컬", eq: ["gym"], wt: "bb", r: [8, 10], u: "회", tip: "팔꿈치를 옆구리에 고정하고 반동 없이" },
+    { n: "케이블 푸시다운", eq: ["gym"], r: [10, 12], u: "회", tip: "팔꿈치를 옆구리에 붙이고 아래로 쭉 펴기" },
+    { n: "케이블 레터럴 레이즈", eq: ["gym"], r: [12, 15], u: "회(한쪽)", tip: "어깨높이까지만, 천천히 내리기" },
+  ],
+  gCore: [
+    { n: "행잉 니 레이즈", eq: ["gym"], r: [10, 15], u: "회", tip: "매달려서 무릎을 가슴으로. 몸이 흔들리지 않게" },
+    { n: "케이블 우드찹", eq: ["gym"], r: [10, 12], u: "회(한쪽)", tip: "케이블을 위에서 대각선 아래로 당기며 몸통 돌리기" },
+    { n: "플랭크", eq: ["bw"], r: [40, 60], u: "초", tip: "엉덩이 처지지 않게, 배꼽 당기기" },
+  ],
 };
 
 // ---------- 사용자 설정(프로필)에 맞추기 ----------
@@ -133,11 +182,11 @@ const WK_POOLS = {
 // goals: strength | fatloss | cardio | mobility | health (그 밖의 목표, 여러 개)
 // run: none | beg(걷기 섞어서) | r30 | r60 | r120 (쉬지 않고 달릴 수 있는 시간)
 // exp: beg | mid | adv   age: 20 | 30 | 40 | 50 | 60   intensity: easy | mid | hard
-// pullups: 0 | 1 | 5 | 10   minutes: 20 | 30 | 45 | 60 | 90   raceDate: "YYYY-MM-DD" 또는 ""
+// where: home | gym | both (근력 운동 장소)   pullups: 0 | 1 | 5 | 10   minutes: 20 | 30 | 45 | 60 | 90   raceDate: "YYYY-MM-DD" 또는 ""
 // limits: knee | back | shoulder | wrist | ankle   days: 요일별 가능 여부(월~일)
 const WK_PROFILE_DEFAULT = {
   name: "", race: "half", goals: [], run: "r60", raceDate: "", exp: "mid", age: 30, intensity: "mid", pullups: 5,
-  kb: true, kbLight: 4, kbHeavy: 12, db: true, dbKg: 6, bench: true, bar: true, band: false, rope: false, treadmill: false,
+  where: "home", kb: true, kbLight: 4, kbHeavy: 12, db: true, dbKg: 6, bench: true, bar: true, band: false, rope: false, treadmill: false,
   days: [true, true, true, true, true, true, true], minutes: 45, limits: [],
 };
 let wkProfile = Object.assign({}, WK_PROFILE_DEFAULT);
@@ -145,16 +194,16 @@ let wkProfile = Object.assign({}, WK_PROFILE_DEFAULT);
 // 조심할 부위(·나이)별로 빼는 동작
 const WK_JUMPS = ["점프 스쿼트", "스플릿 점프 런지", "버피", "줄넘기", "줄넘기 빠르게"];
 const WK_AVOID = {
-  knee: ["점프 스쿼트", "스플릿 점프 런지", "코사크 스쿼트", "버피", "덤벨 맨메이커 (가볍게)", "줄넘기"],
-  back: ["커틀벨 스윙", "커틀벨 원암 스윙", "커틀벨 스내치", "덤벨 맨메이커 (가볍게)", "행잉 레그 레이즈", "러시안 트위스트", "덤벨 루마니안 데드리프트"],
-  shoulder: ["커틀벨 원암 프레스", "덤벨 숄더프레스 (앉아서)", "파이크 푸시업", "커틀벨 스내치", "덤벨 스러스터", "벤치 딥스",
+  knee: ["레그 익스텐션", "바벨 백스쿼트", "덤벨 워킹 런지", "점프 스쿼트", "스플릿 점프 런지", "코사크 스쿼트", "버피", "덤벨 맨메이커 (가볍게)", "줄넘기"],
+  back: ["데드리프트", "바벨 로우", "바벨 백스쿼트", "커틀벨 스윙", "커틀벨 원암 스윙", "커틀벨 스내치", "덤벨 맨메이커 (가볍게)", "행잉 레그 레이즈", "러시안 트위스트", "덤벨 루마니안 데드리프트"],
+  shoulder: ["바벨 오버헤드 프레스", "바벨 벤치프레스", "덤벨 숄더 프레스", "머신 숄더 프레스", "케이블 레터럴 레이즈", "커틀벨 원암 프레스", "덤벨 숄더프레스 (앉아서)", "파이크 푸시업", "커틀벨 스내치", "덤벨 스러스터", "벤치 딥스",
     "커틀벨 클린 앤 프레스", "덤벨 레터럴 레이즈", "커틀벨 할로", "터키쉬 겟업", "디클라인 푸시업", "커틀벨 바텀업 프레스", "밴드 숄더 프레스"],
   wrist: ["아처 푸시업", "다이아몬드 푸시업", "디클라인 푸시업", "파이크 푸시업", "버피", "덤벨 맨메이커 (가볍게)", "벤치 딥스", "커틀벨 스내치"],
   ankle: WK_JUMPS.concat(["코사크 스쿼트", "싱글레그 카프 레이즈"]),
   age: WK_JUMPS.concat(["커틀벨 스내치", "덤벨 맨메이커 (가볍게)"]), // 50대 이상
 };
 // 처음 하는 사람에게는 아직 이른 동작
-const WK_HARD = ["아처 푸시업", "커틀벨 스내치", "덤벨 맨메이커 (가볍게)", "터키쉬 겟업", "코펜하겐 플랭크", "스플릿 점프 런지", "행잉 레그 레이즈", "디클라인 푸시업"];
+const WK_HARD = ["데드리프트", "바벨 로우", "아처 푸시업", "커틀벨 스내치", "덤벨 맨메이커 (가볍게)", "터키쉬 겟업", "코펜하겐 플랭크", "스플릿 점프 런지", "행잉 레그 레이즈", "디클라인 푸시업"];
 // 턱걸이 개수에 따라
 const WK_PULL_ZERO = ["스캐풀라 풀업", "네거티브 턱걸이", "엎드려 W 당기기", "밴드 로우"];
 const WK_PULL_FEW_NOT = ["와이드 턱걸이", "턱걸이 + 위에서 2초 멈춤", "행잉 레그 레이즈"];
@@ -186,7 +235,9 @@ let wkPoolCache = {};
 function wkPool(name) {
   if (wkPoolCache[name]) return wkPoolCache[name];
   const pr = wkProfile;
-  const has = { bw: true, kb4: pr.kb, kb12: pr.kb, db: pr.db, bench: pr.bench, bar: pr.bar, band: pr.band, rope: pr.rope, run: true };
+  const gymPool = name.charAt(0) === "g" && name !== "gym";
+  const has = gymPool ? { bw: true, gym: true, bench: true }
+    : { bw: true, kb4: pr.kb, kb12: pr.kb, db: pr.db, bench: pr.bench, bar: pr.bar, band: pr.band, rope: pr.rope, run: true };
   const avoid = {};
   const limits = (pr.limits || []).concat(pr.age >= 50 ? ["age"] : []);
   limits.forEach((l) => (WK_AVOID[l] || []).forEach((n) => (avoid[n] = true)));
@@ -217,18 +268,23 @@ function wkTemplateFor(n) {
   if (n === 1) return [running && (pr.race !== "none" || wkHasGoal("cardio")) ? "combo" : "full"];
   // 러닝 순서: 긴 러닝 → 포인트 → 이지 → ...
   const runList = pr.race === "full" ? ["lsd", "easy", "runQ", "easy", "runQ", "easy"] : ["lsd", "runQ", "easy", "easy", "runQ", "easy"];
-  // 근력 순서: 목표에 따라
-  let strList = ["lower", "upper", "full", "indoor", "upperB", "full"];
-  if (wkHasGoal("strength")) strList = ["lower", "upper", "upperB", "full", "lower", "indoor"];
-  if (wkHasGoal("fatloss") || wkHasGoal("cardio")) strList = ["full", "indoor", "lower", "upper", "upperB", "indoor"];
-  if (runN === 0 && !wkHasGoal("fatloss") && !wkHasGoal("cardio")) strList = ["lower", "upper", "full", "indoor", "upperB", "indoor"];
-  if (n - runN === 1) strList = [wkHasGoal("strength") ? "full" : "full"];
-  const out = runList.slice(0, runN).concat(strList.slice(0, n - runN));
+  const out = runList.slice(0, runN).concat(wkStrengthList(n - runN, runN));
   // 7일이거나, 유연성 목표로 6일 이상이면 하루는 회복·가동성 (그보다 적으면 세션 끝 가동성으로)
   if ((wkHasGoal("mobility") && n >= 6) || n === 7) out[out.length - 1] = "recovery";
   // 하체·포인트처럼 힘든 날을 앞쪽에 (LSD에서 멀리)
   const ord = { lower: 0, runQ: 1, full: 2, upper: 3, indoor: 4, upperB: 5, easy: 6, combo: 2, lsd: 9, recovery: 9 };
   return out.sort((a, b) => ord[a] - ord[b]);
+}
+
+// 근력 날 k개를 무엇으로: 목표에 따라 순서가 다름 (하나뿐이면 전신)
+function wkStrengthList(k, runN) {
+  if (k === 1) return ["full"];
+  let list = ["lower", "upper", "full", "indoor", "upperB", "full"];
+  if (wkHasGoal("strength")) list = ["lower", "upper", "upperB", "full", "lower", "indoor"];
+  if (wkHasGoal("fatloss") || wkHasGoal("cardio")) list = ["full", "indoor", "lower", "upper", "upperB", "indoor"];
+  if (runN === 0 && !wkHasGoal("fatloss") && !wkHasGoal("cardio")) list = ["lower", "upper", "full", "indoor", "upperB", "indoor"];
+  while (list.length < k) list = list.concat(["upper", "lower"]);
+  return list.slice(0, k);
 }
 
 // 대회까지 남은 주 (대회 날짜가 있을 때). w = 이번 주 번호(1970년부터)
@@ -347,7 +403,57 @@ function wkFresh(pool, start, used, picked, sets) {
   return { pool: pool, idx: best, sets: sets };
 }
 
-function wkBuildSession(type, w, p, dayNo, used, fromRun) {
+// 헬스장 근력 세션: 메인(무겁게) → 보조 → 팔·코어. 메인 동작은 매주 같아서 무게를 늘려 가기 좋음
+const WK_GYM_TITLE = { upper: "상체 (가슴·등) · 헬스장", lower: "하체 · 헬스장", upperB: "상체 (등·어깨) · 헬스장", full: "전신 · 헬스장", indoor: "유산소 + 서킷 · 헬스장" };
+const WK_MAIN_TIP = "마지막 1~2회가 힘든 무게로. 모든 세트를 해내면 다음에 2.5kg(하체는 5kg) 올리기";
+function wkBuildGym(type, w, p, dayNo) {
+  const s = WK_PHASES[p].sets;
+  const o = dayNo * 3;
+  const t = WK_TYPES[type];
+  const base = { type: type, title: WK_GYM_TITLE[type] || t.title, min: t.min, blocks: [] };
+  const warm = { name: "준비 운동 7분", text: ["러닝머신 빠르게 걷기 또는 실내 자전거 5분", "팔·어깨·고관절 돌리기 각 10회", "메인 동작을 빈 봉(가벼운 무게)으로 1~2세트"] };
+  const it = wkItem;
+  if (type === "upper") {
+    base.blocks = [warm,
+      { name: "A. 메인: 가슴 밀기", rest: 150, tip: WK_MAIN_TIP, items: [it("gPushH", 0, 0, s + 1)] },
+      { name: "B. 메인: 등 당기기", rest: 120, items: [it("gPullH", 0, 0, s)] },
+      { name: "C. 슈퍼세트 (번갈아)", rest: 75, items: [it("gPullV", w, o, s), it("gPushV", w, o + 1, s)] },
+      { name: "D. 팔 (번갈아)", opt: true, rest: 60, items: [it("gArms", w, o, Math.max(2, s - 1)), it("gArms", w, o + 1, Math.max(2, s - 1))] },
+      { name: "E. 코어", opt: true, rest: 45, items: [it("gCore", w, o, Math.max(2, s - 1))] }];
+  } else if (type === "lower") {
+    base.blocks = [warm,
+      { name: "A. 메인: 스쿼트", rest: 180, tip: WK_MAIN_TIP, items: [it("gSquat", 0, 0, s + 1)] },
+      { name: "B. 힌지 (엉덩이·햄스트링)", rest: 150, items: [it("gHinge", w % 2, 0, s)] },
+      { name: "C. 하체 보조 (번갈아)", rest: 75, items: [it("gLegAcc", w, o, s), it("gLegAcc", w, o + 1, s)] },
+      { name: "D. 코어", opt: true, rest: 45, items: [it("gCore", w, o + 1, Math.max(2, s - 1))] }];
+  } else if (type === "upperB") {
+    base.blocks = [warm,
+      { name: "A. 메인: 위로 당기기", rest: 120, tip: WK_MAIN_TIP, items: [it("gPullV", 0, 0, s + 1)] },
+      { name: "B. 메인: 머리 위로 밀기", rest: 150, items: [it("gPushV", 0, 0, s)] },
+      { name: "C. 슈퍼세트 (번갈아)", rest: 75, items: [it("gPullH", w, o + 1, s), it("gPushH", w, o + 1, s)] },
+      { name: "D. 팔·어깨", opt: true, rest: 60, items: [it("gArms", w, o + 2, Math.max(2, s - 1)), it("gCore", w, o + 2, Math.max(2, s - 1))] }];
+  } else if (type === "indoor") {
+    const rounds = [3, 4, 4, 2][p];
+    base.title = "유산소 + 서킷 · 헬스장";
+    base.blocks = [
+      { name: "A. 유산소 인터벌", cardio: true, text: [`로잉머신 또는 실내 자전거: 1분 세게 + 1분 천천히 × ${[8, 10, 10, 6][p]}회`], tip: "말하기 힘들 정도로 세게, 쉬는 1분은 아주 천천히" },
+      { name: `B. 서킷 ${rounds}라운드 (라운드 끝 90초 휴식)`, rest: 90, circuit: rounds,
+        items: [it("gSquat", w, o + 1, 1), it("gPullV", w, o, 1), it("gPushH", w, o + 2, 1), it("gCore", w, o, 1)] }];
+  } else {
+    // full (전신)
+    base.blocks = [warm,
+      { name: "A. 스쿼트", rest: 150, tip: WK_MAIN_TIP, items: [it("gSquat", w, o, s)] },
+      { name: "B. 가슴 밀기", rest: 120, items: [it("gPushH", w, o, s)] },
+      { name: "C. 당기기 슈퍼세트 (번갈아)", rest: 75, items: [it("gPullV", w, o, s), it("gPullH", w, o + 1, s)] },
+      { name: "D. 힌지", rest: 120, items: [it("gHinge", w, o + 2, s)] },
+      { name: "E. 코어", opt: true, rest: 45, items: [it("gCore", w, o + 2, Math.max(2, s - 1))] }];
+  }
+  return base;
+}
+const WK_STRENGTH_TYPES = ["upper", "lower", "upperB", "full", "indoor"];
+
+function wkBuildSession(type, w, p, dayNo, used, fromRun, place) {
+  if (place === "gym" && WK_STRENGTH_TYPES.indexOf(type) >= 0 && !fromRun) return wkAdapt(wkBuildGym(type, w, p, dayNo), p, w);
   const ph = WK_PHASES[p];
   const s = ph.sets;
   const t = WK_TYPES[type];
