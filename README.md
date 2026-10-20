@@ -210,3 +210,9 @@ backup.js     데이터 백업 (내보내기/불러오기)
 - **시나리오 예시 바꾸기:** `scenario.js`의 `SCENARIO_PRESETS`
 - **CSS나 JS를 고친 뒤에는** `index.html`의 `?v=숫자`, `<html data-version>`, `version.json`의 숫자를 함께 하나씩 올려 주세요. 그래야 휴대폰에서 예전 파일 대신 새 파일을 받아 옵니다.
 - `main`에 올리면 1~2분 뒤 GitHub Pages 사이트에 자동으로 반영됩니다.
+
+## 데일리 워크아웃 (별도 앱, `workout/` 폴더)
+주소: https://286y8wb8d2-cell.github.io/Go/workout/ — 자산 앱과 따로 쓰는 운동 앱.
+이번 주 운동 일수(1~7일)와 LSD 요일(토/일)을 고르면 러닝·맨몸·커틀벨(4/12kg)·덤벨(6kg×2)·벤치·턱걸이로 주간 프로그램을 짜 줌.
+4주 흐름(기본 → 횟수↑ → 세트↑ → 회복)으로 돌고, 동작은 주마다 바뀜(↻ 바꾸기 가능). 세트 체크·휴식 타이머·지난 기록.
+파일: index.html, workout.css, workout-data.js(동작·세션 규칙), workout.js(화면). 고치면 workout/의 `?v=N`·data-version·푸터·version.json을 올림.
