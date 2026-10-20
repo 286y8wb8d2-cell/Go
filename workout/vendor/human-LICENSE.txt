@@ -1,0 +1,3 @@
+human.glb = "3D Male Base Mesh (Rigged)" by orange-juice-games
+https://orange-juice-games.itch.io / https://github.com/BoQsc/Godot-Male-Base-Mesh
+License: CC0 1.0 (public domain) — free to use, modify and share.

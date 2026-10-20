@@ -550,7 +550,7 @@ function wkOpenMotion(ex, reps) {
     }
   };
   document.getElementById("wk-sheet-hint").hidden = true;
-  if (window.THREE) return start3d();
+  if (m3Model) return start3d();
   wkStopMotion = moPlay(box, key, weight);
   m3Load().then((ok) => {
     if (ok && token === wkMotionToken && !document.getElementById("wk-sheet").hidden) {
