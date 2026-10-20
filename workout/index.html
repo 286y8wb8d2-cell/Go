@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" data-version="10">
+<html lang="ko" data-version="11">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="워크아웃">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <!-- ?v=숫자: 파일을 고칠 때마다 올림 (휴대폰 캐시 때문) -->
-  <link rel="stylesheet" href="workout.css?v=10">
+  <link rel="stylesheet" href="workout.css?v=11">
 </head>
 <body>
   <header>
@@ -85,6 +85,10 @@
       <div class="wk-card">
         <h2>지난 기록</h2>
         <ul id="wk-history" class="wk-history"></ul>
+        <div id="wk-lifts-wrap" hidden>
+          <h3>무게 기록 (누르면 그래프)</h3>
+          <ul id="wk-lifts" class="wk-history"></ul>
+        </div>
         <button type="button" id="wk-reset" class="wk-ghost">이번 주 다시 짜기</button>
       </div>
     </section>
@@ -111,6 +115,7 @@
       <div id="wk-sheet-anim" class="wk-sheet-anim"></div>
       <p id="wk-sheet-hint" class="wk-sheet-hint" hidden>↔ 그림을 좌우로 밀면 돌려 볼 수 있어요</p>
       <div id="wk-sheet-muscles" class="wk-sheet-muscles"></div>
+      <div id="wk-sheet-lift"></div>
       <h2 id="wk-sheet-title"></h2>
       <p id="wk-sheet-reps" class="wk-ex-meta"></p>
       <ol id="wk-sheet-how" class="wk-sheet-how"></ol>
@@ -128,12 +133,12 @@
   </div>
 
   <footer>
-    <p>앱 버전 v10 · 기록은 이 기기에만 저장돼요</p>
+    <p>앱 버전 v11 · 기록은 이 기기에만 저장돼요</p>
   </footer>
 
-  <script src="workout-data.js?v=10"></script>
-  <script src="workout-motion.js?v=10"></script>
-  <script src="workout-3d.js?v=10"></script>
-  <script src="workout.js?v=10"></script>
+  <script src="workout-data.js?v=11"></script>
+  <script src="workout-motion.js?v=11"></script>
+  <script src="workout-3d.js?v=11"></script>
+  <script src="workout.js?v=11"></script>
 </body>
 </html>

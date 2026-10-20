@@ -484,7 +484,20 @@ function wkRenderSession(week) {
       html += `<div class="wk-ex"><div class="wk-ex-top"><div><button type="button" class="wk-ex-name" data-show="${key}" data-reps="${blk.circuit || blk.emom ? reps : `${it.sets}세트 × ${reps}`}"><span class="wk-play">▶</span>${ex.n}</button>
         <div class="wk-ex-meta">${blk.circuit || blk.emom ? reps : `${it.sets}세트 × ${reps}`}</div></div>
         <button type="button" class="wk-swap" data-swap="${key}" aria-label="다른 동작으로 바꾸기">↻ 바꾸기</button></div>
-        <p class="wk-tip">${ex.tip}</p><div class="wk-ex-bottom"><span>${wkEqTags(ex.eq)}</span>`;
+        <p class="wk-tip">${ex.tip}</p>`;
+      if (wkTracksWeight(ex)) {
+        const date = wkDateKey(wkAddDays(wkMon, d));
+        const today = wkLiftHistory(ex.n).find((r) => r.d === date);
+        const goal = wkLiftGoal(it.pool, ex, date, week.p);
+        html += `<div class="wk-lift" data-lift="${key}" data-pool="${it.pool}">
+          <div class="wk-lift-info">${goal ? `지난번 <b>${goal.prev.kg}kg${goal.prev.reps ? " × " + goal.prev.reps + "회" : ""}</b> (${wkShortDate(goal.prev.d)}) → 오늘 목표 <b>${goal.kg}kg</b><br><span>${goal.why}</span>` : "처음 기록해요. 가벼운 무게로 시작해 적어 두면 다음부터 목표를 알려 드려요"}</div>
+          <div class="wk-lift-in"><input type="number" inputmode="decimal" step="0.5" min="0" class="wk-input wk-kg" data-lkg placeholder="${goal ? goal.kg : "kg"}" value="${today ? today.kg : ""}"> kg ×
+            <input type="number" inputmode="numeric" min="0" class="wk-input wk-kg" data-lreps placeholder="횟수" value="${today && today.reps ? today.reps : ""}"> 회
+            <button type="button" class="wk-lift-save${today ? " saved" : ""}">${today ? "✓ 저장됨" : "저장"}</button></div>
+          <p class="wk-lift-hint">횟수는 마지막 세트에 한 횟수를 적어요</p>
+        </div>`;
+      }
+      html += `<div class="wk-ex-bottom"><span>${wkEqTags(ex.eq)}</span>`;
       if (!blk.circuit && !blk.emom) {
         html += `<span class="wk-sets">` + Array.from({ length: it.sets }, (_, i) =>
           `<button type="button" class="wk-set ${i < got ? "on" : ""}" data-set="${key}" data-n="${i + 1}">${i + 1}</button>`).join("") + `</span>`;
@@ -526,6 +539,25 @@ function wkRenderSession(week) {
     wkSave();
     wkRenderSession(week);
   }));
+  card.querySelectorAll(".wk-lift").forEach((box) => {
+    const btn = box.querySelector(".wk-lift-save");
+    const kgIn = box.querySelector("[data-lkg]");
+    const repIn = box.querySelector("[data-lreps]");
+    const dirty = () => { btn.classList.remove("saved"); btn.textContent = "저장"; };
+    kgIn.addEventListener("input", dirty);
+    repIn.addEventListener("input", dirty);
+    btn.addEventListener("click", () => {
+      const ex = exByKey[box.dataset.lift];
+      // 무게를 비워 두면 목표(또는 지난번) 무게로
+      const kg = parseFloat(kgIn.value) || parseFloat(kgIn.placeholder) || 0;
+      if (!kg) { kgIn.focus(); return; }
+      wkLiftSave(ex.n, wkDateKey(wkAddDays(wkMon, d)), kg, parseInt(repIn.value, 10) || 0);
+      kgIn.value = kg;
+      btn.classList.add("saved");
+      btn.textContent = "✓ 저장됨";
+      wkRenderHistory();
+    });
+  });
   card.querySelectorAll("[data-show]").forEach((b) => b.addEventListener("click", () => {
     wkOpenMotion(exByKey[b.dataset.show], b.dataset.reps);
   }));
@@ -583,6 +615,95 @@ function wkRenderHistory() {
     li.innerHTML = `<span>${m}/${dd} 주${k === wkWeekKey ? " (이번 주)" : ""} · ${WK_PHASES[w.p].name.split(" · ")[1]}</span><b>${done}/${w.slots.length}</b>`;
     ul.appendChild(li);
   });
+  // 무게 기록: 동작마다 최근 무게와 처음보다 얼마나 늘었는지 (누르면 그래프)
+  const lifts = document.getElementById("wk-lifts");
+  const names = Object.keys(wkState.lifts || {}).sort((a, b) => (wkLiftHistory(b).slice(-1)[0].d > wkLiftHistory(a).slice(-1)[0].d ? 1 : -1));
+  document.getElementById("wk-lifts-wrap").hidden = !names.length;
+  lifts.innerHTML = names.map((n) => {
+    const h = wkLiftHistory(n);
+    const diff = Math.round((h[h.length - 1].kg - h[0].kg) * 10) / 10;
+    return `<li><button type="button" class="wk-lift-row" data-liftname="${n}"><span>${n}</span><b>${h[h.length - 1].kg}kg${diff ? ` <small>(${diff > 0 ? "+" : ""}${diff})</small>` : ""}</b></button></li>`;
+  }).join("");
+  lifts.querySelectorAll("[data-liftname]").forEach((b) => b.addEventListener("click", () => {
+    const n = b.dataset.liftname;
+    let ex = null;
+    Object.keys(WK_POOLS).forEach((k) => WK_POOLS[k].forEach((e) => { if (e.n === n && !ex) ex = e; }));
+    if (ex) wkOpenMotion(ex, "기록 " + wkLiftHistory(n).length + "번");
+  }));
+}
+
+// ---------- 무게 기록 (헬스장 동작) ----------
+// wkState.lifts["동작 이름"] = [{ d: "YYYY-MM-DD", kg, reps }] 날짜순, 동작마다 최근 40개
+function wkTracksWeight(ex) {
+  return ex.eq.indexOf("gym") >= 0;
+}
+function wkLiftHistory(name) {
+  return (wkState.lifts && wkState.lifts[name]) || [];
+}
+function wkLiftSave(name, date, kg, reps) {
+  if (!wkState.lifts) wkState.lifts = {};
+  const list = wkLiftHistory(name).filter((r) => r.d !== date);
+  if (kg > 0) list.push({ d: date, kg: kg, reps: reps > 0 ? reps : null });
+  list.sort((a, b) => (a.d < b.d ? -1 : 1));
+  wkState.lifts[name] = list.slice(-40);
+  if (!wkState.lifts[name].length) delete wkState.lifts[name];
+  wkSave();
+}
+// 오늘 목표: 지난번에 목표 횟수(범위 위쪽)를 채웠으면 무게 올리기, 아니면 같은 무게로 횟수 늘리기
+function wkLiftGoal(pool, ex, date, p) {
+  const prev = wkLiftHistory(ex.n).filter((r) => r.d < date).pop();
+  if (!prev) return null;
+  const nums = wkRepsText(ex, p).match(/\d+/g);
+  const top = nums ? Number(nums[nums.length - 1]) : 0;
+  const inc = ex.wt === "db" ? 2 : ["gSquat", "gHinge", "gLegAcc"].indexOf(pool) >= 0 ? 5 : 2.5;
+  if (prev.reps && top && prev.reps >= top) return { prev: prev, kg: prev.kg + inc, why: `지난번 ${top}회를 채워서 +${inc}kg` };
+  return { prev: prev, kg: prev.kg, why: "같은 무게로 횟수 늘리기" };
+}
+const wkShortDate = (d) => Number(d.slice(5, 7)) + "/" + Number(d.slice(8, 10));
+
+// 무게 변화 그래프 (선 하나: 제목이 무엇인지 말하므로 범례 없음, 점을 누르면 값)
+function wkLiftChart(box, name) {
+  const list = wkLiftHistory(name).slice(-12);
+  box.innerHTML = "";
+  if (!list.length) return;
+  const W = 320, H = 150, L = 38, R = 46, T = 14, B = 26;
+  const t = list.map((r) => new Date(r.d + "T00:00:00").getTime());
+  const t0 = t[0], t1 = Math.max(t[t.length - 1], t0 + 864e5);
+  let lo = Math.min(...list.map((r) => r.kg)), hi = Math.max(...list.map((r) => r.kg));
+  if (hi - lo < 5) { lo -= 2.5; hi += 2.5; }
+  const x = (v) => (list.length === 1 ? (L + W - R) / 2 : L + ((v - t0) / (t1 - t0)) * (W - L - R));
+  const y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const ns = "http://www.w3.org/2000/svg";
+  const el = (tag, at, parent) => { const e = document.createElementNS(ns, tag); Object.keys(at).forEach((k) => e.setAttribute(k, at[k])); parent.appendChild(e); return e; };
+  const wrap = document.createElement("div");
+  wrap.innerHTML = `<h3>무게 기록</h3><p class="wk-lift-tip" aria-live="polite">점을 누르면 그날 기록이 보여요</p>`;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, class: "wk-chart", role: "img", "aria-label": name + " 무게 기록 그래프" }, wrap);
+  [lo, Math.round(lo + hi) / 2, hi].forEach((v) => { // 가운데 눈금은 0.5kg 단위로
+    el("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), class: "wk-chart-grid" }, svg);
+    el("text", { x: L - 6, y: y(v) + 4, class: "wk-chart-ax", "text-anchor": "end" }, svg).textContent = Math.round(v * 10) / 10;
+  });
+  el("text", { x: x(t[0]), y: H - 8, class: "wk-chart-ax", "text-anchor": list.length === 1 ? "middle" : "start" }, svg).textContent = wkShortDate(list[0].d);
+  if (list.length > 1) el("text", { x: x(t[t.length - 1]), y: H - 8, class: "wk-chart-ax", "text-anchor": "end" }, svg).textContent = wkShortDate(list[list.length - 1].d);
+  if (list.length > 1) el("polyline", { points: list.map((r, i) => x(t[i]) + "," + y(r.kg)).join(" "), class: "wk-chart-line" }, svg);
+  const tip = wrap.querySelector(".wk-lift-tip");
+  list.forEach((r, i) => {
+    const g = el("g", { class: "wk-chart-pt", tabindex: 0 }, svg);
+    el("circle", { cx: x(t[i]), cy: y(r.kg), r: 14, class: "wk-chart-hit" }, g); // 손가락으로 누르기 쉽게
+    el("circle", { cx: x(t[i]), cy: y(r.kg), r: 4.5, class: "wk-chart-dot" }, g);
+    const show = () => (tip.textContent = `${wkShortDate(r.d)} · ${r.kg}kg${r.reps ? " × " + r.reps + "회" : ""}`);
+    g.addEventListener("click", show);
+    g.addEventListener("mouseenter", show);
+    g.addEventListener("focus", show);
+  });
+  const last = list[list.length - 1];
+  el("text", { x: x(t[t.length - 1]) + 8, y: y(last.kg) + 4, class: "wk-chart-label" }, svg).textContent = last.kg + "kg";
+  // 표로도 (최근 6번)
+  const table = document.createElement("table");
+  table.className = "wk-lift-table";
+  table.innerHTML = "<tr><th>날짜</th><th>무게</th><th>횟수</th></tr>" + list.slice(-6).reverse()
+    .map((r) => `<tr><td>${wkShortDate(r.d)}</td><td>${r.kg}kg</td><td>${r.reps ? r.reps + "회" : "-"}</td></tr>`).join("");
+  wrap.appendChild(table);
+  box.appendChild(wrap);
 }
 
 // ---------- 월 달력 ----------
@@ -685,6 +806,7 @@ function wkOpenMotion(ex, reps) {
   document.getElementById("wk-sheet-how").innerHTML = (WK_HOW[key] || []).map((t) => `<li>${t}</li>`).join("");
   document.getElementById("wk-sheet-tip").textContent = "💡 " + ex.tip;
   document.getElementById("wk-sheet-eq").innerHTML = wkEqTags(ex.eq);
+  wkLiftChart(document.getElementById("wk-sheet-lift"), ex.n);
   // 실제 사람 시범: 유튜브 검색 (괄호 속 설명은 빼고 "자세"를 붙임)
   const q = ex.n.replace(/\s*\(.*?\)/g, "").replace(/\s*\+.*$/, "") + " 자세";
   document.getElementById("wk-sheet-video").href = "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
