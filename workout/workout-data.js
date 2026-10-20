@@ -11,6 +11,8 @@ const WK_EQ = {
   bench: "벤치",
   bar: "턱걸이",
   run: "러닝",
+  band: "저항 밴드",
+  rope: "줄넘기",
 };
 
 // 동작 묶음(같은 역할끼리). 주마다, 또는 "바꾸기" 버튼으로 돌아가며 나옴
@@ -33,6 +35,8 @@ const WK_POOLS = {
     { n: "덤벨 리어델트 플라이", eq: ["db", "bench"], r: [12, 15], u: "회", tip: "벤치에 엎드려 팔을 옆으로 벌리기. 어깨 뒤쪽" },
     { n: "커틀벨 로우 + 3초 내리기", eq: ["kb12", "bench"], r: [8, 10], u: "회(한쪽)", tip: "당긴 뒤 3초 동안 천천히 내리기" },
     { n: "엎드려 Y-T 레이즈", eq: ["bw"], r: [10, 12], u: "회", tip: "엎드려 팔을 Y, T 모양으로 번갈아 들어 1초 버티기" },
+    { n: "밴드 로우", eq: ["band"], r: [12, 15], u: "회", tip: "밴드를 기둥·문에 걸고 팔꿈치를 뒤로 당겨 날개뼈 모으기" },
+    { n: "밴드 풀 어파트", eq: ["band"], r: [15, 20], u: "회", tip: "팔을 앞으로 뻗고 밴드를 양옆으로 벌려 가슴에 닿게" },
   ],
   // 앞으로 밀기 (푸시업·벤치프레스)
   pushH: [
@@ -49,6 +53,7 @@ const WK_POOLS = {
     { n: "파이크 푸시업", eq: ["bw"], r: [8, 12], u: "회", tip: "엉덩이를 높이 들고 머리를 손 사이로" },
     { n: "덤벨 숄더프레스 (앉아서)", eq: ["db", "bench"], r: [12, 15], u: "회", tip: "벤치에 앉아서, 끝에서 팔 쭉 펴기" },
     { n: "커틀벨 바텀업 프레스", eq: ["kb4"], r: [8, 10], u: "회(한쪽)", tip: "커틀벨을 거꾸로 세워 들고 흔들리지 않게" },
+    { n: "밴드 숄더 프레스", eq: ["band"], r: [12, 15], u: "회", tip: "밴드를 발로 밟고 머리 위로 밀기" },
   ],
   // 팔·어깨 마무리
   arms: [
@@ -56,6 +61,7 @@ const WK_POOLS = {
     { n: "벤치 딥스", eq: ["bw", "bench"], r: [12, 15], u: "회", tip: "벤치 끝을 잡고, 팔꿈치는 뒤로" },
     { n: "덤벨 레터럴 레이즈", eq: ["db"], r: [12, 15], u: "회", tip: "어깨높이까지만, 천천히 내리기" },
     { n: "커틀벨 할로", eq: ["kb4"], r: [8, 8], u: "바퀴(양방향)", tip: "머리 둘레로 돌리기. 배에 힘" },
+    { n: "밴드 컬", eq: ["band"], r: [15, 20], u: "회", tip: "밴드를 발로 밟고 팔꿈치 고정한 채 접기" },
   ],
   // 스쿼트 계열
   squat: [
@@ -83,6 +89,7 @@ const WK_POOLS = {
     { n: "점프 스쿼트", eq: ["bw"], r: [10, 12], u: "회", tip: "착지는 조용히, 무릎이 안으로 모이지 않게" },
     { n: "스플릿 점프 런지", eq: ["bw"], r: [8, 10], u: "회(한쪽)", tip: "공중에서 다리 바꾸기. 러닝 탄력" },
     { n: "덤벨 스러스터", eq: ["db"], r: [12, 15], u: "회", tip: "스쿼트에서 일어나는 힘으로 머리 위로 밀기" },
+    { n: "줄넘기", eq: ["rope"], r: [60, 90], u: "초", tip: "발 앞쪽으로 가볍게 뛰고, 팔이 아니라 손목으로 돌리기" },
   ],
   // 러너 보강 (종아리·고관절·발목)
   runner: [
@@ -91,6 +98,8 @@ const WK_POOLS = {
     { n: "싱글레그 글루트 브릿지", eq: ["bw"], r: [12, 15], u: "회(한쪽)", tip: "한 발로 엉덩이 들고 1초 멈춤" },
     { n: "사이드 라잉 힙 어브덕션", eq: ["bw"], r: [15, 20], u: "회(한쪽)", tip: "옆으로 누워 다리 들기. 무릎 통증 예방" },
     { n: "벤치 스텝다운 (3초)", eq: ["bw", "bench"], r: [8, 10], u: "회(한쪽)", tip: "벤치에서 한 발로 3초 동안 천천히 내려오기" },
+    { n: "밴드 몬스터 워크", eq: ["band"], r: [10, 15], u: "걸음(한쪽)", tip: "무릎 위에 밴드, 반쯤 앉은 채 옆으로 걷기" },
+    { n: "밴드 클램쉘", eq: ["band"], r: [15, 20], u: "회(한쪽)", tip: "옆으로 누워 무릎을 조개처럼 벌리기. 엉덩이 옆" },
   ],
   // 코어
   core: [
@@ -115,35 +124,54 @@ const WK_POOLS = {
     { n: "버피", eq: ["bw"], r: [8, 10], u: "회", tip: "가슴 바닥, 점프. 숨이 차게" },
     { n: "덤벨 맨메이커 (가볍게)", eq: ["db"], r: [5, 6], u: "회", tip: "푸시업 → 좌우 로우 → 일어나 머리 위로" },
     { n: "커틀벨 스내치", eq: ["kb12"], r: [6, 8], u: "회(한쪽)", tip: "스윙에서 바로 머리 위로. 처음엔 4kg로 연습" },
+    { n: "줄넘기 빠르게", eq: ["rope"], r: [30, 40], u: "초", tip: "최대한 빠르게. 숨이 차오르게" },
   ],
 };
 
 // ---------- 사용자 설정(프로필)에 맞추기 ----------
-// goal: half | 10k | health | strength   run: none | beg(걷기 섞어서) | mid(30분 이상)
-// exp: beg | mid | adv   pullups: 0 | 1 | 5 | 10 (최대 개수 구간)   minutes: 20 | 30 | 45 | 60
-// limits: knee | back | shoulder   days: 요일별 가능 여부(월~일)
+// race: none | 5k | 10k | half | full (달리기 목표, 하나)
+// goals: strength | fatloss | cardio | mobility | health (그 밖의 목표, 여러 개)
+// run: none | beg(걷기 섞어서) | r30 | r60 | r120 (쉬지 않고 달릴 수 있는 시간)
+// exp: beg | mid | adv   age: 20 | 30 | 40 | 50 | 60   intensity: easy | mid | hard
+// pullups: 0 | 1 | 5 | 10   minutes: 20 | 30 | 45 | 60 | 90   raceDate: "YYYY-MM-DD" 또는 ""
+// limits: knee | back | shoulder | wrist | ankle   days: 요일별 가능 여부(월~일)
 const WK_PROFILE_DEFAULT = {
-  name: "", goal: "half", run: "mid", exp: "mid", pullups: 5,
-  kb: true, kbLight: 4, kbHeavy: 12, db: true, dbKg: 6, bench: true, bar: true,
+  name: "", race: "half", goals: [], run: "r60", raceDate: "", exp: "mid", age: 30, intensity: "mid", pullups: 5,
+  kb: true, kbLight: 4, kbHeavy: 12, db: true, dbKg: 6, bench: true, bar: true, band: false, rope: false, treadmill: false,
   days: [true, true, true, true, true, true, true], minutes: 45, limits: [],
 };
 let wkProfile = Object.assign({}, WK_PROFILE_DEFAULT);
 
-// 조심할 부위별로 빼는 동작
+// 조심할 부위(·나이)별로 빼는 동작
+const WK_JUMPS = ["점프 스쿼트", "스플릿 점프 런지", "버피", "줄넘기", "줄넘기 빠르게"];
 const WK_AVOID = {
-  knee: ["점프 스쿼트", "스플릿 점프 런지", "코사크 스쿼트", "버피", "덤벨 맨메이커 (가볍게)"],
+  knee: ["점프 스쿼트", "스플릿 점프 런지", "코사크 스쿼트", "버피", "덤벨 맨메이커 (가볍게)", "줄넘기"],
   back: ["커틀벨 스윙", "커틀벨 원암 스윙", "커틀벨 스내치", "덤벨 맨메이커 (가볍게)", "행잉 레그 레이즈", "러시안 트위스트", "덤벨 루마니안 데드리프트"],
   shoulder: ["커틀벨 원암 프레스", "덤벨 숄더프레스 (앉아서)", "파이크 푸시업", "커틀벨 스내치", "덤벨 스러스터", "벤치 딥스",
-    "커틀벨 클린 앤 프레스", "덤벨 레터럴 레이즈", "커틀벨 할로", "터키쉬 겟업", "디클라인 푸시업", "커틀벨 바텀업 프레스"],
+    "커틀벨 클린 앤 프레스", "덤벨 레터럴 레이즈", "커틀벨 할로", "터키쉬 겟업", "디클라인 푸시업", "커틀벨 바텀업 프레스", "밴드 숄더 프레스"],
+  wrist: ["아처 푸시업", "다이아몬드 푸시업", "디클라인 푸시업", "파이크 푸시업", "버피", "덤벨 맨메이커 (가볍게)", "벤치 딥스", "커틀벨 스내치"],
+  ankle: WK_JUMPS.concat(["코사크 스쿼트", "싱글레그 카프 레이즈"]),
+  age: WK_JUMPS.concat(["커틀벨 스내치", "덤벨 맨메이커 (가볍게)"]), // 50대 이상
 };
 // 처음 하는 사람에게는 아직 이른 동작
 const WK_HARD = ["아처 푸시업", "커틀벨 스내치", "덤벨 맨메이커 (가볍게)", "터키쉬 겟업", "코펜하겐 플랭크", "스플릿 점프 런지", "행잉 레그 레이즈", "디클라인 푸시업"];
 // 턱걸이 개수에 따라
-const WK_PULL_ZERO = ["스캐풀라 풀업", "네거티브 턱걸이", "엎드려 W 당기기"];
+const WK_PULL_ZERO = ["스캐풀라 풀업", "네거티브 턱걸이", "엎드려 W 당기기", "밴드 로우"];
 const WK_PULL_FEW_NOT = ["와이드 턱걸이", "턱걸이 + 위에서 2초 멈춤", "행잉 레그 레이즈"];
 
+// 예전(v8) 설정 → 지금 형식
+function wkMigrateProfile(pr) {
+  if (!pr || typeof pr.goal !== "string") return pr;
+  const out = Object.assign({}, pr);
+  out.race = pr.goal === "half" || pr.goal === "10k" ? pr.goal : "none";
+  out.goals = pr.goal === "strength" ? ["strength"] : pr.goal === "health" ? ["health"] : [];
+  if (pr.run === "mid") out.run = "r60";
+  delete out.goal;
+  return out;
+}
+
 function wkApplyProfile(pr) {
-  wkProfile = Object.assign({}, WK_PROFILE_DEFAULT, pr || {});
+  wkProfile = Object.assign({}, WK_PROFILE_DEFAULT, wkMigrateProfile(pr) || {});
   const light = wkProfile.kbLight || wkProfile.kbHeavy;
   const heavy = wkProfile.kbHeavy || wkProfile.kbLight;
   WK_EQ.kb4 = "커틀벨 " + light + "kg";
@@ -151,15 +179,17 @@ function wkApplyProfile(pr) {
   WK_EQ.db = "덤벨 " + wkProfile.dbKg + "kg×2";
   wkPoolCache = {};
 }
+const wkHasGoal = (g) => wkProfile.goals.indexOf(g) >= 0;
 
 // 설정에 맞는 동작만 남긴 묶음 (없는 장비·조심할 부위·실력 고려)
 let wkPoolCache = {};
 function wkPool(name) {
   if (wkPoolCache[name]) return wkPoolCache[name];
   const pr = wkProfile;
-  const has = { bw: true, kb4: pr.kb, kb12: pr.kb, db: pr.db, bench: pr.bench, bar: pr.bar, run: true };
+  const has = { bw: true, kb4: pr.kb, kb12: pr.kb, db: pr.db, bench: pr.bench, bar: pr.bar, band: pr.band, rope: pr.rope, run: true };
   const avoid = {};
-  (pr.limits || []).forEach((l) => (WK_AVOID[l] || []).forEach((n) => (avoid[n] = true)));
+  const limits = (pr.limits || []).concat(pr.age >= 50 ? ["age"] : []);
+  limits.forEach((l) => (WK_AVOID[l] || []).forEach((n) => (avoid[n] = true)));
   if (pr.exp === "beg") WK_HARD.forEach((n) => (avoid[n] = true));
   if (pr.pullups < 5) WK_PULL_FEW_NOT.forEach((n) => (avoid[n] = true));
   const list = WK_POOLS[name].filter((ex) => {
@@ -171,19 +201,51 @@ function wkPool(name) {
   return list;
 }
 
-// 며칠 하느냐에 따라 세션 고르기 (러닝을 안 하면 근력 위주)
-const WK_TEMPLATES_NORUN = {
-  1: ["full"],
-  2: ["lower", "upper"],
-  3: ["lower", "upper", "full"],
-  4: ["lower", "upper", "indoor", "full"],
-  5: ["lower", "upper", "indoor", "full", "upperB"],
-  6: ["lower", "upper", "indoor", "full", "upperB", "recovery"],
-  7: ["lower", "upper", "indoor", "full", "upperB", "indoor", "recovery"],
-};
+// 며칠 하느냐 + 목표 조합에 따라 세션 고르기
+// 러닝 비율: 달리기 목표가 길수록 ↑, 근력 목표가 있으면 ↓. 러닝을 안 하면 근력·컨디셔닝만
+const WK_RUN_SHARE = { full: 0.6, half: 0.5, "10k": 0.45, "5k": 0.4, none: 0.3 };
 function wkTemplateFor(n) {
-  return (wkProfile.run === "none" ? WK_TEMPLATES_NORUN : WK_TEMPLATES)[n].slice();
+  const pr = wkProfile;
+  const running = pr.run !== "none";
+  let runN = 0;
+  if (running) {
+    let share = WK_RUN_SHARE[pr.race] - (wkHasGoal("strength") ? 0.1 : 0) + (wkHasGoal("cardio") || wkHasGoal("fatloss") ? 0.05 : 0);
+    if (pr.race === "none" && !wkHasGoal("cardio") && !wkHasGoal("fatloss") && wkHasGoal("strength")) share = 0.25;
+    runN = Math.max(1, Math.round(n * share));
+    if (n >= 2) runN = Math.min(runN, n - 1); // 근력 하루는 남기기
+  }
+  if (n === 1) return [running && (pr.race !== "none" || wkHasGoal("cardio")) ? "combo" : "full"];
+  // 러닝 순서: 긴 러닝 → 포인트 → 이지 → ...
+  const runList = pr.race === "full" ? ["lsd", "easy", "runQ", "easy", "runQ", "easy"] : ["lsd", "runQ", "easy", "easy", "runQ", "easy"];
+  // 근력 순서: 목표에 따라
+  let strList = ["lower", "upper", "full", "indoor", "upperB", "full"];
+  if (wkHasGoal("strength")) strList = ["lower", "upper", "upperB", "full", "lower", "indoor"];
+  if (wkHasGoal("fatloss") || wkHasGoal("cardio")) strList = ["full", "indoor", "lower", "upper", "upperB", "indoor"];
+  if (runN === 0 && !wkHasGoal("fatloss") && !wkHasGoal("cardio")) strList = ["lower", "upper", "full", "indoor", "upperB", "indoor"];
+  if (n - runN === 1) strList = [wkHasGoal("strength") ? "full" : "full"];
+  const out = runList.slice(0, runN).concat(strList.slice(0, n - runN));
+  // 7일이거나, 유연성 목표로 6일 이상이면 하루는 회복·가동성 (그보다 적으면 세션 끝 가동성으로)
+  if ((wkHasGoal("mobility") && n >= 6) || n === 7) out[out.length - 1] = "recovery";
+  // 하체·포인트처럼 힘든 날을 앞쪽에 (LSD에서 멀리)
+  const ord = { lower: 0, runQ: 1, full: 2, upper: 3, indoor: 4, upperB: 5, easy: 6, combo: 2, lsd: 9, recovery: 9 };
+  return out.sort((a, b) => ord[a] - ord[b]);
 }
+
+// 대회까지 남은 주 (대회 날짜가 있을 때). w = 이번 주 번호(1970년부터)
+function wkWeeksToRace(w) {
+  const d = wkProfile.raceDate;
+  if (!d || wkProfile.race === "none") return null;
+  const [y, m, dd] = d.split("-").map(Number);
+  const day = new Date(y, m - 1, dd);
+  const mon = new Date(day);
+  mon.setDate(mon.getDate() - ((day.getDay() + 6) % 7));
+  return Math.round(Date.UTC(mon.getFullYear(), mon.getMonth(), mon.getDate()) / 864e5 / 7) - w;
+}
+
+// 러닝 수준별 이지런 시간, 목표·수준별 LSD 최대
+const WK_EASY_MIN = { r30: [30, 35, 40, 30], r60: [35, 40, 50, 35], r120: [45, 50, 60, 40] };
+const WK_LSD_MIN = { full: [90, 110, 130, 80], half: [60, 75, 90, 50], "10k": [45, 55, 65, 40], "5k": [35, 40, 45, 30], none: [35, 40, 45, 30] };
+const WK_LSD_CAP = { beg: 45, r30: 75, r60: 120, r120: 180 };
 
 // 4주 흐름: 1기본 → 2횟수↑ → 3세트·난이도↑ → 4회복
 const WK_PHASES = [
@@ -204,7 +266,7 @@ const WK_TYPES = {
   lsd: { title: "LSD (긴 러닝)", short: "LSD", min: 75, color: "#008300" },
   combo: { title: "이지런 + 전신 서킷", short: "런+근력", min: 45, color: "#eda100" },
   recovery: { title: "회복 · 가동성", short: "회복", min: 25, color: "#777777" },
-  indoor: { title: "실내 근력 (러닝 대신)", short: "실내", min: 40, color: "#8a5f00" },
+  indoor: { title: "실내 서킷", short: "실내", min: 40, color: "#8a5f00" },
 };
 
 // 비 오는 날 "실내 근력으로 바꾸기"를 보여 줄 러닝 세션
@@ -251,6 +313,13 @@ const WK_RUNQ = [
   }),
 ];
 
+// 풀코스 준비: 마라톤 페이스 런
+const WK_RUNQ_MP = (p) => ({
+  name: "마라톤 페이스 런",
+  steps: ["이지 조깅 10분", `풀코스 목표 페이스로 ${[20, 30, 40, 15][p]}분`, "쿨다운 조깅 5분"],
+  tip: "대회 날 달릴 속도를 몸에 새기는 훈련. 숨이 편해야 해요",
+});
+
 // ---------- 세션 만들기 ----------
 // 각 운동 줄: { pool, idx(기본 선택), sets, kind } → 화면에서 실제 동작으로 바꿈
 // w: 절대 주 번호(동작이 주마다 돌아가게), p: 4주 흐름 단계
@@ -278,7 +347,7 @@ function wkFresh(pool, start, used, picked, sets) {
   return { pool: pool, idx: best, sets: sets };
 }
 
-function wkBuildSession(type, w, p, dayNo, used) {
+function wkBuildSession(type, w, p, dayNo, used, fromRun) {
   const ph = WK_PHASES[p];
   const s = ph.sets;
   const t = WK_TYPES[type];
@@ -313,7 +382,7 @@ function wkBuildSession(type, w, p, dayNo, used) {
       warm,
       { name: "A. 스쿼트", rest: 90, items: [wkItem("squat", w, o, s)] },
       { name: "B. 힌지 (엉덩이·햄스트링)", rest: 90, items: [wkItem("hinge", w, o, s)] },
-      { name: "C. 폭발력", rest: 60, items: [wkItem("power", w, o, s)] },
+      { name: "C. 폭발력", legs: true, rest: 60, items: [wkItem("power", w, o, s)] },
       { name: "D. 러너 보강 (번갈아)", opt: true, rest: 45, items: [wkItem("runner", w, o, Math.max(2, s - 1)), wkItem("core", w, o + 3, Math.max(2, s - 1))] },
     ];
   } else if (type === "full") {
@@ -335,9 +404,14 @@ function wkBuildSession(type, w, p, dayNo, used) {
         { name: "코어", opt: true, rest: 45, items: [wkItem("core", w, o + 1, 2), wkItem("runner", w, o + 1, 2)] },
       ];
     }
-  } else if (type === "runQ") {
+  } else if (type === "runQ" || type === "easy") {
+    const tr = wkWeeksToRace(w);
+    if (tr === 0 || tr === 1) p = 3; // 대회 주·직전 주는 회복 주 분량
+  }
+  if (type === "runQ") {
     const r = wkProfile.run === "beg"
       ? { name: "달리기·걷기 인터벌", steps: ["걷기 5분", `2분 달리기 + 1분 걷기 × ${[6, 7, 8, 5][p]}회 (마지막 2회는 조금 빠르게)`, "걷기 5분"], tip: "숨이 너무 차면 걷는 시간을 늘려도 괜찮아요" }
+      : wkProfile.race === "full" && (w + dayNo) % 2 === 0 ? WK_RUNQ_MP(p)
       : WK_RUNQ[(w + dayNo) % WK_RUNQ.length](p);
     base.title = "포인트 러닝: " + r.name;
     base.blocks = [
@@ -345,7 +419,9 @@ function wkBuildSession(type, w, p, dayNo, used) {
       { name: "러닝 후 코어 10분", rest: 30, items: [wkItem("core", w, o, 2), wkItem("runner", w, o + 2, 2)] },
     ];
   } else if (type === "easy") {
-    const mins = [30, 35, 40, 30][p];
+    let mins = (WK_EASY_MIN[wkProfile.run] || WK_EASY_MIN.r30)[p] + (wkProfile.race === "full" && wkProfile.run !== "r30" ? 10 : 0);
+    const tr = wkWeeksToRace(w);
+    if (tr === 0 || tr === 1) mins = Math.round((mins * 0.6) / 5) * 5; // 대회 주·직전 주는 짧게
     const strides = [4, 6, 6, 0][p];
     const text = wkProfile.run === "beg"
       ? [`1분 달리기 + 1분 걷기 × ${[10, 12, 14, 8][p]}회 — 대화가 가능한 속도`]
@@ -356,17 +432,38 @@ function wkBuildSession(type, w, p, dayNo, used) {
       { name: "러너 보강 10분 (번갈아)", rest: 30, items: [wkItem("runner", w, o + 1, 2), wkItem("runner", w, o + 3, 2), wkItem("core", w, o + 4, 2)] },
     ];
   } else if (type === "lsd") {
-    const g = wkProfile.run === "beg" ? "beg" : wkProfile.goal;
-    const mins = { half: [60, 75, 90, 50], "10k": [45, 55, 65, 40], health: [35, 40, 45, 30], strength: [35, 40, 45, 30], beg: [30, 35, 40, 25] }[g][p];
-    const text = g === "beg"
+    const pr = wkProfile;
+    const beg = pr.run === "beg";
+    const toRace = wkWeeksToRace(w);
+    // 대회까지: 3주 전에 가장 길게, 2주 전부터 줄이기
+    let scale = 1;
+    let ph2 = p;
+    if (toRace != null) {
+      if (toRace > 12) scale = 0.85;
+      else if (toRace === 3) ph2 = 2;
+      else if (toRace === 2) scale = 0.65;
+      else if (toRace === 1) scale = 0.45;
+    }
+    let mins = beg ? [30, 35, 40, 25][p] : Math.round(((WK_LSD_MIN[pr.race] || WK_LSD_MIN.none)[ph2] * scale) / 5) * 5;
+    mins = Math.min(mins, WK_LSD_CAP[pr.run] || 60);
+    const raceName = { full: "풀코스", half: "하프", "10k": "10km", "5k": "5km" }[pr.race];
+    const text = beg
       ? [`${mins}분 동안 3분 달리기 + 1분 걷기 반복 — 아주 편하게`]
       : [`${mins}분 천천히 오래 — 이지런보다도 편하게`];
-    if (p === 2 && g === "half") text.push("마지막 15분만 하프 목표 페이스로 올려 보기");
-    if (p === 2 && g === "10k") text.push("마지막 10분만 10km 목표 페이스로 올려 보기");
+    if (!beg && ph2 === 2 && raceName && toRace !== 2 && toRace !== 1) text.push(`마지막 15분만 ${raceName} 목표 페이스로 올려 보기`);
     if (mins >= 75) text.push("60분 넘으면 물 + 에너지젤(또는 사탕) 챙기기");
+    if (toRace === 2 || toRace === 1) text.push("대회가 다가와서 양을 줄이는 주예요 (테이퍼). 다리를 아껴요");
+    if (toRace === 0) {
+      base.title = "대회 주 🏁";
+      mins = 20;
+      text.length = 0;
+      text.push(`이번 주는 대회 주! 🏁 ${raceName} 완주를 응원해요`, "대회 전날은 20분 조깅 + 스트라이드 4회만", "익숙한 신발·옷·보급, 새것은 쓰지 않기");
+    }
     base.min = mins + 10;
-    const lsdTip = { half: "하프를 위해 4주 흐름에 맞춰 60 → 75 → 90분으로 늘려 가요", "10k": "10km를 위해 45 → 55 → 65분으로 늘려 가요",
-      beg: "쉬지 않고 30분 달리기가 첫 목표예요. 걷는 시간을 조금씩 줄여 가요" }[g] || "주말엔 길게, 편하게. 체력의 바탕이 돼요";
+    const lsdTip = toRace != null && toRace >= 0
+      ? `대회까지 ${toRace}주 남았어요`
+      : beg ? "쉬지 않고 30분 달리기가 첫 목표예요. 걷는 시간을 조금씩 줄여 가요"
+        : raceName ? `${raceName}를 위해 4주 흐름에 맞춰 조금씩 늘려 가요` : "주말엔 길게, 편하게. 체력의 바탕이 돼요";
     base.blocks = [
       { name: "LSD", run: true, text: text, tip: lsdTip },
       { name: "끝나고 스트레칭 5분", text: ["종아리 · 허벅지 앞뒤 · 엉덩이 각 30초", "데드 행 30초 (허리 풀기)"] },
@@ -385,9 +482,10 @@ function wkBuildSession(type, w, p, dayNo, used) {
     const rounds = [3, 4, 4, 2][p];
     const mins = [8, 10, 10, 6][p];
     const st = w + dayNo;
-    base.note = wkProfile.run === "none" ? "숨이 차게 하는 실내 서킷이에요. 이번 주와 지난주에 한 동작은 빼고 골랐어요."
-      : "비 오는 날 러닝 대신이에요. 이번 주와 지난주에 한 동작은 빼고 골랐어요.";
-    if (wkProfile.run === "none") base.title = "실내 컨디셔닝 서킷";
+    // 러닝 날을 바꾼 것(비 오는 날)인지, 원래 계획된 실내 컨디셔닝인지
+    base.note = fromRun ? "비 오는 날 러닝 대신이에요. 이번 주와 지난주에 한 동작은 빼고 골랐어요."
+      : "숨이 차게 하는 실내 서킷이에요. 이번 주와 지난주에 한 동작은 빼고 골랐어요.";
+    base.title = fromRun ? "실내 근력 (러닝 대신)" : "실내 컨디셔닝 서킷";
     base.blocks = [
       warm,
       { name: `A. 서킷 ${rounds}라운드 (동작 사이 20초, 라운드 끝 90초 휴식)`, rest: 90, circuit: rounds,
@@ -409,21 +507,31 @@ function wkBuildSession(type, w, p, dayNo, used) {
       ] },
     ];
   }
-  return wkAdapt(base, p);
+  return wkAdapt(base, p, w);
 }
+
+// 유연성 목표일 때 끝에 붙이는 가동성 (돌아가며)
+const WK_MOBILITY = [
+  ["90/90 고관절 스트레칭 좌우 40초", "흉추 회전(옆으로 누워 책 펴기) 좌우 8회", "종아리 벽 스트레칭 좌우 30초"],
+  ["월드 그레이티스트 스트레칭 좌우 5회", "고양이·소 자세 10회", "햄스트링 스트레칭 좌우 40초"],
+  ["비둘기 자세 좌우 40초", "가슴 열기(문틀 스트레칭) 30초 × 2", "발목 돌리기·무릎 벽 대기 좌우 10회"],
+];
 
 // 할 수 있는 동작이 하나도 없을 때 대신 쓸 묶음
 const WK_FALLBACK = { power: "runner", carry: "core", arms: "core", combo: "squat", pushV: "pushH", pullH: "pullV", pullV: "pullH" };
 
 // 설정에 맞게 다듬기: 할 수 없는 동작은 대신하거나 빼기, 실력·운동 시간에 맞춰 세트·라운드 조절
-function wkAdapt(base, p) {
+function wkAdapt(base, p, w) {
   const pr = wkProfile;
+  const toRace = wkWeeksToRace(w);
+  const taper = toRace === 0 || toRace === 1; // 대회 주·직전 주는 가볍게
   const min = pr.minutes;
   const strength = !base.blocks.some((b) => b.run);
   const seen = {}; // 세션 전체에서 같은 동작은 한 번만
   base.blocks.forEach((b) => {
     if (!b.items) return;
     // 할 수 있는 동작이 없으면 비슷한 묶음으로, 이미 나온 동작이면 같은 묶음의 다음 동작으로
+    if (taper && b.legs) b.items = [];
     b.items = b.items.filter((it) => {
       if (!wkPool(it.pool).length && WK_FALLBACK[it.pool]) it.pool = WK_FALLBACK[it.pool];
       const list = wkPool(it.pool);
@@ -437,20 +545,29 @@ function wkAdapt(base, p) {
       }
       return false;
     });
+    const long = min >= 90 ? 2 : min >= 60 ? 1 : 0; // 긴 운동이면 더
+    const notRecov = p !== 3;
+    const fat = wkHasGoal("fatloss") || wkHasGoal("cardio");
+    if (b.rest) b.rest = Math.max(30, b.rest + (fat ? -15 : 0) + (pr.intensity === "hard" ? -10 : pr.intensity === "easy" ? 15 : 0));
     if (b.circuit) {
-      b.circuit = Math.max(2, b.circuit + (min <= 20 ? -1 : 0) + (min >= 60 && p !== 3 ? 1 : 0) + (pr.exp === "beg" ? -1 : 0));
+      b.circuit = Math.max(2, b.circuit + (min <= 20 ? -1 : 0) + (notRecov ? long : 0) + (pr.exp === "beg" ? -1 : 0)
+        + (fat && notRecov ? 1 : 0) + (pr.intensity === "easy" ? -1 : 0));
+      if (taper) b.circuit = 2;
       b.name = b.name.replace(/\d+라운드/, b.circuit + "라운드");
     } else if (b.emom) {
-      b.emom = Math.max(6, Math.min(b.emom, min <= 20 ? 8 : min <= 30 ? 10 : b.emom) + (min >= 60 && p !== 3 ? 4 : 0));
+      b.emom = Math.max(6, Math.min(b.emom, min <= 20 ? 8 : min <= 30 ? 10 : b.emom) + (notRecov ? long * 4 : 0) + (fat && notRecov ? 2 : 0));
       b.name = b.name.replace(/EMOM \d+분/, "EMOM " + b.emom + "분");
     } else {
       b.items.forEach((it) => {
         let sets = it.sets;
         if (pr.exp === "beg") sets -= 1;
-        if (pr.exp === "adv" && p !== 3) sets += 1;
+        if (pr.exp === "adv" && notRecov) sets += 1;
+        if (pr.intensity === "hard" && notRecov) sets += 1;
+        if (pr.intensity === "easy") sets -= 1;
+        if (wkHasGoal("strength") && notRecov) sets += 1;
         if (min <= 20) sets = Math.min(sets, 2);
-        if (min >= 60 && p !== 3) sets += 1;
-        it.sets = Math.max(2, sets);
+        if (notRecov) sets += long;
+        it.sets = taper ? 2 : Math.min(6, Math.max(2, sets));
       });
     }
   });
@@ -460,6 +577,10 @@ function wkAdapt(base, p) {
     if (core >= 4 || !strength) base.blocks = base.blocks.filter((b) => !b.opt);
   }
   base.blocks = base.blocks.filter((b) => b.text || (b.items && b.items.length));
+  // 유연성 목표: 끝에 가동성 5분 (회복일은 이미 가동성)
+  if (wkHasGoal("mobility") && base.type !== "recovery" && base.type !== "lsd") {
+    base.blocks.push({ name: "마무리 가동성 5분", text: WK_MOBILITY[(base.blocks.length + p) % WK_MOBILITY.length] });
+  }
   if (strength && base.type !== "recovery") base.min = min;
   return base;
 }

@@ -164,11 +164,18 @@ function wkRenderSetup() {
     prev.innerHTML = "<li class='wk-note'>위에서 일수를 골라 주세요.</li>";
     return;
   }
-  wkPlace(wkPick, wkState.lsdDay, wkTodayIdx).forEach((s) => {
+  const slots = wkPlace(wkPick, wkState.lsdDay, wkTodayIdx);
+  slots.forEach((s) => {
     const li = document.createElement("li");
     li.innerHTML = `<b>${WK_DAY_NAMES[s.day]}</b><span class="wk-dot" style="background:${WK_TYPES[s.type].color}"></span>${WK_TYPES[s.type].title}`;
     prev.appendChild(li);
   });
+  const runs = slots.filter((s) => ["runQ", "easy", "lsd", "combo"].indexOf(s.type) >= 0).length;
+  const rec = slots.filter((s) => s.type === "recovery").length;
+  const li = document.createElement("li");
+  li.className = "wk-summary";
+  li.textContent = `구성: 러닝 ${runs} · 근력 ${slots.length - runs - rec}${rec ? " · 회복 " + rec : ""} — ${wkGoalText()}`;
+  prev.appendChild(li);
 }
 
 function wkMakePlan() {
@@ -271,7 +278,7 @@ function wkUsedMap(week, day) {
 function wkSessionFor(week, slot) {
   const dayNo = week.slots.indexOf(slot);
   const used = slot.type === "indoor" ? wkUsedMap(week, slot.day) : null;
-  return wkBuildSession(slot.type, week.w, week.p, dayNo, used);
+  return wkBuildSession(slot.type, week.w, week.p, dayNo, used, !!slot.orig);
 }
 
 // 그 요일의 체크·바꾸기 기록 지우기 (세션 종류를 바꿀 때)
@@ -307,6 +314,7 @@ function wkRenderSession(week) {
     <p class="wk-note">약 ${ses.min}분</p><div class="wk-eq-row" data-eq-row></div>`;
   if (WK_RUN_TYPES.indexOf(slot.type) >= 0 && !week.done[d]) {
     html += `<button type="button" class="wk-rain" data-indoor>🌧 비 와요 · 실내 근력으로 바꾸기</button>`;
+    if (wkProfile.treadmill) html += `<p class="wk-note">러닝머신이 있으면 그대로 러닝머신에서 해도 좋아요 (경사 1%로 하면 바깥과 비슷해요).</p>`;
   }
   if (slot.type === "indoor") {
     html += `<p class="wk-indoor-note">${ses.note}</p>`;
@@ -629,28 +637,45 @@ function wkBeep() {
   });
 }
 
+// 목표를 한 줄로 ("풀코스 + 근력·근육 키우기")
+function wkGoalText() {
+  const q = (k, v) => (WK_PROFILE_Q.find((x) => x.key === k).opts.find((o) => o[0] === v) || [, ""])[1];
+  const parts = [];
+  if (wkProfile.race !== "none") parts.push(q("race", wkProfile.race) + " 준비");
+  wkProfile.goals.forEach((g) => parts.push(q("goals", g)));
+  const left = wkWeeksToRace(wkAbsWeek(wkMon));
+  return (parts.join(" + ") || "균형 잡힌 운동") + (left != null && left >= 0 ? ` (대회까지 ${left}주)` : "");
+}
+
 // ---------- 내 설정 (처음 한 번, 이후 ⚙에서 바꾸기) ----------
 // 질문 목록: key, 제목, 고르는 값들 [값, 글자], multi(여러 개)
+// equip·days는 설정 안에서 따로 저장(장비는 각각 true/false, 요일은 7칸 배열)
+const WK_EQUIP_KEYS = ["kb", "db", "bench", "bar", "band", "rope", "treadmill"];
 const WK_PROFILE_Q = [
-  { key: "goal", title: "운동 목표", opts: [["half", "하프마라톤 준비"], ["10k", "10km 달리기"], ["health", "건강·체력"], ["strength", "근력·몸 만들기"]] },
-  { key: "run", title: "러닝", opts: [["mid", "30분 이상 달릴 수 있음"], ["beg", "걷기 섞어서 (초보)"], ["none", "러닝은 안 함"]] },
+  { key: "race", title: "달리기 목표 (하나)", opts: [["none", "없음"], ["5k", "5km"], ["10k", "10km"], ["half", "하프마라톤"], ["full", "풀코스 마라톤"]] },
+  { key: "goals", title: "그 밖의 목표 (여러 개 가능)", multi: true,
+    opts: [["strength", "근력·근육 키우기"], ["fatloss", "체중 감량"], ["cardio", "심폐 체력"], ["mobility", "유연성·자세"], ["health", "건강 유지"]] },
+  { key: "run", title: "지금 쉬지 않고 달릴 수 있는 시간", opts: [["none", "러닝 안 함"], ["beg", "걷기 섞어야 함"], ["r30", "30분"], ["r60", "1시간 이상"], ["r120", "2시간 이상 (풀코스 경험)"]] },
   { key: "exp", title: "근력 운동 경험", opts: [["beg", "처음이에요"], ["mid", "6개월~2년"], ["adv", "2년 이상"]] },
+  { key: "age", title: "나이대", opts: [[20, "20대 이하"], [30, "30대"], [40, "40대"], [50, "50대"], [60, "60대 이상"]] },
+  { key: "intensity", title: "원하는 강도", opts: [["easy", "가볍게"], ["mid", "보통"], ["hard", "세게"]] },
   { key: "pullups", title: "턱걸이 최대 개수", opts: [[0, "못 해요"], [1, "1~4개"], [5, "5~9개"], [10, "10개 이상"]] },
-  { key: "equip", title: "집에 있는 장비 (여러 개 선택)", multi: true, opts: [["kb", "커틀벨"], ["db", "덤벨"], ["bench", "평벤치"], ["bar", "턱걸이 기구"]] },
+  { key: "equip", title: "가진 장비 (여러 개 선택)", multi: true,
+    opts: [["kb", "커틀벨"], ["db", "덤벨"], ["bench", "평벤치"], ["bar", "턱걸이 기구"], ["band", "저항 밴드"], ["rope", "줄넘기"], ["treadmill", "러닝머신"]] },
   { key: "days", title: "운동할 수 있는 요일", multi: true, opts: WK_DAY_NAMES.map((n, i) => [i, n]) },
-  { key: "minutes", title: "한 번에 운동할 시간 (근력)", opts: [[20, "20분"], [30, "30분"], [45, "45분"], [60, "60분"]] },
-  { key: "limits", title: "조심해야 할 부위 (있으면 선택)", multi: true, opts: [["knee", "무릎"], ["back", "허리"], ["shoulder", "어깨"]] },
+  { key: "minutes", title: "한 번에 운동할 시간 (근력)", opts: [[20, "20분"], [30, "30분"], [45, "45분"], [60, "60분"], [90, "90분"]] },
+  { key: "limits", title: "조심해야 할 부위 (있으면 선택)", multi: true, opts: [["knee", "무릎"], ["back", "허리"], ["shoulder", "어깨"], ["wrist", "손목"], ["ankle", "발목"]] },
 ];
 let wkDraft = null; // 고치는 중인 설정
 
 function wkDraftValue(key) {
-  if (key === "equip") return ["kb", "db", "bench", "bar"].filter((k) => wkDraft[k]);
+  if (key === "equip") return WK_EQUIP_KEYS.filter((k) => wkDraft[k]);
   if (key === "days") return wkDraft.days.map((on, i) => (on ? i : -1)).filter((i) => i >= 0);
   return wkDraft[key];
 }
 
 function wkRenderProfile() {
-  if (!wkDraft) wkDraft = JSON.parse(JSON.stringify(wkState.profile || WK_PROFILE_DEFAULT));
+  if (!wkDraft) wkDraft = JSON.parse(JSON.stringify(Object.assign({}, WK_PROFILE_DEFAULT, wkMigrateProfile(wkState.profile) || {})));
   ["wk-setup", "wk-plan"].forEach((id) => (document.getElementById(id).hidden = true));
   const box = document.getElementById("wk-profile");
   box.hidden = false;
@@ -664,6 +689,12 @@ function wkRenderProfile() {
       const on = q.multi ? val.indexOf(v) >= 0 : val === v;
       return `<button type="button" class="wk-chip${on ? " on" : ""}" data-q="${q.key}" data-v="${v}">${label}</button>`;
     }).join("") + `</div>`;
+    if (q.key === "race" && wkDraft.race !== "none") {
+      html += `<label class="wk-date">대회 날짜 (있으면) <input type="date" id="wk-pf-race" class="wk-input" value="${wkDraft.raceDate || ""}"></label>`;
+      if (wkDraft.race === "full" && (wkDraft.run === "beg" || wkDraft.run === "r30")) {
+        html += `<p class="wk-note wk-safety">풀코스는 보통 1시간 이상 쉬지 않고 달릴 수 있을 때 시작해요. 처음엔 짧게 시작해서 점점 늘려 갈게요.</p>`;
+      }
+    }
     if (q.key === "equip") {
       html += `<div class="wk-weights">
         ${wkDraft.kb ? `<label>커틀벨 가벼운 것 <input type="number" inputmode="decimal" class="wk-input wk-kg" data-w="kbLight" value="${wkDraft.kbLight}">kg</label>
@@ -683,14 +714,14 @@ function wkRenderProfile() {
     const q = WK_PROFILE_Q.find((x) => x.key === b.dataset.q);
     const raw = b.dataset.v;
     const v = typeof q.opts[0][0] === "number" ? Number(raw) : raw;
-    wkDraft.name = document.getElementById("wk-pf-name").value.trim();
+    wkKeepTyped();
     if (q.key === "equip") wkDraft[v] = !wkDraft[v];
     else if (q.key === "days") wkDraft.days[v] = !wkDraft.days[v];
-    else if (q.key === "limits") wkDraft.limits = wkDraft.limits.indexOf(v) >= 0 ? wkDraft.limits.filter((x) => x !== v) : wkDraft.limits.concat([v]);
+    else if (q.multi) wkDraft[q.key] = wkDraft[q.key].indexOf(v) >= 0 ? wkDraft[q.key].filter((x) => x !== v) : wkDraft[q.key].concat([v]);
     else wkDraft[q.key] = v;
-    // 러닝 안 하면 러닝 목표는 의미가 없음
-    if (q.key === "run" && v === "none" && (wkDraft.goal === "half" || wkDraft.goal === "10k")) wkDraft.goal = "strength";
-    if (q.key === "goal" && (v === "half" || v === "10k") && wkDraft.run === "none") wkDraft.run = "beg";
+    // 러닝 안 하면 달리기 목표는 없음, 달리기 목표가 있으면 러닝은 함
+    if (q.key === "run" && v === "none") wkDraft.race = "none";
+    if (q.key === "race" && v !== "none" && wkDraft.run === "none") wkDraft.run = "beg";
     const y = window.scrollY;
     wkRenderProfile();
     window.scrollTo(0, y);
@@ -699,8 +730,15 @@ function wkRenderProfile() {
     const n = parseFloat(inp.value);
     if (n > 0) wkDraft[inp.dataset.w] = n;
   }));
-  document.getElementById("wk-pf-save").addEventListener("click", () => {
+  // 입력칸(이름·대회 날짜)에 적은 것은 다시 그리기 전에 담아 두기
+  function wkKeepTyped() {
     wkDraft.name = document.getElementById("wk-pf-name").value.trim();
+    const rd = document.getElementById("wk-pf-race");
+    if (rd) wkDraft.raceDate = rd.value;
+  }
+  document.getElementById("wk-pf-save").addEventListener("click", () => {
+    wkKeepTyped();
+    if (wkDraft.race === "none") wkDraft.raceDate = "";
     if (!wkDraft.days.some((x) => x)) {
       alert("운동할 수 있는 요일을 하나 이상 골라 주세요.");
       return;

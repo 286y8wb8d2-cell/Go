@@ -159,6 +159,14 @@ const WK_MOTIONS = {
     { h: [66, 104], s: [100, 104], hd: [126, 99], ft: [28, 108] },
     { h: [66, 104], s: [100, 101], hd: [80, 99], ft: [28, 108] },
   ] },
+  standRow: { d: 1, f: [
+    { h: [80, 70], s: [80, 0], hd: [110, 46], ft: [82, 110], ks: -1 },
+    { h: [80, 70], s: [80, 0], hd: [88, 60], ft: [82, 110] },
+  ] },
+  rope: { d: 0.25, f: [
+    { h: [80, 70], s: [80, 0], hr: [9, 25], ft: [80, 110] },
+    { h: [80, 64], s: [80, 0], hr: [10, 23], ft: [80, 104] },
+  ] },
   plank: { d: 1.6, f: [
     { h: [68, 100], s: [100, 96], hd: [112, 109], ft: [29, 110] },
     { h: [68, 98], s: [100, 95], hd: [112, 109], ft: [29, 110] },
@@ -245,6 +253,8 @@ const WK_MOTION_OF = {
   "수트케이스 캐리": "walk", "터키쉬 겟업": "getup", "커틀벨 랙 캐리": "rackWalk", "데드 행": "hang",
   "스캐풀라 풀업": "hang", "엎드려 W 당기기": "proneW", "엎드려 Y-T 레이즈": "proneW",
   "맨몸 스쿼트 (3초 내리기)": "squat", "맨몸 리버스 런지": "lunge", "글루트 브릿지": "bridge", "맨몸 싱글레그 데드리프트": "slRdl",
+  "밴드 로우": "standRow", "밴드 풀 어파트": "lateral", "밴드 숄더 프레스": "press", "밴드 컬": "curl",
+  "밴드 몬스터 워크": "walk", "밴드 클램쉘": "abduction", "줄넘기": "rope", "줄넘기 빠르게": "rope",
   "커틀벨 클린 앤 프레스": "cleanPress", "버피": "burpee", "덤벨 맨메이커 (가볍게)": "manmaker", "커틀벨 스내치": "snatch",
 };
 
@@ -289,6 +299,8 @@ const WK_MUSCLES = {
   sidePlank: { p: ["obliques"], s: ["abs", "hipabd", "shoulder"], hot: "all" },
   copenhagen: { p: ["adductors", "obliques"], s: ["abs", "shoulder"], hot: "all" },
   proneW: { p: ["back"], s: ["shoulder", "lowback"] },
+  standRow: { p: ["back"], s: ["biceps", "shoulder"] },
+  rope: { p: ["calves"], s: ["quads", "shoulder"], hot: "all" },
   plank: { p: ["abs"], s: ["shoulder", "glutes", "quads"], hot: "all" },
   bridge: { p: ["glutes"], s: ["hams"] },
   slBridge: { p: ["glutes", "hams"], s: ["hipabd", "abs"] },
@@ -313,6 +325,9 @@ const WK_MUSCLES_EX = {
   "벤치 스텝다운 (3초)": { p: ["quads"], s: ["glutes", "hipabd"], hot: [1, 2] },
   "싱글레그 카프 레이즈": { p: ["calves"], s: [] },
   "스캐풀라 풀업": { p: ["back"], s: ["forearm"], hot: "all" },
+  "밴드 풀 어파트": { p: ["shoulder", "back"], s: [] },
+  "밴드 몬스터 워크": { p: ["hipabd", "glutes"], s: ["quads"], hot: "all" },
+  "밴드 클램쉘": { p: ["hipabd"], s: ["glutes"] },
   "엎드려 Y-T 레이즈": { p: ["shoulder", "back"], s: ["lowback"] },
 };
 
@@ -352,6 +367,8 @@ const WK_HOW = {
   sidePlank: ["옆으로 누워 팔꿈치를 어깨 바로 아래", "엉덩이를 들어 머리~발 일직선", "시간 동안 버티기"],
   copenhagen: ["위쪽 다리를 벤치에 걸치고 옆으로 누운 자세", "팔꿈치로 받치고 엉덩이 들기", "아래 다리는 힘 빼거나 같이 들기"],
   proneW: ["바닥에 엎드려 팔을 머리 위로 쭉 뻗기", "가슴을 살짝 들며 팔꿈치를 옆구리 쪽으로 당기기 (W 모양)", "등을 1초 쥐었다가 다시 뻗기"],
+  standRow: ["밴드를 가슴 높이 기둥에 걸고 팔을 쭉 뻗기", "팔꿈치를 몸통 옆으로 끌어당기며 날개뼈 모으기", "1초 버티고 천천히 팔 펴기"],
+  rope: ["발 앞쪽으로 바닥에서 살짝만 뛰기", "팔꿈치는 옆구리에, 손목으로 줄 돌리기", "리듬을 일정하게, 숨은 편하게"],
   plank: ["팔꿈치는 어깨 아래, 몸은 일자", "배꼽을 당기고 엉덩이에 힘", "숨 참지 말고 버티기"],
   bridge: ["누워서 무릎 세우기", "엉덩이를 들어 어깨~무릎 일직선", "위에서 1초 멈췄다 내리기"],
   slBridge: ["누워서 한 발만 바닥, 다른 다리는 들기", "바닥 발로 엉덩이 밀어 올리기", "골반 수평 유지하며 내리기"],
