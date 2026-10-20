@@ -167,3 +167,4 @@ footer { color: var(--text-light); font-size: 0.75rem; text-align: center; paddi
 .wk-mus { display: inline-block; border-radius: 12px; padding: 2px 9px; margin: 0 4px 2px 0; font-size: 0.8rem; font-weight: 600; }
 .wk-mus.hot { background: #fde4e4; color: #b42828; }
 .wk-mus.help { background: #fdf0d2; color: #8a5f00; }
+.wk-video { display: block; text-align: center; margin-top: 12px; padding: 11px; border-radius: 12px; background: #ff0033; color: #fff; font-weight: 700; text-decoration: none; }

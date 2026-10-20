@@ -527,6 +527,9 @@ function wkOpenMotion(ex, reps) {
   document.getElementById("wk-sheet-how").innerHTML = (WK_HOW[key] || []).map((t) => `<li>${t}</li>`).join("");
   document.getElementById("wk-sheet-tip").textContent = "💡 " + ex.tip;
   document.getElementById("wk-sheet-eq").innerHTML = wkEqTags(ex.eq);
+  // 실제 사람 시범: 유튜브 검색 (괄호 속 설명은 빼고 "자세"를 붙임)
+  const q = ex.n.replace(/\s*\(.*?\)/g, "").replace(/\s*\+.*$/, "") + " 자세";
+  document.getElementById("wk-sheet-video").href = "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
   document.getElementById("wk-sheet").hidden = false;
   document.body.classList.add("wk-noscroll");
   const mus = WK_MUSCLES_EX[ex.n] || WK_MUSCLES[key] || { p: [] };
