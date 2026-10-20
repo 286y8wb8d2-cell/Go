@@ -36,9 +36,22 @@ function wkAddDays(d, n) {
 function wkLoad() {
   try {
     const s = JSON.parse(localStorage.getItem(WK_KEY));
-    if (s && s.weeks) return s;
+    if (s && s.weeks) {
+      // 예전(v1) 기록: 주간 계획의 완료 표시를 달력 기록으로 옮김
+      if (!s.log) {
+        s.log = {};
+        Object.keys(s.weeks).forEach((k) => {
+          const w = s.weeks[k];
+          const [y, m, d] = k.split("-").map(Number);
+          w.slots.forEach((sl) => {
+            if (w.done[sl.day]) s.log[wkDateKey(new Date(y, m - 1, d + sl.day))] = sl.type;
+          });
+        });
+      }
+      return s;
+    }
   } catch (e) { /* 비어 있거나 깨짐 → 새로 */ }
-  return { firstWeek: null, lsdDay: 5, weeks: {} };
+  return { firstWeek: null, lsdDay: 5, weeks: {}, log: {} };
 }
 function wkSave() {
   try {
@@ -156,6 +169,11 @@ function wkMakePlan() {
     checks: {},
     done: {},
   };
+  // 달력에 이미 체크한 날이면 계획에도 완료로
+  const week = wkState.weeks[wkWeekKey];
+  week.slots.forEach((s) => {
+    if (wkState.log[wkDateKey(wkAddDays(wkMon, s.day))]) week.done[s.day] = true;
+  });
   wkSave();
   wkViewDay = wkTodayIdx;
   wkRender();
@@ -306,8 +324,10 @@ function wkRenderSession(week) {
   card.querySelectorAll("[data-rest]").forEach((b) => b.addEventListener("click", () => wkStartTimer(Number(b.dataset.rest))));
   card.querySelector("[data-finish]").addEventListener("click", () => {
     week.done[d] = !week.done[d];
+    wkLogSet(wkDateKey(wkAddDays(wkMon, d)), week.done[d], slot.type);
     wkSave();
     wkRenderPlan();
+    wkRenderCal();
     if (week.done[d]) window.scrollTo({ top: 0, behavior: "smooth" });
   });
   const mv = card.querySelector("[data-move]");
@@ -340,6 +360,95 @@ function wkRenderHistory() {
     ul.appendChild(li);
   });
 }
+
+// ---------- 월 달력 ----------
+// 기록: wkState.log["YYYY-MM-DD"] = 세션 종류(계획에 없던 날은 "free")
+// 달력은 처음 쓰기 시작한 달(calStart)부터 이번 달까지 넘겨 볼 수 있음
+if (!wkState.calStart) {
+  wkState.calStart = wkDateKey(wkNow).slice(0, 7);
+  wkSave();
+}
+let wkCalY = wkNow.getFullYear();
+let wkCalM = wkNow.getMonth(); // 0~11
+
+function wkLogSet(dk, on, type) {
+  if (on) wkState.log[dk] = type || "free";
+  else delete wkState.log[dk];
+}
+
+// 그 날짜가 들어 있는 주의 계획에서 세션 찾기
+function wkPlanOn(date) {
+  const week = wkState.weeks[wkDateKey(wkMonday(date))];
+  if (!week) return null;
+  const slot = wkSlotOf(week, wkDayIndex(date));
+  return slot ? { week: week, slot: slot } : null;
+}
+
+function wkRenderCal() {
+  const ym = wkCalY + "-" + String(wkCalM + 1).padStart(2, "0");
+  const nowYm = wkDateKey(wkNow).slice(0, 7);
+  document.getElementById("wk-cal-title").textContent = `${wkCalY}년 ${wkCalM + 1}월`;
+  document.getElementById("wk-cal-prev").disabled = ym <= wkState.calStart;
+  document.getElementById("wk-cal-next").disabled = ym >= nowYm;
+
+  const grid = document.getElementById("wk-cal-grid");
+  grid.innerHTML = "";
+  const first = new Date(wkCalY, wkCalM, 1);
+  const last = new Date(wkCalY, wkCalM + 1, 0).getDate();
+  for (let i = 0; i < wkDayIndex(first); i++) grid.appendChild(document.createElement("span"));
+  let count = 0;
+  let runs = 0;
+  let strength = 0;
+  for (let day = 1; day <= last; day++) {
+    const date = new Date(wkCalY, wkCalM, day);
+    const dk = wkDateKey(date);
+    const type = wkState.log[dk];
+    const plan = wkPlanOn(date);
+    const future = date > wkNow;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "wk-cal-day";
+    if (dk === wkDateKey(wkNow)) b.classList.add("today");
+    if (type) {
+      b.classList.add("done");
+      count++;
+      if (["runQ", "easy", "lsd"].indexOf(type) >= 0) runs++;
+      else if (["upper", "upperB", "lower", "full"].indexOf(type) >= 0) strength++;
+    }
+    b.disabled = future || dk.slice(0, 7) < wkState.calStart;
+    const color = plan ? WK_TYPES[plan.slot.type].color : "";
+    b.innerHTML = `<span class="wk-cal-num">${day}</span>` +
+      (type ? `<span class="wk-cal-mark">✓</span>` : plan ? `<span class="wk-dot" style="background:${color}"></span>` : "");
+    if (plan) b.title = WK_TYPES[plan.slot.type].title;
+    b.addEventListener("click", () => {
+      const on = !wkState.log[dk];
+      if (plan) {
+        plan.week.done[plan.slot.day] = on;
+        wkLogSet(dk, on, plan.slot.type);
+      } else {
+        wkLogSet(dk, on, "free");
+      }
+      wkSave();
+      wkRender();
+    });
+    grid.appendChild(b);
+  }
+  const passed = ym === nowYm ? wkNow.getDate() : last;
+  document.getElementById("wk-cal-sum").innerHTML = count
+    ? `<b>${count}일</b> 운동 (지난 ${passed}일 중) · 러닝 ${runs} · 근력 ${strength}${count - runs - strength ? " · 기타 " + (count - runs - strength) : ""}`
+    : "아직 체크한 날이 없어요.";
+}
+
+document.getElementById("wk-cal-prev").addEventListener("click", () => {
+  wkCalM--;
+  if (wkCalM < 0) { wkCalM = 11; wkCalY--; }
+  wkRenderCal();
+});
+document.getElementById("wk-cal-next").addEventListener("click", () => {
+  wkCalM++;
+  if (wkCalM > 11) { wkCalM = 0; wkCalY++; }
+  wkRenderCal();
+});
 
 // ---------- 휴식 타이머 ----------
 let wkTimerEnd = 0;
@@ -389,6 +498,7 @@ function wkRender() {
     `${wkMon.getMonth() + 1}/${wkMon.getDate()} – ${sun.getMonth() + 1}/${sun.getDate()} 이번 주`;
   if (wkState.weeks[wkWeekKey]) wkRenderPlan();
   else wkRenderSetup();
+  wkRenderCal();
 }
 
 document.querySelectorAll("#wk-lsd-seg button").forEach((b) => b.addEventListener("click", () => {
