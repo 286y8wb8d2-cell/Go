@@ -1,7 +1,8 @@
 // =============================================
 // 3D 사람 모델로 동작 보여 주기
 // - three.js(vendor/three.min.js) + GLTFLoader(vendor/GLTFLoader.js), 처음 열 때만 불러옴
-// - 사람 모델: vendor/human.glb ("3D Male Base Mesh" by orange-juice-games, CC0 — 자유 이용)
+// - 사람 모델: vendor/human.glb — MakeHuman(CC0) 몸을 kblood/CharacterCreator(생성물 CC0)로 만든 것에
+//   남성·근육 체형을 굳히고 짧은 머리·반바지를 합침 (vendor/human-LICENSE.txt)
 // - 동작 좌표는 workout-motion.js의 키프레임(옆모습 2D)을 그대로 쓰고,
 //   모델 뼈 길이에 맞춰 무릎·팔꿈치를 3D로 다시 계산해서 뼈를 돌림
 // - 쓰는 근육은 피부 색을 빨강(주로)·주황(보조)으로 칠하고, 힘이 드는 순간 더 진하게
@@ -38,7 +39,7 @@ function m3Load() {
     if (!THREE.GLTFLoader && !(await m3Script("vendor/GLTFLoader.js?v=149"))) return false;
     if (THREE.ColorManagement) THREE.ColorManagement.legacyMode = false; // 색을 적은 그대로 보이게
     try {
-      const gltf = await new THREE.GLTFLoader().loadAsync("vendor/human.glb?v=1");
+      const gltf = await new THREE.GLTFLoader().loadAsync("vendor/human.glb?v=2");
       m3Model = m3Prepare(gltf.scene);
       return true;
     } catch (e) {
@@ -64,26 +65,31 @@ function m3GetRenderer() {
 }
 
 // ---------- 모델 준비: 뼈 찾기, 길이 재기, 피부를 근육 부위로 나누기 ----------
+// 뼈 이름 (MakeHuman game_engine 뼈대). sd = "l" | "r"
+const M3_BONE = { upper: "upperarm_", fore: "lowerarm_", hand: "hand_", thigh: "thigh_", shin: "calf_" };
+const M3_CURL = 1; // 손가락 굽히는 방향 (뼈 X축 기준)
+
 function m3Prepare(root) {
   const T = THREE;
+  root.rotation.y = Math.PI / 2; // 모델은 +Z를 봄 → 앞이 +X, 왼쪽이 -Z가 되게
   root.updateMatrixWorld(true);
   const bones = {};
-  let mesh = null;
+  const meshes = [];
   root.traverse((o) => {
     if (o.isBone) bones[o.name] = o;
-    if (o.isSkinnedMesh) mesh = o;
+    if (o.isSkinnedMesh) meshes.push(o);
   });
+  const body = meshes.find((m) => m.material.name === "Skin");
   const head = (n) => new T.Vector3().setFromMatrixPosition(bones[n].matrixWorld);
   const restQ = {};
   Object.keys(bones).forEach((n) => (restQ[n] = bones[n].getWorldQuaternion(new T.Quaternion())));
-  const box = new T.Box3().setFromObject(mesh);
 
   // 길이(미터) → 동작 좌표(다리 길이 40)로 바꾸는 배율
-  const hipL = head("thighL"), kneeL = head("shinL"), ankL = head("footL");
+  const hipL = head("thigh_l"), kneeL = head("calf_l"), ankL = head("foot_l");
   const SC = 40 / (hipL.distanceTo(kneeL) + kneeL.distanceTo(ankL));
-  const shL = head("upper_armL"), elL = head("forearmL"), wrL = head("handL");
-  const hipC = hipL.clone().add(head("thighR")).multiplyScalar(0.5);
-  const shC = shL.clone().add(head("upper_armR")).multiplyScalar(0.5);
+  const shL = head("upperarm_l"), elL = head("lowerarm_l"), wrL = head("hand_l");
+  const hipC = hipL.clone().add(head("thigh_r")).multiplyScalar(0.5);
+  const shC = shL.clone().add(head("upperarm_r")).multiplyScalar(0.5);
   const L = {
     SC: SC,
     thigh: hipL.distanceTo(kneeL) * SC,
@@ -91,79 +97,108 @@ function m3Prepare(root) {
     upper: shL.distanceTo(elL) * SC,
     fore: (elL.distanceTo(wrL) + 0.045) * SC, // 손바닥 가운데까지
     torso: shC.distanceTo(hipC) * SC,
-    ankle: (ankL.y - box.min.y) * SC, // 발목 높이
-    spineOff: head("spine").sub(hipC).multiplyScalar(SC), // 엉덩이 가운데 → spine 뼈 시작
+    ankle: ankL.y * SC, // 발목 높이 (발바닥 = 0)
+    pelvisOff: head("pelvis").sub(hipC).multiplyScalar(SC), // 엉덩이 가운데 → pelvis 뼈 시작
   };
 
-  // 피부 점마다 근육 부위 정하기 (서 있는 기본 자세 기준, 앞=+X 위=+Y 오른쪽=+Z)
-  const geo = mesh.geometry;
-  const pos = geo.attributes.position;
-  const sIdx = geo.attributes.skinIndex;
-  const sW = geo.attributes.skinWeight;
-  const names = mesh.skeleton.bones.map((b) => b.name);
-  const n = pos.count;
-  const region = new Array(n).fill("");
-  const cover = new Array(n).fill("skin"); // skin | shorts | hair
-  const v = new T.Vector3();
+  // 피부·반바지의 점마다 근육 부위 정하기 (서 있는 기본 자세 기준, 앞=+X 위=+Y 오른쪽=+Z)
   const yHip = hipC.y, yKnee = kneeL.y, ySh = shC.y;
-  for (let i = 0; i < n; i++) {
-    v.fromBufferAttribute(pos, i).applyMatrix4(mesh.bindMatrix);
-    let best = 0;
-    let bw = -1;
-    ["getX", "getY", "getZ", "getW"].forEach((g) => {
-      const wt = sW[g](i);
-      if (wt > bw) { bw = wt; best = sIdx[g](i); }
-    });
-    const bn = names[best].replace(/[LR]$/, "");
-    let r = "";
-    if (bn === "thigh") {
-      const t = (yHip - v.y) / (yHip - yKnee);
-      const c = hipL.clone().lerp(kneeL, Math.min(Math.max(t, 0), 1));
-      const rx = v.x - c.x;
-      const rz = Math.abs(v.z) - Math.abs(c.z); // + 바깥, - 안쪽
-      if (t < 0.15 && rx < 0) r = "glutes";
-      else if (rx > Math.abs(rz) * 0.7) r = "quads";
-      else if (rx < -Math.abs(rz) * 0.7) r = "hams";
-      else r = rz < 0 ? "adductors" : "quads";
-      if (t < 0.42) cover[i] = "shorts";
-    } else if (bn === "shin") {
-      const t = (yKnee - v.y) / (yKnee - ankL.y);
-      if (v.x < kneeL.x - 0.005 && t < 0.72) r = "calves";
-    } else if (bn === "spine" || bn === "pelvis") {
-      if (v.x < hipC.x - 0.03) r = v.y < yHip + 0.07 ? "glutes" : "lowback";
-      else if (Math.abs(v.z) > 0.12) r = "hipabd";
-      else if (v.y > yHip + 0.05) r = "abs";
-      if (v.y < yHip + 0.1) cover[i] = "shorts";
-    } else if (bn === "spine001" || bn === "spine002") {
-      if (v.x > 0.03) r = Math.abs(v.z) < 0.075 ? "abs" : "obliques";
-      else if (v.x < -0.03) r = Math.abs(v.z) < 0.07 ? "lowback" : "back";
-      else r = "obliques";
-    } else if (bn === "spine003") {
-      if (v.x > 0.02) r = v.y > ySh - 0.2 ? "chest" : "abs";
-      else r = "back";
-    } else if (bn === "shoulder") {
-      r = Math.abs(v.z) > 0.15 ? "shoulder" : v.x < 0 ? "back" : "chest";
-    } else if (bn === "upper_arm") {
-      const t = (ySh - v.y) / (ySh - elL.y);
-      if (t < 0.3) r = "shoulder";
-      else r = v.x > head(names[best]).x - 0.005 ? "biceps" : "triceps";
-    } else if (bn === "forearm") {
-      r = "forearm";
-    } else if (bn === "spine004") {
-      r = v.x < 0 && v.y < ySh + 0.1 ? "back" : "";
-    } else if (bn === "spine005") {
-      if (v.y > box.max.y - 0.1 || (v.x < -0.03 && v.y > box.max.y - 0.2)) cover[i] = "hair";
+  const v = new T.Vector3();
+  function classify(mesh) {
+    const geo = mesh.geometry;
+    const pos = geo.attributes.position;
+    const sIdx = geo.attributes.skinIndex;
+    const sW = geo.attributes.skinWeight;
+    const names = mesh.skeleton.bones.map((b) => b.name);
+    const region = new Array(pos.count).fill("");
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
+      let best = 0;
+      let bw = -1;
+      ["getX", "getY", "getZ", "getW"].forEach((g) => {
+        const wt = sW[g](i);
+        if (wt > bw) { bw = wt; best = sIdx[g](i); }
+      });
+      const bn = names[best].replace(/_[lr]$/, "");
+      let r = "";
+      if (bn === "thigh") {
+        const t = (yHip - v.y) / (yHip - yKnee);
+        const c = hipL.clone().lerp(kneeL, Math.min(Math.max(t, 0), 1));
+        const rx = v.x - c.x;
+        const rz = Math.abs(v.z) - Math.abs(c.z); // + 바깥, - 안쪽
+        if (t < 0.15 && rx < 0) r = "glutes";
+        else if (rx > Math.abs(rz) * 0.7) r = "quads";
+        else if (rx < -Math.abs(rz) * 0.7) r = "hams";
+        else r = rz < 0 ? "adductors" : "quads";
+      } else if (bn === "calf") {
+        const t = (yKnee - v.y) / (yKnee - ankL.y);
+        if (v.x < kneeL.x - 0.005 && t < 0.72) r = "calves";
+      } else if (bn === "pelvis") {
+        if (v.x < hipC.x - 0.03) r = v.y < yHip + 0.06 ? "glutes" : "lowback";
+        else if (Math.abs(v.z) > 0.11) r = "hipabd";
+        else if (v.y > yHip + 0.04) r = "abs";
+      } else if (bn === "spine_01" || bn === "spine_02") {
+        if (v.x > 0.02) r = Math.abs(v.z) < 0.07 ? "abs" : "obliques";
+        else if (v.x < -0.03) r = Math.abs(v.z) < 0.06 ? "lowback" : "back";
+        else r = "obliques";
+      } else if (bn === "spine_03") {
+        if (v.x > 0.02) r = v.y > ySh - 0.2 ? "chest" : "abs";
+        else r = "back";
+      } else if (bn === "clavicle") {
+        r = Math.abs(v.z) > 0.13 ? "shoulder" : v.x < 0 ? "back" : "chest";
+      } else if (bn === "upperarm") {
+        const t = (ySh - v.y) / (ySh - elL.y);
+        if (t < 0.3) r = "shoulder";
+        else r = v.x > head(names[best]).x ? "biceps" : "triceps";
+      } else if (bn === "lowerarm") {
+        r = "forearm";
+      } else if (bn === "neck_01") {
+        r = v.x < 0 ? "back" : "";
+      }
+      region[i] = r;
     }
-    region[i] = r;
+    return region;
   }
-  const colors = new Float32Array(n * 3);
-  geo.setAttribute("color", new T.BufferAttribute(colors, 3));
-  mesh.material = new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.62, metalness: 0 });
-  mesh.castShadow = true;
-  mesh.frustumCulled = false;
+
+  // 근육 빛: 점마다 glow(색 rgb + 세기 a)를 두고, 재질에서 피부색 위에 섞음
+  const glowing = [];
+  meshes.forEach((m) => {
+    m.castShadow = true;
+    m.frustumCulled = false;
+    if (m !== body && !/shorts/i.test(m.material.name)) return;
+    const region = classify(m);
+    const glow = new Float32Array(region.length * 4);
+    m.geometry.setAttribute("glow", new T.BufferAttribute(glow, 4));
+    const mat = m.material;
+    mat.onBeforeCompile = (sh) => {
+      sh.vertexShader = sh.vertexShader
+        .replace("#include <common>", "#include <common>\nattribute vec4 glow;\nvarying vec4 vGlow;")
+        .replace("#include <begin_vertex>", "#include <begin_vertex>\nvGlow = glow;");
+      sh.fragmentShader = sh.fragmentShader
+        .replace("#include <common>", "#include <common>\nvarying vec4 vGlow;")
+        .replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.rgb = mix(diffuseColor.rgb, vGlow.rgb, vGlow.a);")
+        .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance += vGlow.rgb * vGlow.a * 0.3;");
+    };
+    mat.customProgramCacheKey = () => "glow";
+    if (/shorts/i.test(mat.name)) mat.color.set(0x2b3442);
+    glowing.push({ mesh: m, region: region, glow: glow });
+  });
+
   root.scale.setScalar(SC);
-  const handRest = { L: bones.handL.quaternion.clone(), R: bones.handR.quaternion.clone() };
-  return { root: root, mesh: mesh, bones: bones, restQ: restQ, handRest: handRest, L: L, region: region, cover: cover, colors: colors };
+  const handRest = { l: bones.hand_l.quaternion.clone(), r: bones.hand_r.quaternion.clone() };
+  const fingerRest = {};
+  Object.keys(bones).forEach((n) => { if (/^(index|middle|ring|pinky|thumb)_0/.test(n)) fingerRest[n] = bones[n].quaternion.clone(); });
+  return { root: root, bones: bones, restQ: restQ, handRest: handRest, fingerRest: fingerRest, L: L, glowing: glowing };
+}
+
+// 뼈를 세계 기준 위치·회전으로 놓기 (부모 기준으로 바꿔서)
+function m3SetWorld(bone, pos, quat) {
+  const T = THREE;
+  const pm = bone.parent.matrixWorld;
+  const pq = bone.parent.getWorldQuaternion(new T.Quaternion());
+  bone.position.copy(pos).applyMatrix4(new T.Matrix4().copy(pm).invert());
+  bone.quaternion.copy(pq.invert().multiply(quat));
+  bone.updateMatrixWorld(true);
 }
 
 // ---------- 계산 도우미 ----------
@@ -295,10 +330,10 @@ function m3Play(box, key, weight, exName) {
   const weights = [];
   if (weight === "kb") {
     const g = new T.Group();
-    const bell = new T.Mesh(track(new T.SphereGeometry(5.2, 20, 16)), track(m3Mat(0xe8692f, { roughness: 0.45 })));
-    bell.position.y = -6.5;
-    const handle = new T.Mesh(track(new T.TorusGeometry(3.2, 0.9, 8, 20, Math.PI)), track(m3Mat(0x333333)));
-    handle.position.y = -2.6;
+    const bell = new T.Mesh(track(new T.SphereGeometry(4.2, 20, 16)), track(m3Mat(0xe8692f, { roughness: 0.45 })));
+    bell.position.y = -5.4;
+    const handle = new T.Mesh(track(new T.TorusGeometry(2.6, 0.75, 8, 20, Math.PI)), track(m3Mat(0x333333)));
+    handle.position.y = -2.2;
     bell.castShadow = handle.castShadow = true;
     g.add(bell, handle);
     scene.add(g);
@@ -325,7 +360,10 @@ function m3Play(box, key, weight, exName) {
   const grip = weight || mo.bar ? 1.1 : 0.35;
   function setFingers(hand, amt) {
     hand.traverse((b) => {
-      if (/^(f_|thumb)/.test(b.name)) b.rotation.set((/^thumb/.test(b.name) ? 0.4 : 1) * amt * (/01/.test(b.name) ? 0.6 : 1), 0, 0);
+      if (M.fingerRest[b.name]) {
+        b.quaternion.copy(M.fingerRest[b.name]);
+        b.rotateX((/^thumb/.test(b.name) ? 0.35 : 1) * amt * (/01/.test(b.name) ? 0.7 : 1) * M3_CURL);
+      }
     });
     hand.updateMatrixWorld(true);
   }
@@ -368,27 +406,26 @@ function m3Play(box, key, weight, exName) {
   const sec = info.s || [];
   const hot = info.hot || (WK_MUSCLES[key] && WK_MUSCLES[key].hot) || [1];
   const load = (fi) => (hot === "all" || hot.indexOf(fi) >= 0 ? 1 : 0.15);
-  const cBase = { skin: new T.Color(M3_SKIN), shorts: new T.Color(M3_SHORTS), hair: new T.Color(M3_HAIR) };
   const cHot = new T.Color(M3_HOT);
   const cHelp = new T.Color(M3_HELP);
-  const tmpC = new T.Color();
-  const colAttr = M.mesh.geometry.attributes.color;
   let lastI = -1;
   function paint(I) {
     if (Math.abs(I - lastI) < 0.02) return;
     lastI = I;
-    for (let i = 0; i < M.region.length; i++) {
-      const rg = M.region[i];
-      tmpC.copy(cBase[M.cover[i]]);
-      if (M.cover[i] !== "hair" && rg) {
-        if (prim.indexOf(rg) >= 0) tmpC.lerp(cHot, 0.55 + 0.45 * I);
-        else if (sec.indexOf(rg) >= 0) tmpC.lerp(cHelp, 0.45 + 0.3 * I);
+    M.glowing.forEach((g) => {
+      for (let i = 0; i < g.region.length; i++) {
+        const rg = g.region[i];
+        let c = null;
+        let a = 0;
+        if (rg && prim.indexOf(rg) >= 0) { c = cHot; a = 0.5 + 0.4 * I; }
+        else if (rg && sec.indexOf(rg) >= 0) { c = cHelp; a = 0.35 + 0.3 * I; }
+        g.glow[i * 4] = c ? c.r : 0;
+        g.glow[i * 4 + 1] = c ? c.g : 0;
+        g.glow[i * 4 + 2] = c ? c.b : 0;
+        g.glow[i * 4 + 3] = a;
       }
-      M.colors[i * 3] = tmpC.r;
-      M.colors[i * 3 + 1] = tmpC.g;
-      M.colors[i * 3 + 2] = tmpC.b;
-    }
-    colAttr.needsUpdate = true;
+      g.mesh.geometry.attributes.glow.needsUpdate = true;
+    });
   }
 
   // ---------- 움직이기 ----------
@@ -434,42 +471,41 @@ function m3Play(box, key, weight, exName) {
     f.sub(u.clone().multiplyScalar(f.dot(u))).normalize();
     const l = new T.Vector3().crossVectors(f, u).normalize();
     const Rb = new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(f, u, l));
-    B.spine.quaternion.copy(Rb.clone().multiply(M.restQ.spine));
-    B.spine.position.copy(H.clone().add(L.spineOff.clone().applyQuaternion(Rb)).divideScalar(L.SC));
     M.root.updateMatrixWorld(true);
+    m3SetWorld(B.pelvis, H.clone().add(L.pelvisOff.clone().applyQuaternion(Rb)), Rb.clone().multiply(M.restQ.pelvis));
 
     // 팔·다리: 옆모습이면 카메라 쪽(+Z, 오른쪽)이 1번, 앞모습이면 그림 오른쪽(-Z, 왼쪽)이 1번
     const together = Math.hypot(p.hand[0] - p.hand2[0], p.hand[1] - p.hand2[1]) < 4;
-    const sides = front ? [["L", 0], ["R", 1]] : [["R", 0], ["L", 1]];
+    const sides = front ? [["l", 0], ["r", 1]] : [["r", 0], ["l", 1]];
     const palms = {};
     sides.forEach(([sd, n]) => {
-      const A = wp("upper_arm" + sd);
+      const A = wp(M3_BONE.upper + sd);
       const hand2d = (n === 0 ? p.hand : p.hand2).slice();
       const onFloor = hand2d[1] >= 106;
       if (onFloor) hand2d[1] = MO_GROUND + lift - 1.5; // 바닥 짚는 손은 손바닥 높이로
       const zH = together ? Math.sign(A.z) * 2.5 : A.z;
-      palms[sd] = poseLimb("upper_arm" + sd, "forearm" + sd, A, hand2d, n === 0 ? p.es : p.es2, L.upper, L.fore, zH, f, front && together ? 9 : 0);
+      palms[sd] = poseLimb(M3_BONE.upper + sd, M3_BONE.fore + sd, A, hand2d, n === 0 ? p.es : p.es2, L.upper, L.fore, zH, f, front && together ? 9 : 0);
       // 바닥 짚은 손: 손바닥을 바닥에 펴고 손가락은 머리 쪽으로
-      const hb = B["hand" + sd];
+      const hb = B[M3_BONE.hand + sd];
       if (onFloor) {
         const fwd = new T.Vector3(u.x, 0, u.z);
         if (fwd.lengthSq() < 0.01) fwd.set(f.x, 0, f.z);
-        m3Aim(hb, M.restQ["hand" + sd], fwd.normalize(), new T.Vector3(0, 0, -Math.sign(A.z)));
+        m3Aim(hb, M.restQ[M3_BONE.hand + sd], fwd.normalize(), new T.Vector3(0, 0, -Math.sign(A.z)));
       } else {
         hb.quaternion.copy(M.handRest[sd]);
         hb.updateMatrixWorld(true);
       }
       setFingers(hb, onFloor ? 0.1 : grip);
-      const K = wp("thigh" + sd);
-      poseLimb("thigh" + sd, "shin" + sd, K, n === 0 ? p.ft : p.ft2, n === 0 ? p.ks : p.ks2, L.thigh, L.shin, K.z * 1.15, f);
+      const K = wp(M3_BONE.thigh + sd);
+      poseLimb(M3_BONE.thigh + sd, M3_BONE.shin + sd, K, n === 0 ? p.ft : p.ft2, n === 0 ? p.ks : p.ks2, L.thigh, L.shin, K.z * 1.15, f);
     });
 
     // 기구: 손바닥에 붙이기
     if (weight === "kb") {
-      weights[0].position.copy(together ? palms.L.clone().lerp(palms.R, 0.5) : palms[sides[0][0]]);
+      weights[0].position.copy(together ? palms.l.clone().lerp(palms.r, 0.5) : palms[sides[0][0]]);
     }
     if (weight === "db") {
-      ["R", "L"].forEach((sd, n) => {
+      ["r", "l"].forEach((sd, n) => {
         weights[n].position.copy(palms[sd]);
         weights[n].quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), l);
       });

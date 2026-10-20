@@ -1,3 +1,9 @@
-human.glb = "3D Male Base Mesh (Rigged)" by orange-juice-games
-https://orange-juice-games.itch.io / https://github.com/BoQsc/Godot-Male-Base-Mesh
-License: CC0 1.0 (public domain) — free to use, modify and share.
+human.glb — 3D 사람 모델 (CC0 1.0, 퍼블릭 도메인: 자유롭게 사용·수정·공유 가능)
+
+만든 방법
+- 몸·머리카락·반바지: kblood/CharacterCreator (https://github.com/kblood/CharacterCreator)의
+  output/base_body.glb, hair_short02.glb, clothing_shorts.glb.
+  이 저장소의 LICENSE-NOTES.md에 따르면 생성된 GLB는 CC0-1.0 (원본이 MakeHuman CC0 자산뿐이라서).
+  MakeHuman 자산 라이선스: https://raw.githubusercontent.com/makehumancommunity/makehuman/master/LICENSE.md (CC0)
+- 이 앱에서 한 일: 남성·근육 체형 슬라이더 값을 모양에 굳히고(모프 제거), 뼈 위치를 체형에 맞추고,
+  치아·혀를 빼고, 반바지를 단색으로, 작은 텍스처를 줄여서 하나의 GLB로 합침.
