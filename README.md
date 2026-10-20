@@ -213,7 +213,7 @@ backup.js     데이터 백업 (내보내기/불러오기)
 
 ## 데일리 워크아웃 (별도 앱, `workout/` 폴더)
 주소: https://286y8wb8d2-cell.github.io/Go/workout/ — 자산 앱과 따로 쓰는 운동 앱.
-이번 주 운동 일수(1~7일)와 LSD 요일(토/일)을 고르면 러닝·맨몸·커틀벨(4/12kg)·덤벨(6kg×2)·벤치·턱걸이로 주간 프로그램을 짜 줌.
+처음 열면 "내 설정"(목표·러닝 수준·경험·턱걸이 개수·장비와 무게·가능한 요일·운동 시간·조심할 부위, `wkState.profile`)을 받고 거기에 맞춰 동작을 거름(workout-data.js의 wkPool·wkAdapt·wkTemplateFor). 이번 주 운동 일수와 LSD 요일을 고르면 러닝·맨몸·커틀벨(4/12kg)·덤벨(6kg×2)·벤치·턱걸이로 주간 프로그램을 짜 줌.
 4주 흐름(기본 → 횟수↑ → 세트↑ → 회복)으로 돌고, 동작은 주마다 바뀜(↻ 바꾸기 가능). 세트 체크·휴식 타이머·지난 기록. 월 달력(처음 쓴 달부터, 날짜 눌러 운동한 날 체크, 기록은 `log`에 날짜별 저장).
 러닝 날엔 "비 와요 · 실내 근력으로 바꾸기"(이번 주·지난주 동작을 피해 골라 줌). 운동 이름(▶)을 누르면 3D 사람 모델(vendor/human.glb: MakeHuman 기반 CC0, 출처는 vendor/human-LICENSE.txt)이 동작을 반복하고, 쓰는 근육을 피부에 빨강(주로)·주황(보조)으로 칠함(workout-3d.js: 2D 키프레임 → 모델 뼈 길이로 3D IK → 뼈 회전, 피부 점마다 근육 부위 분류). three.js·GLTFLoader도 vendor/에 있음(처음 열 때만 불러옴). 3D가 안 되면 workout-motion.js의 막대 그림. 동작 창에 유튜브 시범 영상 검색 버튼.
 파일: index.html, workout.css, workout-data.js(동작·세션 규칙), workout.js(화면). 고치면 workout/의 `?v=N`·data-version·푸터·version.json을 올림.

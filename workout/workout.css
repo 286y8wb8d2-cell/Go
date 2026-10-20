@@ -168,3 +168,17 @@ footer { color: var(--text-light); font-size: 0.75rem; text-align: center; paddi
 .wk-mus.hot { background: #fde4e4; color: #b42828; }
 .wk-mus.help { background: #fdf0d2; color: #8a5f00; }
 .wk-video { display: block; text-align: center; margin-top: 12px; padding: 11px; border-radius: 12px; background: #ff0033; color: #fff; font-weight: 700; text-decoration: none; }
+
+/* 내 설정 */
+.wk-head-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.wk-settings { flex: none; border: 1px solid var(--border); background: var(--card); border-radius: 16px; padding: 5px 11px; font-size: 0.8rem; margin-top: 20px; color: var(--text-light); }
+.wk-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.wk-chips-days { display: grid; grid-template-columns: repeat(7, 1fr); }
+.wk-chip { border: 1px solid var(--border); background: #fff; border-radius: 18px; padding: 8px 12px; font-size: 0.9rem; }
+.wk-chips-days .wk-chip { padding: 8px 0; }
+.wk-chip.on { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
+.wk-input { font: inherit; border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; width: 100%; background: #fff; }
+.wk-weights { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; }
+.wk-weights label { display: flex; align-items: center; gap: 6px; }
+.wk-kg { width: 70px; text-align: right; padding: 6px 8px; }
+.wk-safety { background: #fff7d6; color: #6b4a00; border-radius: 10px; padding: 8px 10px; margin-top: 16px; }
