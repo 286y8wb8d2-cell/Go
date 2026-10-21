@@ -222,6 +222,7 @@ function createAssetItem(asset, totalValue) {
   const valueSpan = document.createElement("span");
   valueSpan.className = "asset-value";
   valueSpan.textContent = formatMoney(result.value);
+  flashMarketValue(valueSpan, "asset-" + asset.id, result.value); // 시세가 바뀌면 반짝 (market.js)
 
   // 수량 · 평균 매입가 · 현재가
   // 주식·ETF는 "10주", 나머지(예적금, 채권 등)는 "수량 1"로 표시
@@ -278,11 +279,24 @@ function createAssetItem(asset, totalValue) {
     ticker.textContent = normalizeMarketTicker(asset.ticker).replace(/\.(KS|KQ)$/, "");
     market.appendChild(ticker);
     if (quote) {
+      // 지금 가격 (달러 종목은 달러로)
+      const price = document.createElement("span");
+      price.className = "asset-quote-price";
+      price.textContent = quote.currency === "USD" ? "$" + formatNumber(Math.round(quote.price * 100) / 100) : formatMoney(quote.price);
+      market.appendChild(price);
       if (Number.isFinite(quote.change)) {
         const change = document.createElement("span");
         change.className = getProfitClass(quote.change);
         change.textContent = formatPercent(quote.change);
         market.appendChild(change);
+      }
+      // 장 전·장 후(시간외) 가격: 정규장 가격 대비 등락
+      if (quote.ext && Number.isFinite(quote.ext.change)) {
+        const ext = document.createElement("span");
+        ext.className = "asset-quote-ext " + getProfitClass(quote.ext.change);
+        ext.textContent = "시간외 " + formatPercent(quote.ext.change);
+        ext.title = "시간외 가격 " + (quote.currency === "USD" ? "$" : "") + formatNumber(quote.ext.price);
+        market.appendChild(ext);
       }
       // 52주 최저~최고 중 지금 위치 (막대 위 점)
       if (quote.high52 > quote.low52) {

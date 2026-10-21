@@ -12,7 +12,7 @@
 - **개인 금융 정보(월급·대출·보유 수량·백업 파일)는 저장소에 절대 넣지 않는다.** 공개 저장소다.
   사용자 숫자가 필요하면 백업 형식 JSON을 임시 폴더에 만들어 파일로 전달하고, 앱의 "불러오기"로 넣게 한다.
   (형식: `{ "app": "household-ledger", "version": 1, "exportedAt": ..., "data": { "<localStorage 키>": ... } }` — 들어 있는 키만 덮어씀)
-- **파일을 고치면 버전을 올린다:** index.html의 모든 `?v=N`, `<html data-version="N">`, 푸터 "앱 버전 vN", version.json. (휴대폰 캐시 때문에 필수 — 지금 v37)
+- **파일을 고치면 버전을 올린다:** index.html의 모든 `?v=N`, `<html data-version="N">`, 푸터 "앱 버전 vN", version.json. (휴대폰 캐시 때문에 필수 — 지금 v38)
 - 모든 JS가 전역에서 이름을 같이 쓴다. 파일마다 접두어(asset~, crypto~, btc~, market~, budget~, dash~, history~, scenario~, sim~, backup~)를 지키고,
   커밋 전에 겹치는 이름이 없는지 확인한다:
   `for f in *.js; do grep -oE "^(function|const|let|var) [A-Za-z_$][A-Za-z0-9_$]*" "$f" | awk '{print $2}'; done | sort | uniq -d` (출력이 없어야 함)
@@ -25,7 +25,8 @@
 - 신호: `data-saved {key}`, `tab-shown`, `market-updated`, `btc-price-updated` 등 — 다른 탭이 듣고 다시 그림.
 - 브라우저에서 못 부르는 시세(야후 등, CORS)는 GitHub Actions(`.github/workflows/btc-data.yml`, 6시간마다)가
   `scripts/*.mjs`로 받아 `data` 가지에 `btc-data.json`, `market-data.json`으로 올리고 앱이 raw.githubusercontent.com에서 읽음.
-  개인정보 때문에 내 종목만이 아니라 넓은 종목 목록을 받는다.
+  개인정보 때문에 내 종목만이 아니라 넓은 종목 목록을 받는다 (목록: `scripts/market-symbols.mjs`).
+- 빠른 시세: `.github/workflows/quotes.yml`이 평일 15분마다 시작해 2분마다 `scripts/fetch-quotes.mjs` → `quotes` 가지의 `quotes.json`. 앱(market.js)이 1분마다 확인해 합침.
 - 실시간 비트코인 시세는 거래소 WebSocket(업비트·빗썸·바이낸스·코인베이스).
 - 아이폰 홈 화면 앱은 사파리와 저장 공간이 따로다 (홈 화면에 다시 추가하면 데이터가 비어 보임 → 내보내기/불러오기).
 

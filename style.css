@@ -2887,3 +2887,35 @@ footer {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* 빠른 시세 (market.js): 값이 바뀌면 잠깐 반짝, 실시간 표시 */
+@keyframes market-tick-up {
+  from { background: rgba(220, 38, 38, 0.18); }
+  to   { background: transparent; }
+}
+
+@keyframes market-tick-down {
+  from { background: rgba(37, 99, 235, 0.18); }
+  to   { background: transparent; }
+}
+
+.market-tick-up { animation: market-tick-up 1.2s ease-out; border-radius: 4px; }
+.market-tick-down { animation: market-tick-down 1.2s ease-out; border-radius: 4px; }
+
+.price-refresh-status.market-live {
+  color: #0b6b3a;
+}
+
+.asset-quote-price {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.asset-quote-ext {
+  font-size: 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .market-tick-up,
+  .market-tick-down { animation: none; }
+}

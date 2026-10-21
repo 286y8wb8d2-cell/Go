@@ -73,6 +73,7 @@ function getDashHoldings() {
 // 맨 위 큰 숫자 + 직전 기록 대비 변화 + 작은 추이선
 function renderDashHero(networth) {
   dashTotalText.textContent = formatMoney(networth.value);
+  flashMarketValue(dashTotalText, "dash-total", networth.value); // market.js
 
   // 직전 달 기록과 비교 (이번 달 기록은 지금 값과 같으므로 그 앞 기록과 비교)
   const thisMonth = getToday().slice(0, 7);

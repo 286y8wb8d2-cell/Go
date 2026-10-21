@@ -17,6 +17,10 @@ const MARKET_DATA_URL = "https://raw.githubusercontent.com/286y8wb8d2-cell/Go/da
 const MARKET_REFRESH_MS = 30 * 60 * 1000; // 30분이 지나면 다시 받음
 const MARKET_SETTINGS_KEY = "household-market-settings"; // 백업에 포함
 const MARKET_FX_SYMBOL = "KRW=X"; // 원/달러 환율
+// 빠른 시세: 평일에 2분마다 새로 올라오는 지금 가격 (quotes.yml) → 앱은 1분마다 확인
+const MARKET_QUOTES_URL = "https://raw.githubusercontent.com/286y8wb8d2-cell/Go/quotes/quotes.json";
+const MARKET_QUOTES_MS = 60 * 1000;
+const MARKET_LIVE_FRESH_MS = 10 * 60 * 1000; // 10분 안에 받은 시세면 "실시간"으로 표시
 
 // =============================================
 // 2. 상태 · 설정
@@ -26,6 +30,7 @@ let marketData = null; // { updated, stocks: { "QQQ": {...} }, markets: { "^GSPC
 let marketLoadedAt = 0;
 let marketLoading = null;
 let marketError = null;
+let marketQuotes = null; // { updated, q: { "QQQ": [정규장 가격|null, 등락률, 시각, 시간외 가격, 시간외 등락률] } }
 
 // { autoPrice: 새 시세로 현재가 자동 갱신, autoDividend: 배당금·지급월도, appliedAt: 마지막으로 적용한 시세 시각(참고용) }
 function loadMarketSettings() {
@@ -71,6 +76,7 @@ async function refreshMarketData(force) {
       marketData = json;
       marketLoadedAt = Date.now();
       marketError = null;
+      mergeMarketQuotes(); // 6시간 파일보다 새로운 빠른 시세가 있으면 덮어씀
     } catch (error) {
       marketError = error;
     } finally {
@@ -80,6 +86,65 @@ async function refreshMarketData(force) {
     return marketData;
   })();
   return marketLoading;
+}
+
+// 빠른 시세 받기: 새 값이 있으면 합치고 다른 화면에 알림
+async function refreshMarketQuotes() {
+  try {
+    // ?t=: 1분마다 주소가 바뀌어 예전에 받아 둔 파일을 쓰지 않음
+    const response = await fetch(MARKET_QUOTES_URL + "?t=" + Math.floor(Date.now() / MARKET_QUOTES_MS));
+    if (!response.ok) return;
+    const json = await response.json();
+    if (!json || !json.q || (marketQuotes && marketQuotes.updated === json.updated)) return;
+    marketQuotes = json;
+    if (mergeMarketQuotes()) document.dispatchEvent(new CustomEvent("market-updated", { detail: { live: true } }));
+  } catch (error) {
+    // 빠른 시세가 없어도 6시간 시세로 동작
+  }
+}
+
+// 빠른 시세를 시세 파일(marketData)에 덮어씀 (빠른 시세가 더 새로울 때만) → 합쳤으면 true
+function mergeMarketQuotes() {
+  if (!marketData || !marketQuotes) return false;
+  if (new Date(marketQuotes.updated) <= new Date(marketData.updated)) return false;
+  Object.keys(marketQuotes.q).forEach(function (symbol) {
+    const target = marketData.stocks[symbol] || marketData.markets[symbol];
+    const row = marketQuotes.q[symbol];
+    if (!target) return;
+    // 정규장 가격이 없으면(오늘 장이 아직 안 열림) 지난 가격을 그대로 둠
+    if (row[0] > 0) {
+      target.price = row[0];
+      if (Number.isFinite(row[1])) target.change = row[1];
+      target.time = row[2];
+    }
+    target.ext = row[3] > 0 ? { price: row[3], change: row[4] } : null; // 시간외
+  });
+  marketData.liveUpdated = marketQuotes.updated;
+  return true;
+}
+
+// 빠른 시세가 10분 안의 것인지 (장이 쉬는 때는 멈춰 있음)
+function isMarketLive() {
+  return Boolean(marketData && marketData.liveUpdated && Date.now() - new Date(marketData.liveUpdated) < MARKET_LIVE_FRESH_MS);
+}
+
+// 값이 바뀐 칸을 잠깐 빨강(오름)·파랑(내림)으로 반짝이게 (key마다 지난 값을 기억)
+// 같은 화면이 곧바로 다시 그려져도(새 칸) 1초 안이면 다시 반짝이게 함
+const marketFlashValues = {};
+function flashMarketValue(element, key, value) {
+  if (!Number.isFinite(value)) return;
+  const last = marketFlashValues[key];
+  if (last && last.value !== value) {
+    marketFlashValues[key] = { value: value, up: value > last.value, at: Date.now() };
+  } else if (!last) {
+    marketFlashValues[key] = { value: value, up: true, at: 0 };
+    return;
+  }
+  const flash = marketFlashValues[key];
+  if (Date.now() - flash.at > 1000) return;
+  element.classList.remove("market-tick-up", "market-tick-down");
+  void element.offsetWidth; // 같은 칸이 연달아 바뀌어도 다시 반짝이게
+  element.classList.add(flash.up ? "market-tick-up" : "market-tick-down");
 }
 
 // =============================================
@@ -240,5 +305,13 @@ document.addEventListener("market-updated", function () {
 
 // 앱을 열 때, 그리고 다시 화면에 띄울 때 (30분이 지났으면) 새 시세 확인
 document.addEventListener("visibilitychange", function () {
-  if (!document.hidden) refreshMarketData(false);
+  if (!document.hidden) {
+    refreshMarketData(false);
+    refreshMarketQuotes();
+  }
 });
+
+// 화면이 켜져 있는 동안 1분마다 빠른 시세 확인
+setInterval(function () {
+  if (!document.hidden) refreshMarketQuotes();
+}, MARKET_QUOTES_MS);

@@ -25,12 +25,16 @@ function renderAssetMarketStatus() {
       : "시세를 불러오는 중…";
     return;
   }
-  const updated = new Date(marketData.updated);
+  // 빠른 시세가 있으면 그 시각, 10분 안의 것이면 "실시간"
+  const updated = new Date(marketData.liveUpdated || marketData.updated);
+  const timeText = (updated.getMonth() + 1) + "월 " + updated.getDate() + "일 " +
+    String(updated.getHours()).padStart(2, "0") + ":" + String(updated.getMinutes()).padStart(2, "0");
   const parts = [
-    "시세: " + (updated.getMonth() + 1) + "월 " + updated.getDate() + "일 " +
-      String(updated.getHours()).padStart(2, "0") + ":" + String(updated.getMinutes()).padStart(2, "0") +
-      " 기준 (6시간마다 새로 모음)",
+    isMarketLive()
+      ? "● 실시간 · " + timeText + " 시세 (1분마다 확인)"
+      : "시세: " + timeText + " 기준" + (marketData.liveUpdated ? " (장이 쉬는 동안은 멈춰 있어요)" : ""),
   ];
+  assetMarketStatus.classList.toggle("market-live", isMarketLive());
   const withTicker = assets.filter(function (asset) {
     return asset.ticker;
   });
@@ -125,6 +129,7 @@ assetAutoDivToggle.addEventListener("change", function () {
 assetApplyBtn.addEventListener("click", async function () {
   assetApplyBtn.disabled = true;
   await refreshMarketData(true);
+  await refreshMarketQuotes();
   const result = applyMarketToAssets();
   assetApplyBtn.disabled = false;
   renderAssetMarketStatus();
@@ -148,6 +153,7 @@ document.addEventListener("data-saved", function (event) {
 // 시작: 시세를 받아 옴 (받으면 market.js가 자동 적용 → 화면이 다시 그려짐)
 renderAssetMarketAll();
 refreshMarketData(false);
+refreshMarketQuotes(); // 지금 가격 (1분마다 다시 확인은 market.js)
 
 // 금융자산 작은 탭 (common.js)
 setupSubTabs("assets", "summary");

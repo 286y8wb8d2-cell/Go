@@ -46,6 +46,7 @@ function renderNetworth() {
   const networth = calculateNetworth();
 
   networthTotalText.textContent = formatMoney(networth.value);
+  flashMarketValue(networthTotalText, "networth-total", networth.value); // market.js
   networthAssetsText.textContent = formatMoney(networth.assetsValue);
   networthCryptoText.textContent = formatMoney(networth.cryptoValue);
 
