@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" data-version="16">
+<html lang="ko" data-version="17">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -8,13 +8,15 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
-  <meta name="theme-color" content="#f4f5f7">
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="워크아웃">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <!-- ?v=숫자: 파일을 고칠 때마다 올림 (휴대폰 캐시 때문) -->
-  <link rel="stylesheet" href="workout.css?v=16">
+  <link rel="stylesheet" href="workout.css?v=17">
 </head>
 <body>
   <header>
@@ -75,12 +77,18 @@
     <!-- 2) 계획이 있을 때: 요일 줄 + 선택한 날의 운동 -->
     <section id="wk-plan" hidden>
       <div class="wk-card wk-progress-card">
-        <div class="wk-progress-top">
-          <strong id="wk-phase-name"></strong>
+        <div class="wk-ring-wrap">
+          <svg class="wk-ring" viewBox="0 0 80 80" aria-hidden="true">
+            <circle class="wk-ring-bg" cx="40" cy="40" r="33"></circle>
+            <circle id="wk-ring-fill" class="wk-ring-fill" cx="40" cy="40" r="33"></circle>
+          </svg>
           <span id="wk-progress-text"></span>
         </div>
-        <div class="wk-bar"><div id="wk-bar-fill"></div></div>
-        <p id="wk-phase-tip" class="wk-note"></p>
+        <div class="wk-progress-body">
+          <span class="wk-eyebrow">이번 주 진행</span>
+          <strong id="wk-phase-name"></strong>
+          <p id="wk-phase-tip" class="wk-note"></p>
+        </div>
       </div>
 
       <div id="wk-strip" class="wk-strip"></div>
@@ -140,14 +148,14 @@
   </div>
 
   <footer>
-    <p>앱 버전 v16 · 기록은 이 기기에만 저장돼요</p>
+    <p>앱 버전 v17 · 기록은 이 기기에만 저장돼요</p>
   </footer>
 
-  <script src="workout-data.js?v=16"></script>
-  <script src="workout-motion.js?v=16"></script>
-  <script src="workout-3d.js?v=16"></script>
-  <script src="workout-rigs.js?v=16"></script>
-  <script src="workout.js?v=16"></script>
-  <script src="workout-backup.js?v=16"></script>
+  <script src="workout-data.js?v=17"></script>
+  <script src="workout-motion.js?v=17"></script>
+  <script src="workout-3d.js?v=17"></script>
+  <script src="workout-rigs.js?v=17"></script>
+  <script src="workout.js?v=17"></script>
+  <script src="workout-backup.js?v=17"></script>
 </body>
 </html>

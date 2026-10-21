@@ -217,4 +217,5 @@ backup.js     데이터 백업 (내보내기/불러오기)
 4주 흐름(기본 → 횟수↑ → 세트↑ → 회복)으로 돌고, 동작은 주마다 바뀜(↻ 바꾸기 가능). 세트 체크·휴식 타이머·지난 기록. 월 달력(처음 쓴 달부터, 날짜 눌러 운동한 날 체크, 기록은 `log`에 날짜별 저장).
 러닝 날엔 "비 와요 · 실내 근력으로 바꾸기"(이번 주·지난주 동작을 피해 골라 줌). 운동 이름(▶)을 누르면 3D 사람 모델(vendor/human.glb: MakeHuman 기반 CC0, 출처는 vendor/human-LICENSE.txt)이 동작을 반복하고, 쓰는 근육을 피부에 빨강(주로)·주황(보조)으로 칠함(workout-3d.js: 2D 키프레임 → 모델 뼈 길이로 3D IK → 뼈 회전, 피부 점마다 근육 부위 분류). three.js·GLTFLoader도 vendor/에 있음(처음 열 때만 불러옴). 3D가 안 되면 workout-motion.js의 막대 그림. 동작 창에 유튜브 시범 영상 검색 버튼. 헬스장 동작은 기구도 3D로(workout-rigs.js: 레그 익스텐션·레그 컬·레그 프레스·랫풀다운·케이블 등, 패드·발판·케이블이 몸을 따라 움직임).
 맨 아래 "기록 백업"(workout-backup.js): 내보내기는 `wkState` 전체를 `workout-backup-날짜.json`으로(휴대폰은 공유 창), 불러오기는 파일을 골라 "합치기"(지금 기록 유지 + 파일에만 있는 기록 추가) 또는 "바꾸기". 마지막 백업 날짜는 `workout-last-backup`에 따로 두고, 기록이 있는데 14일 넘게 백업 안 하면 위에 알림.
+디자인은 iOS 느낌(회색 바탕 + 둥근 흰 카드, 큰 제목, 이번 주 진행은 활동 링)이고 폰 설정을 따라 다크 모드로 바뀜(색은 workout.css 맨 위 변수, 3D 무대 색은 `--stage`·`--floor`를 workout-3d.js가 읽음).
 파일: index.html, workout.css, workout-data.js(동작·세션 규칙), workout.js(화면), workout-backup.js(백업·복원). 고치면 workout/의 `?v=N`·data-version·푸터·version.json을 올림.

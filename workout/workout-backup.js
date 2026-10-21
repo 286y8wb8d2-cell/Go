@@ -209,7 +209,7 @@ function wkRenderBackupNag() {
   const show = wkBkHasData(wkState) && days >= WK_BK_NAG_DAYS;
   bar.hidden = !show;
   if (show) {
-    bar.querySelector("span").textContent = last ? `기록을 백업한 지 ${days}일 지났어요.` : "운동 기록을 아직 백업하지 않았어요.";
+    bar.querySelector("span").textContent = last ? `기록을 백업한 지 ${days}일 지났어요.` : "기록을 아직 백업하지 않았어요.";
   }
 }
 

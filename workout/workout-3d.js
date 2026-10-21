@@ -282,9 +282,13 @@ function m3Play(box, key, weight, exName) {
   scene.add(fill);
 
   // 바닥 (멀리 갈수록 배경색으로 흐려짐)
-  scene.fog = new T.Fog(0xf6f8fa, 1, 2);
+  // 색은 화면 테마(밝게/어둡게)를 따라감: workout.css의 --stage, --floor
+  const css = getComputedStyle(box);
+  const stage = css.getPropertyValue("--stage").trim() || "#f6f8fa";
+  const floorColor = css.getPropertyValue("--floor").trim() || "#d5dce4";
+  scene.fog = new T.Fog(new T.Color(stage).getHex(), 1, 2);
   if (!mo.noGround) {
-    const floor = new T.Mesh(track(new T.CircleGeometry(400, 48)), track(m3Mat(0xd5dce4, { roughness: 1 })));
+    const floor = new T.Mesh(track(new T.CircleGeometry(400, 48)), track(m3Mat(new T.Color(floorColor).getHex(), { roughness: 1 })));
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);

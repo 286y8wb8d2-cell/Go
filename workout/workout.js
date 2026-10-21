@@ -331,8 +331,13 @@ function wkRenderPlan() {
   const ph = WK_PHASES[week.p];
   const doneCount = week.slots.filter((s) => week.done[s.day]).length;
   document.getElementById("wk-phase-name").textContent = ph.name;
-  document.getElementById("wk-progress-text").textContent = `${doneCount} / ${week.slots.length} 완료`;
-  document.getElementById("wk-bar-fill").style.width = (doneCount / week.slots.length) * 100 + "%";
+  document.getElementById("wk-progress-text").innerHTML = `<b>${doneCount}</b><small>/${week.slots.length}</small>`;
+  // 활동 링: 한 바퀴 = 이번 주 운동을 다 함
+  const ring = document.getElementById("wk-ring-fill");
+  const pct = (doneCount / week.slots.length) * 100;
+  const len = 2 * Math.PI * 33; // 링 둘레 (index.html의 r="33")
+  ring.style.opacity = pct > 0 ? 1 : 0;
+  requestAnimationFrame(() => (ring.style.strokeDasharray = (len * pct) / 100 + " " + len)); // 화면에 보인 뒤에 채워야 차오르는 효과가 남
   document.getElementById("wk-phase-tip").textContent = ph.tip;
 
   // 요일 줄
