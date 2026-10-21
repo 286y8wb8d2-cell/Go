@@ -537,7 +537,7 @@ function m3Play(box, key, weight, exName) {
     placePelvis(H0);
 
     // 팔·다리: 옆모습이면 카메라 쪽(+Z, 오른쪽)이 1번, 앞모습이면 그림 오른쪽(-Z, 왼쪽)이 1번
-    const together = (weight === "kb" || mo.grip) && Math.hypot(p.hand[0] - p.hand2[0], p.hand[1] - p.hand2[1]) < 4; // 커틀벨·손잡이 하나를 두 손으로
+    const together = !mo.solo && (weight === "kb" || mo.grip) && Math.hypot(p.hand[0] - p.hand2[0], p.hand[1] - p.hand2[1]) < 4; // 커틀벨·손잡이 하나를 두 손으로
     const sides = front ? [["l", 0], ["r", 1]] : [["r", 0], ["l", 1]];
     const limbs = [];
     sides.forEach(([sd, n]) => {
@@ -564,7 +564,16 @@ function m3Play(box, key, weight, exName) {
       lb.J = lb.A.clone().addScaledVector(lb.d1, lb.l1);
       lb.E = lb.J.clone().addScaledVector(lb.d2, lb.l2);
       if (lb.kind === "arm" && together && !front) lb.E.z = (p.hz || 0) + Math.sign(lb.A.z) * 2.5;
-      if (lb.kind === "arm" && together && front) lb.E.addScaledVector(f, 9);
+      if (lb.kind === "arm" && together && front && !mo.goblet) lb.E.addScaledVector(f, 9);
+      // 고블릿: 커틀벨을 가슴 앞에 두 손으로, 팔꿈치는 아래로
+      if (lb.kind === "arm" && mo.goblet) {
+        const shMid = wp(M3_BONE.upper + "l").lerp(wp(M3_BONE.upper + "r"), 0.5);
+        const out = lb.A.clone().sub(shMid).normalize();
+        lb.E = shMid.clone().addScaledVector(f, 13).addScaledVector(u, -6).addScaledVector(out, 2.5);
+        lb.J = lb.A.clone().addScaledVector(u, -13).addScaledVector(f, 5).addScaledVector(out, 2);
+      }
+      // 무릎이 발끝 쪽(앞·바깥)으로 가게 (앞모습 그림은 옆으로만 굽히므로)
+      if (lb.kind === "leg" && front && mo.kneeFwd) lb.J.addScaledVector(f, mo.kneeFwd);
     });
     fk();
 
