@@ -1,0 +1,51 @@
+# 빠른 시세 (주식·ETF·지수·환율의 지금 가격)
+# 평일에 15분마다 시작해서, 한 번 시작하면 약 14분 동안 2분마다 scripts/fetch-quotes.mjs를 실행하고
+# quotes.json을 "quotes" 가지에 올림 (기록이 쌓이지 않도록 커밋 하나를 계속 덮어씀)
+# 앱은 https://raw.githubusercontent.com/<저장소>/quotes/quotes.json 을 1분마다 확인
+name: quotes
+
+on:
+  schedule:
+    - cron: "*/15 * * * 1-5"
+    # 금요일 미국 시간외 거래(한국 토요일 아침 9시까지)
+    - cron: "*/15 0 * * 6"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: quotes
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: 2분마다 시세 받아서 올리기
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir out
+          cd out
+          git init -q -b quotes
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for i in 1 2 3 4 5 6 7; do
+            if node ../scripts/fetch-quotes.mjs; then
+              git add quotes.json
+              # 첫 커밋만 새로 만들고, 다음부터는 덮어씀
+              if git rev-parse -q --verify HEAD >/dev/null; then
+                git commit -q --amend -m "quotes $(date -u +%Y-%m-%dT%H:%MZ)"
+              else
+                git commit -q -m "quotes $(date -u +%Y-%m-%dT%H:%MZ)"
+              fi
+              git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" quotes || echo "올리기 실패"
+            fi
+            [ "$i" = 7 ] || sleep 110
+          done
