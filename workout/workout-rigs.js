@@ -199,8 +199,9 @@ function m3BuildRig(name, c) {
     seat(bench.w * 0.8, 22);
     const bk = box(5, 40, 22, m.pad, bench.back - fx * 1, bench.top + 21, 0);
     bk.rotation.z = fx * 0.06;
-    const pvY = name === "chestPress" ? bench.top + 46 : bench.top + 12;
-    const pvX = bench.back - fx * 8;
+    // 레버 회전축: 체스트 프레스는 머리 위 뒤쪽, 숄더 프레스는 어깨 높이 뒤쪽 (몸 옆으로 지나가게)
+    const pvY = name === "chestPress" ? bench.top + 46 : bench.top + 28;
+    const pvX = bench.back - fx * (name === "chestPress" ? 8 : 5);
     post(pvX, 0, bench.top + 48);
     stack(pvX - fx * 10, 0, bench.top + 40);
     r.top = bench.top + 50;

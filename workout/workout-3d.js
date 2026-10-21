@@ -363,10 +363,11 @@ function m3Play(box, key, weight, exName) {
     scene.add(g);
     weights.push(g);
   }
-  if (weight === "db") {
+  if (weight === "db" || weight === "db1") {
+    // 덤벨 (db1: 한 손에만, 원암 로우처럼)
     const dbMat = track(m3Mat(0x2a78d6, { roughness: 0.4 }));
     const barMat = track(m3Mat(0x555a60, { metalness: 0.5 }));
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < (weight === "db1" ? 1 : 2); i++) {
       const g = new T.Group();
       g.add(new T.Mesh(track(new T.CylinderGeometry(0.9, 0.9, 9, 10)), barMat));
       [-1, 1].forEach((sd) => {
@@ -590,11 +591,26 @@ function m3Play(box, key, weight, exName) {
       fk();
     }
 
+    // 백스쿼트: 바벨은 등 위쪽(승모근)에 얹고, 두 손은 어깨보다 넓게 봉을 잡음
+    let barBack = null;
+    if (mo.barBack) {
+      const shL = wp(M3_BONE.upper + "l");
+      const shR = wp(M3_BONE.upper + "r");
+      const shMid = shL.clone().lerp(shR, 0.5);
+      barBack = shMid.clone().addScaledVector(f, -5).addScaledVector(u, 2.5);
+      limbs.forEach((lb) => {
+        if (lb.kind !== "arm") return;
+        const side = lb.A.clone().sub(shMid).normalize();
+        lb.barTarget = barBack.clone().addScaledVector(side, 15);
+        lb.J = lb.A.clone().addScaledVector(u, -10).addScaledVector(f, -3); // 팔꿈치는 아래·뒤로
+      });
+    }
+
     // 팔다리: 닿는 곳은 그 자리로, 나머지는 각도대로
     const palms = {};
     limbs.forEach((lb) => {
-      let Tg = lb.E;
-      if (lb.contact) {
+      let Tg = lb.barTarget || lb.E;
+      if (lb.contact && !lb.barTarget) {
         const zz = lb.kind === "leg" ? lb.A.z * 1.15 : together ? Math.sign(lb.A.z) * 2.5 : lb.A.z;
         Tg = map(lb.target2, zz);
         if (lb.contact === "floor") Tg.y = lb.kind === "leg" ? L.ankle : TH.hand;
@@ -623,7 +639,11 @@ function m3Play(box, key, weight, exName) {
       weights[0].position.copy(together ? palms.l.clone().lerp(palms.r, 0.5) : palms[sides[0][0]]);
     }
     if (weight === "bb" || weight === "lat") {
-      weights[0].position.copy(palms.l.clone().lerp(palms.r, 0.5));
+      weights[0].position.copy(barBack || palms.l.clone().lerp(palms.r, 0.5));
+      weights[0].quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), l);
+    }
+    if (weight === "db1") {
+      weights[0].position.copy(palms[sides[0][0]]);
       weights[0].quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), l);
     }
     if (weight === "db") {
