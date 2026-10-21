@@ -290,8 +290,21 @@ function m3Play(box, key, weight, exName) {
     scene.add(floor);
   }
 
+  // 헬스장 기구 (운동 이름에 맞춰, workout-rigs.js)
+  const rigMat = {
+    steel: track(m3Mat(0x5b6470, { metalness: 0.6, roughness: 0.35 })),
+    chrome: track(m3Mat(0xc9ced4, { metalness: 0.8, roughness: 0.2 })),
+    pad: track(m3Mat(0x22262c, { roughness: 0.8 })),
+    plate: track(m3Mat(0x2d3138, { roughness: 0.5 })),
+    cable: track(m3Mat(0x111316, { roughness: 0.4 })),
+  };
+  const rig = m3BuildRig(WK_RIG_OF[exName], {
+    T: T, mo: mo, front: front, fx: fx, map: map, mat: rigMat, keys: mo.f.map(moResolve),
+    add: (o) => { track(o.geometry); scene.add(o); },
+  });
+
   // 벤치 · 철봉
-  if (mo.bench) {
+  if (mo.bench && !(rig && rig.hideBench)) {
     const [bx, by, bw] = mo.bench;
     const top = MO_GROUND - by; // 벤치 윗면 (발바닥·엉덩이가 닿는 면)
     const cx = bx + bw / 2 - 80;
@@ -320,6 +333,17 @@ function m3Play(box, key, weight, exName) {
     bar.rotation.x = Math.PI / 2;
     bar.position.set(2, MO_GROUND - mo.bar + lift, 0);
     scene.add(bar);
+    // 철봉 기둥 (봉이 떠 있지 않게)
+    const by3 = MO_GROUND - mo.bar + lift;
+    [-40, 40].forEach((z) => {
+      const p = new T.Mesh(track(new T.BoxGeometry(4, by3 + 4, 4)), rigMat.steel);
+      p.position.set(2, (by3 + 4) / 2, z);
+      p.castShadow = true;
+      scene.add(p);
+      const foot = new T.Mesh(track(new T.BoxGeometry(30, 2, 5)), rigMat.steel);
+      foot.position.set(2, 1, z);
+      scene.add(foot);
+    });
   }
 
   // 사람
@@ -356,6 +380,13 @@ function m3Play(box, key, weight, exName) {
     }
   }
 
+  if (weight === "lat") {
+    // 랫 풀다운 봉: 원판 없이 길고 끝이 살짝 굽은 봉
+    const g = new T.Group();
+    g.add(new T.Mesh(track(new T.CylinderGeometry(0.8, 0.8, 54, 10)), track(m3Mat(0x8a8f96, { metalness: 0.7, roughness: 0.3 }))));
+    scene.add(g);
+    weights.push(g);
+  }
   if (weight === "bb") {
     // 바벨: 봉 + 양쪽 원판 (양손 가운데에, 몸 옆 방향으로)
     const g = new T.Group();
@@ -394,6 +425,8 @@ function m3Play(box, key, weight, exName) {
   });
   y0 -= 9; // 머리 위
   if (mo.bar) y0 = Math.min(y0, mo.bar - 3);
+  if (rig && rig.top) y0 = Math.min(y0, MO_GROUND + lift - rig.top - 4); // 기구 꼭대기까지 보이게
+  if (rig) { x0 -= 14; x1 += 14; } // 무게 추·기둥이 옆에 있어서
   const cx2 = (x0 + x1) / 2 - 80;
   const target = new T.Vector3(front ? 0 : fx * cx2, MO_GROUND - (y0 + y1) / 2 + lift, front ? -cx2 : 0);
   const span = Math.max((y1 - y0) * 1.2, ((x1 - x0) * 1.1) / (w / h), 64);
@@ -589,7 +622,7 @@ function m3Play(box, key, weight, exName) {
     if (weight === "kb") {
       weights[0].position.copy(together ? palms.l.clone().lerp(palms.r, 0.5) : palms[sides[0][0]]);
     }
-    if (weight === "bb") {
+    if (weight === "bb" || weight === "lat") {
       weights[0].position.copy(palms.l.clone().lerp(palms.r, 0.5));
       weights[0].quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), l);
     }
@@ -598,6 +631,12 @@ function m3Play(box, key, weight, exName) {
         weights[n].position.copy(palms[sd]);
         weights[n].quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), l);
       });
+    }
+
+    // 기구에서 몸을 따라 움직이는 부분 (패드·발판·손잡이·케이블)
+    if (rig) {
+      const both = (nm) => ({ l: wp(nm + "l"), r: wp(nm + "r") });
+      rig.update({ palm: palms, knee: both("calf_"), ankle: both("foot_"), sh: both("upperarm_"), f: f, u: u, l: l });
     }
 
     // 근육: 힘이 드는 자세에 가까울수록 진하게

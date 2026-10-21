@@ -803,7 +803,7 @@ function wkOpenMotion(ex, reps) {
   const weight = ex.wt !== undefined ? ex.wt : ex.eq.indexOf("db") >= 0 ? "db" : ex.eq.indexOf("kb4") >= 0 || ex.eq.indexOf("kb12") >= 0 ? "kb" : null;
   document.getElementById("wk-sheet-title").textContent = ex.n;
   document.getElementById("wk-sheet-reps").textContent = reps;
-  document.getElementById("wk-sheet-how").innerHTML = (WK_HOW[key] || []).map((t) => `<li>${t}</li>`).join("");
+  document.getElementById("wk-sheet-how").innerHTML = (WK_HOW_EX[ex.n] || WK_HOW[key] || []).map((t) => `<li>${t}</li>`).join("");
   document.getElementById("wk-sheet-tip").textContent = "💡 " + ex.tip;
   document.getElementById("wk-sheet-eq").innerHTML = wkEqTags(ex.eq);
   wkLiftChart(document.getElementById("wk-sheet-lift"), ex.n);
