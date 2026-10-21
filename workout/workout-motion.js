@@ -14,6 +14,7 @@ const MO_GROUND = 110;
 //   ft/ft2: 발 [x,y]   ks/ks2: 무릎 꺾이는 쪽(-1 기본=앞)   es/es2: 팔꿈치 꺾이는 쪽(1 기본)
 // 동작 옵션: d(한 구간 초), seq(true면 처음→끝→처음 순환, 아니면 왕복), view:"front"(앞모습),
 //   bench:[x, 윗면y, 너비], bar: y, noGround, flip(3D에서 좌우 뒤집기: 등 대고 눕는 동작)
+//   grip(두 손이 한 손잡이) + 키프레임 hz(그 손잡이의 옆 위치, 3D 단위)
 const WK_MOTIONS = {
   squat: { d: 1.1, f: [
     { h: [80, 70], s: [80, 0], hr: [11, 6], ft: [82, 110] },
@@ -189,16 +190,16 @@ const WK_MOTIONS = {
     { h: [70, 84], s: [74, 0], hd: [84, 70], ft: [104, 102] },
   ] },
   legPress: { bench: [44, 90, 44], d: 1.1, f: [
-    { h: [70, 86], s: [44, 62], hd: [68, 90], ft: [88, 66] },
-    { h: [70, 86], s: [44, 62], hd: [68, 90], ft: [100, 60] },
+    { h: [70, 86], s: [46, 62], hd: [68, 90], ft: [99, 75] },
+    { h: [70, 86], s: [46, 62], hd: [68, 90], ft: [108, 68] },
   ] },
   legCurl: { bench: [42, 86, 76], d: 1, f: [
     { h: [70, 80], s: [104, 80], hd: [114, 94], ft: [30, 82] },
     { h: [70, 80], s: [104, 80], hd: [114, 94], ft: [56, 58] },
   ] },
   legExt: { bench: [52, 88, 44], d: 1, f: [
-    { h: [72, 84], s: [72, 0], hd: [78, 84], ft: [92, 110] },
-    { h: [72, 84], s: [72, 0], hd: [78, 84], ft: [112, 84] },
+    { h: [72, 84], s: [72, 0], hd: [78, 84], ft: [91, 103] },
+    { h: [72, 84], s: [72, 0], hd: [78, 84], ft: [111, 82] },
   ] },
   chestPress: { bench: [52, 88, 44], d: 1, f: [
     { h: [72, 84], s: [72, 0], hr: [9, 7], ft: [94, 110] },
@@ -216,9 +217,9 @@ const WK_MOTIONS = {
     { h: [80, 70], s: [80, 0], hd: [116, 50], hd2: [44, 50], ft: [86, 110], ft2: [74, 110] },
     { h: [80, 70], s: [80, 0], hd: [83, 56], hd2: [77, 56], ft: [86, 110], ft2: [74, 110] },
   ] },
-  woodchop: { view: "front", d: 1, f: [
-    { h: [80, 70], s: [86, 0], hd: [104, 32], hd2: [104, 32], ft: [92, 110], ft2: [66, 110] },
-    { h: [78, 76], s: [72, 0], hd: [64, 74], hd2: [64, 74], ft: [92, 110], ft2: [66, 110] },
+  woodchop: { grip: true, d: 1, f: [
+    { h: [80, 70], s: [81, 0], hd: [98, 16], hz: 13, ft: [86, 110], ft2: [72, 110] },
+    { h: [77, 75], s: [87, 0], hd: [94, 78], hz: -13, ft: [86, 110], ft2: [72, 110] },
   ] },
   cableLateral: { view: "front", d: 1.1, f: [
     { h: [80, 70], s: [79, 0], hd: [80, 72], hd2: [67, 70], ft: [86, 110], ft2: [74, 110] },
@@ -536,7 +537,7 @@ function moResolve(f) {
   const hand2 = f.hd2 || (f.hr2 ? [S[0] + f.hr2[0], S[1] + f.hr2[1]] : f.hd || f.hr ? hand : [S[0] + 1, S[1] + 30]);
   return {
     h: f.h, t: t, hand: hand, hand2: hand2, ft: f.ft, ft2: f.ft2 || f.ft,
-    ks: f.ks || -1, ks2: f.ks2 || f.ks || -1, es: f.es || 1, es2: f.es2 || f.es || 1,
+    ks: f.ks || -1, ks2: f.ks2 || f.ks || -1, es: f.es || 1, es2: f.es2 || f.es || 1, hz: f.hz || 0,
   };
 }
 
@@ -550,7 +551,7 @@ function moMix(A, B, k) {
   return {
     h: moLerp(A.h, B.h, k), t: A.t + dt * k,
     hand: moLerp(A.hand, B.hand, k), hand2: moLerp(A.hand2, B.hand2, k),
-    ft: moLerp(A.ft, B.ft, k), ft2: moLerp(A.ft2, B.ft2, k),
+    ft: moLerp(A.ft, B.ft, k), ft2: moLerp(A.ft2, B.ft2, k), hz: A.hz + (B.hz - A.hz) * k,
     ks: k < 0.5 ? A.ks : B.ks, ks2: k < 0.5 ? A.ks2 : B.ks2, es: A.es, es2: A.es2,
   };
 }

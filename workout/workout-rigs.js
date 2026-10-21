@@ -137,8 +137,8 @@ function m3BuildRig(name, c) {
     d.normalize();
     const n = V(-d.y, d.x, 0);
     [-13, 13].forEach((z) => {
-      const a = A3.clone().addScaledVector(d, -6).addScaledVector(n, -4);
-      const b = B3.clone().addScaledVector(d, 34).addScaledVector(n, -4);
+      const a = A3.clone().addScaledVector(d, 4).addScaledVector(n, -7);
+      const b = B3.clone().addScaledVector(d, 34).addScaledVector(n, -7);
       a.z = b.z = z;
       rodAB(1.2, m.chrome, a, b);
       rodAB(1.4, m.steel, V(b.x, 0, z), b);
@@ -245,9 +245,26 @@ function m3BuildRig(name, c) {
         between(ropeB, knot, st.palm.r);
       }
     };
-  } else if (name === "cableFly" || name === "cableChop" || name === "cableLow") {
+  } else if (name === "cableChop") {
+    const hand0 = P(k0.hand);
+    const colX = hand0.x + fx * 16;
+    const pz = 22;
+    const pY = hand0.y + 6;
+    box(5, pY + 6, 5, m.steel, colX, (pY + 6) / 2, pz);
+    stack(colX + fx * 8, pz, pY);
+    const pulley = zRod(2.6, m.chrome, 3);
+    pulley.position.set(colX - fx * 3, pY, pz - 3);
+    r.top = pY + 8;
+    const cable = rod(0.35, m.cable);
+    const grip = rod(1, m.chrome);
+    r.update = (st) => {
+      const h = mid(st.palm);
+      between(cable, V(colX - fx * 3, pY, pz - 3), h);
+      between(grip, st.palm.l, st.palm.r);
+    };
+  } else if (name === "cableFly" || name === "cableLow") {
     // 앞모습 동작: 옆(Z)에 기둥
-    const cols = name === "cableFly" ? [[130, 26, "l"], [30, 26, "r"]] : name === "cableChop" ? [[132, 14, "mid"]] : [[46, 104, "l"]];
+    const cols = name === "cableFly" ? [[130, 26, "l"], [30, 26, "r"]] : [[46, 104, "l"]];
     const cables = [];
     cols.forEach(([x2, y2, which]) => {
       const p = P([x2, y2], 0);

@@ -532,7 +532,7 @@ function m3Play(box, key, weight, exName) {
     placePelvis(H0);
 
     // 팔·다리: 옆모습이면 카메라 쪽(+Z, 오른쪽)이 1번, 앞모습이면 그림 오른쪽(-Z, 왼쪽)이 1번
-    const together = weight === "kb" && Math.hypot(p.hand[0] - p.hand2[0], p.hand[1] - p.hand2[1]) < 4; // 커틀벨 하나를 두 손으로
+    const together = (weight === "kb" || mo.grip) && Math.hypot(p.hand[0] - p.hand2[0], p.hand[1] - p.hand2[1]) < 4; // 커틀벨·손잡이 하나를 두 손으로
     const sides = front ? [["l", 0], ["r", 1]] : [["r", 0], ["l", 1]];
     const limbs = [];
     sides.forEach(([sd, n]) => {
@@ -558,7 +558,7 @@ function m3Play(box, key, weight, exName) {
       lb.A = wp(lb.up);
       lb.J = lb.A.clone().addScaledVector(lb.d1, lb.l1);
       lb.E = lb.J.clone().addScaledVector(lb.d2, lb.l2);
-      if (lb.kind === "arm" && together && !front) lb.E.z = Math.sign(lb.A.z) * 2.5;
+      if (lb.kind === "arm" && together && !front) lb.E.z = (p.hz || 0) + Math.sign(lb.A.z) * 2.5;
       if (lb.kind === "arm" && together && front) lb.E.addScaledVector(f, 9);
     });
     fk();
