@@ -225,3 +225,14 @@ footer { color: var(--text-light); font-size: 0.75rem; text-align: center; paddi
 .wk-lift-table th { color: var(--text-light); font-weight: 600; }
 .wk-lift-row { display: flex; justify-content: space-between; width: 100%; border: 0; background: none; padding: 0; text-align: left; font-size: 0.9rem; }
 .wk-lift-row small { color: #0f7a53; font-weight: 600; }
+
+/* 기록 백업·복원 */
+.wk-bk-status { font-size: 0.9rem; line-height: 1.6; margin: 8px 0; }
+.wk-bk-msg { background: #e8f6ee; color: #146c43; border-radius: 10px; padding: 9px 12px; font-size: 0.9rem; margin: 8px 0; }
+.wk-bk-msg.err { background: #fdecec; color: #b42318; }
+.wk-bk-row { display: flex; gap: 8px; margin-top: 10px; }
+.wk-bk-btn { flex: 1; text-align: center; border: 1px solid var(--border); background: #fff; border-radius: 12px; padding: 12px 6px; font-size: 0.95rem; font-weight: 600; color: var(--text); cursor: pointer; }
+.wk-bk-confirm { border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-top: 10px; }
+.wk-bk-confirm p { margin: 0 0 6px; font-size: 0.9rem; }
+.wk-bk-confirm .wk-primary { margin-top: 8px; }
+.wk-bk-confirm .wk-note { margin: 4px 0 6px; }

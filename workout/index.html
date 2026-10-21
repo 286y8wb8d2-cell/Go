@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" data-version="15">
+<html lang="ko" data-version="16">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="워크아웃">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <!-- ?v=숫자: 파일을 고칠 때마다 올림 (휴대폰 캐시 때문) -->
-  <link rel="stylesheet" href="workout.css?v=15">
+  <link rel="stylesheet" href="workout.css?v=16">
 </head>
 <body>
   <header>
@@ -27,6 +27,10 @@
   <div id="wk-update-banner" class="wk-update" hidden>
     <span>새 버전이 나왔어요.</span>
     <button type="button" id="wk-update-btn">업데이트</button>
+  </div>
+  <div id="wk-backup-nag" class="wk-update" hidden>
+    <span></span>
+    <button type="button" id="wk-backup-nag-btn">지금 백업</button>
   </div>
 
   <main>
@@ -105,6 +109,9 @@
       <p id="wk-cal-sum" class="wk-cal-sum"></p>
       <p class="wk-note">날짜를 누르면 "운동함" 체크 / 다시 누르면 취소. 계획에 없던 날도 체크할 수 있어요.</p>
     </section>
+
+    <!-- 4) 기록 백업·복원 (workout-backup.js가 채움) -->
+    <section id="wk-backup" class="wk-card"></section>
   </main>
 
   <!-- 동작 보기 창: 운동 이름(▶)을 누르면 열림, 막대 사람이 동작을 반복 -->
@@ -133,13 +140,14 @@
   </div>
 
   <footer>
-    <p>앱 버전 v15 · 기록은 이 기기에만 저장돼요</p>
+    <p>앱 버전 v16 · 기록은 이 기기에만 저장돼요</p>
   </footer>
 
-  <script src="workout-data.js?v=15"></script>
-  <script src="workout-motion.js?v=15"></script>
-  <script src="workout-3d.js?v=15"></script>
-  <script src="workout-rigs.js?v=15"></script>
-  <script src="workout.js?v=15"></script>
+  <script src="workout-data.js?v=16"></script>
+  <script src="workout-motion.js?v=16"></script>
+  <script src="workout-3d.js?v=16"></script>
+  <script src="workout-rigs.js?v=16"></script>
+  <script src="workout.js?v=16"></script>
+  <script src="workout-backup.js?v=16"></script>
 </body>
 </html>

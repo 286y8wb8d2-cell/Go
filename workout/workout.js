@@ -938,6 +938,7 @@ function wkRenderProfile() {
   const first = !wkState.profile;
   let html = `<h2>${first ? "반가워요! 나에게 맞게 설정할게요" : "⚙ 내 설정"}</h2>
     <p class="wk-note">${first ? "답한 내용에 맞춰 장비·실력·시간에 맞는 프로그램을 짜 드려요. 나중에 ⚙에서 바꿀 수 있어요." : "바꾸고 저장하면 다음 프로그램부터 반영돼요."}</p>
+    ${first ? `<p class="wk-note">다른 폰에서 쓰던 기록이 있나요? <a href="#wk-backup">맨 아래 '기록 백업'</a>에서 불러올 수 있어요.</p>` : ""}
     <h3>이름 (선택)</h3><input id="wk-pf-name" class="wk-input" maxlength="12" placeholder="예: 민수" value="${(wkDraft.name || "").replace(/"/g, "&quot;")}">`;
   WK_PROFILE_Q.forEach((q) => {
     const val = wkDraftValue(q.key);
