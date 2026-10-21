@@ -293,7 +293,7 @@ function m3Play(box, key, weight, exName) {
   // 벤치 · 철봉
   if (mo.bench) {
     const [bx, by, bw] = mo.bench;
-    const top = MO_GROUND - by + lift;
+    const top = MO_GROUND - by; // 벤치 윗면 (발바닥·엉덩이가 닿는 면)
     const cx = bx + bw / 2 - 80;
     const g = new T.Group();
     const seat = new T.Mesh(track(new T.BoxGeometry(bw, 4, 16)), track(m3Mat(0x8f84c9)));
@@ -455,14 +455,20 @@ function m3Play(box, key, weight, exName) {
   // 옆모습에서 마디의 앞쪽: 마디 방향을 90도 돌린 쪽
   const sideFront = (a, b) => new T.Vector3(-(b.y - a.y), b.x - a.x, 0).normalize();
 
-  // 팔 또는 다리 한쪽: A(어깨·엉덩이 관절)에서 2D 목표점까지
-  function poseLimb(upper, lower, A, target2, s, l1, l2, z, f, push) {
-    const Tg = map(target2, z);
-    if (push) Tg.addScaledVector(f, push); // 앞모습에서 손을 몸 앞으로
-    // 2D에서 굽히는 쪽을 구해 3D 굽힘 방향(pole)으로
-    const J2 = moIk(unmap(A), target2, l1, l2, s)[0];
-    const pole = map(J2, (A.z + Tg.z) / 2).sub(A.clone().add(Tg).multiplyScalar(0.5));
-    const [J, E] = m3Ik(A, Tg, l1, l2, pole);
+  // ---------- 자세 맞추기 ----------
+  // 1) 바닥·벤치·철봉에 닿지 않는 팔다리는 2D 자세의 관절 각도를 그대로 (모델 길이로)
+  // 2) 닿는 손발만 그 자리에 정확히 (IK)
+  // 3) 몸 전체 높이: 누우면 등, 앉으면 엉덩이가 닿게 / 매달리면 손이 봉에 / 점프는 뜬 채로
+  const benchTop = mo.bench ? MO_GROUND - mo.bench[1] : null; // 벤치 윗면 (3D 높이)
+  const onBench2 = (x2) => mo.bench && x2 >= mo.bench[0] - 1 && x2 <= mo.bench[0] + mo.bench[2] + 1;
+  const support = (v3) => (onBench2(unmap(v3)[0]) ? benchTop : 0);
+  const TH = { foot: L.ankle, knee: 2.5, hip: 4.5, sh: 4.5, head: 4.5, hand: 1.5, elbow: 2 }; // 관절에서 피부까지
+  const barY = mo.bar ? MO_GROUND - mo.bar + lift : null;
+  const dir3 = (a2, b2) => map(b2, 0).sub(map(a2, 0)).normalize();
+
+  // 팔다리 하나를 목표점까지 (pole 쪽으로 굽힘)
+  function aimLimb(upper, lower, A, Tg, pole, l1, l2, f) {
+    const [J, E] = m3Ik(A, Tg, l1, l2, pole.clone().sub(A.clone().add(Tg).multiplyScalar(0.5)));
     m3Aim(B[upper], M.restQ[upper], J.clone().sub(A), front ? f : sideFront(A, J));
     m3Aim(B[lower], M.restQ[lower], E.clone().sub(J), front ? f : sideFront(J, E));
     return E;
@@ -476,43 +482,107 @@ function m3Play(box, key, weight, exName) {
     const fa = order[i];
     const fb = order[i + 1];
     const p = moMix(keys[fa], keys[fb], k);
+    const sk = moSkeleton(p, front); // 2D 막대 자세 (각도의 기준)
 
-    // 몸통: 엉덩이 위치와 방향 (앞=f, 위=u, 옆=l)
+    // 몸통 방향 (앞=f, 위=u, 옆=l)
     const td = moDir(p.t);
-    const H = map(p.h, 0);
-    const S = map([p.h[0] + td[0] * L.torso, p.h[1] + td[1] * L.torso], 0);
-    const u = S.clone().sub(H).normalize();
+    const H0 = map(p.h, 0);
+    const u = map([p.h[0] + td[0], p.h[1] + td[1]], 0).sub(H0).normalize();
     const f = front ? new T.Vector3(1, 0, 0) : new T.Vector3(u.y, -u.x, 0);
     f.sub(u.clone().multiplyScalar(f.dot(u))).normalize();
     const l = new T.Vector3().crossVectors(f, u).normalize();
     const Rb = new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(f, u, l));
-    M.root.updateMatrixWorld(true);
-    m3SetWorld(B.pelvis, H.clone().add(L.pelvisOff.clone().applyQuaternion(Rb)), Rb.clone().multiply(M.restQ.pelvis));
+    const placePelvis = (H) => {
+      M.root.updateMatrixWorld(true);
+      m3SetWorld(B.pelvis, H.clone().add(L.pelvisOff.clone().applyQuaternion(Rb)), Rb.clone().multiply(M.restQ.pelvis));
+    };
+    placePelvis(H0);
 
     // 팔·다리: 옆모습이면 카메라 쪽(+Z, 오른쪽)이 1번, 앞모습이면 그림 오른쪽(-Z, 왼쪽)이 1번
     const together = weight === "kb" && Math.hypot(p.hand[0] - p.hand2[0], p.hand[1] - p.hand2[1]) < 4; // 커틀벨 하나를 두 손으로
     const sides = front ? [["l", 0], ["r", 1]] : [["r", 0], ["l", 1]];
-    const palms = {};
+    const limbs = [];
     sides.forEach(([sd, n]) => {
-      const A = wp(M3_BONE.upper + sd);
-      const hand2d = (n === 0 ? p.hand : p.hand2).slice();
-      const onFloor = hand2d[1] >= 106;
-      if (onFloor) hand2d[1] = MO_GROUND + lift - 1.5; // 바닥 짚는 손은 손바닥 높이로
-      const zH = together ? Math.sign(A.z) * 2.5 : A.z;
-      palms[sd] = poseLimb(M3_BONE.upper + sd, M3_BONE.fore + sd, A, hand2d, n === 0 ? p.es : p.es2, L.upper, L.fore, zH, f, front && together ? 9 : 0);
-      // 바닥 짚은 손: 손바닥을 바닥에 펴고 손가락은 머리 쪽으로
-      const hb = B[M3_BONE.hand + sd];
-      if (onFloor) {
-        const fwd = new T.Vector3(u.x, 0, u.z);
-        if (fwd.lengthSq() < 0.01) fwd.set(f.x, 0, f.z);
-        m3Aim(hb, M.restQ[M3_BONE.hand + sd], fwd.normalize(), new T.Vector3(0, 0, -Math.sign(A.z)));
-      } else {
-        hb.quaternion.copy(M.handRest[sd]);
-        hb.updateMatrixWorld(true);
+      const arm2 = n === 0 ? sk.arm : sk.arm2;
+      const leg2 = n === 0 ? sk.leg : sk.leg2;
+      const hand2d = n === 0 ? p.hand : p.hand2;
+      const foot2d = n === 0 ? p.ft : p.ft2;
+      // 손: 철봉 / 바닥 / 벤치에 닿는지
+      let hc = null;
+      if (mo.bar && Math.abs(hand2d[1] - mo.bar) < 4) hc = "bar";
+      else if (hand2d[1] >= 106) hc = "floor";
+      else if (mo.bench && onBench2(hand2d[0]) && Math.abs(hand2d[1] - mo.bench[1]) < 4) hc = "bench";
+      let fc = null;
+      if (foot2d[1] >= 107) fc = "floor";
+      else if (mo.bench && onBench2(foot2d[0]) && Math.abs(foot2d[1] - mo.bench[1]) < 4) fc = "bench";
+      limbs.push({ kind: "arm", sd: sd, n: n, up: M3_BONE.upper + sd, lo: M3_BONE.fore + sd, l1: L.upper, l2: L.fore,
+        d1: dir3(front ? sk.S1 : sk.S, arm2[0]), d2: dir3(arm2[0], arm2[1]), target2: hand2d, contact: hc });
+      limbs.push({ kind: "leg", sd: sd, n: n, up: M3_BONE.thigh + sd, lo: M3_BONE.shin + sd, l1: L.thigh, l2: L.shin,
+        d1: dir3(front ? sk.H1 : sk.H, leg2[0]), d2: dir3(leg2[0], leg2[1]), target2: foot2d, contact: fc });
+    });
+    // 관절 각도대로 놓았을 때 각 관절 위치 (FK)
+    const fk = () => limbs.forEach((lb) => {
+      lb.A = wp(lb.up);
+      lb.J = lb.A.clone().addScaledVector(lb.d1, lb.l1);
+      lb.E = lb.J.clone().addScaledVector(lb.d2, lb.l2);
+      if (lb.kind === "arm" && together && !front) lb.E.z = Math.sign(lb.A.z) * 2.5;
+      if (lb.kind === "arm" && together && front) lb.E.addScaledVector(f, 9);
+    });
+    fk();
+
+    // 몸 전체 위치 맞추기
+    let shift = new T.Vector3();
+    const arms = limbs.filter((lb) => lb.kind === "arm");
+    if (mo.bar && arms.some((lb) => lb.contact === "bar")) {
+      // 매달리기: 두 손 가운데가 봉에 오게
+      const mid = arms[0].E.clone().lerp(arms[1].E, 0.5);
+      const want = map([(p.hand[0] + p.hand2[0]) / 2, mo.bar], 0);
+      shift.set(0, barY - mid.y, (front ? want.z : 0) - (front ? mid.z : 0));
+      if (!front) shift.x = want.x - mid.x;
+    } else {
+      // 가장 낮은 곳이 바닥(또는 벤치)에 닿게. 이미 떠 있으면(점프) 그대로
+      const S0 = H0.clone().addScaledVector(u, L.torso);
+      const pts = [[H0, TH.hip], [S0, TH.sh], [S0.clone().addScaledVector(u, 11), TH.head]];
+      limbs.forEach((lb) => {
+        pts.push([lb.J, lb.kind === "arm" ? TH.elbow : TH.knee]);
+        // 바닥·벤치를 짚는 손발은 뒤에서 그 자리로 맞추므로 높이 계산에서 뺌
+        if (!lb.contact) pts.push([lb.E, lb.kind === "arm" ? TH.hand : TH.foot]);
+      });
+      let m = Infinity;
+      pts.forEach(([v, th]) => (m = Math.min(m, v.y - th - support(v))));
+      if (m < 0 || m < 5) shift.y = -m;
+    }
+    if (shift.lengthSq() > 1e-6) {
+      placePelvis(H0.clone().add(shift));
+      fk();
+    }
+
+    // 팔다리: 닿는 곳은 그 자리로, 나머지는 각도대로
+    const palms = {};
+    limbs.forEach((lb) => {
+      let Tg = lb.E;
+      if (lb.contact) {
+        const zz = lb.kind === "leg" ? lb.A.z * 1.15 : together ? Math.sign(lb.A.z) * 2.5 : lb.A.z;
+        Tg = map(lb.target2, zz);
+        if (lb.contact === "floor") Tg.y = lb.kind === "leg" ? L.ankle : TH.hand;
+        if (lb.contact === "bench") Tg.y = benchTop + (lb.kind === "leg" ? L.ankle : TH.hand);
+        if (lb.contact === "bar") Tg.y = barY;
       }
-      setFingers(hb, onFloor ? 0.1 : grip);
-      const K = wp(M3_BONE.thigh + sd);
-      poseLimb(M3_BONE.thigh + sd, M3_BONE.shin + sd, K, n === 0 ? p.ft : p.ft2, n === 0 ? p.ks : p.ks2, L.thigh, L.shin, K.z * 1.15, f);
+      const E = aimLimb(lb.up, lb.lo, lb.A, Tg, lb.J, lb.l1, lb.l2, f);
+      if (lb.kind === "arm") {
+        palms[lb.sd] = E;
+        // 바닥 짚은 손: 손바닥을 바닥에 펴고 손가락은 머리 쪽으로
+        const hb = B[M3_BONE.hand + lb.sd];
+        if (lb.contact === "floor") {
+          const fwd = new T.Vector3(u.x, 0, u.z);
+          if (fwd.lengthSq() < 0.01) fwd.set(f.x, 0, f.z);
+          m3Aim(hb, M.restQ[M3_BONE.hand + lb.sd], fwd.normalize(), new T.Vector3(0, 0, -Math.sign(lb.A.z)));
+        } else {
+          hb.quaternion.copy(M.handRest[lb.sd]);
+          hb.updateMatrixWorld(true);
+        }
+        setFingers(hb, lb.contact === "floor" ? 0.1 : grip);
+      }
     });
 
     // 기구: 손바닥에 붙이기
