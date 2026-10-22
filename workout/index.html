@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" data-version="18">
+<html lang="ko" data-version="19">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -16,15 +16,12 @@
   <meta name="apple-mobile-web-app-title" content="워크아웃">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <!-- ?v=숫자: 파일을 고칠 때마다 올림 (휴대폰 캐시 때문) -->
-  <link rel="stylesheet" href="workout.css?v=18">
+  <link rel="stylesheet" href="workout.css?v=19">
 </head>
 <body>
   <header>
-    <div class="wk-head-row">
-      <h1>데일리 워크아웃</h1>
-      <button type="button" id="wk-settings" class="wk-settings" hidden>⚙ 내 설정</button>
-    </div>
     <p id="wk-week-label" class="wk-sub"></p>
+    <h1 id="wk-title">오늘</h1>
   </header>
   <div id="wk-update-banner" class="wk-update" hidden>
     <span>새 버전이 나왔어요.</span>
@@ -36,9 +33,30 @@
   </div>
 
   <main>
-    <!-- 0) 내 설정: 처음 한 번 + ⚙ 버튼 (workout.js의 wkRenderProfile이 채움) -->
-    <section id="wk-profile" class="wk-card" hidden></section>
+    <!-- 처음 한 번: 한 화면에 질문 하나씩 (workout.js의 wkRenderOnboarding) -->
+    <section id="wk-onb" class="wk-onb" hidden></section>
 
+    <!-- 탭 1) 오늘: 진행 링 + 오늘 운동 + 운동 시작 (wkRenderToday) -->
+    <div class="wk-tab" data-in="today">
+      <div class="wk-card wk-progress-card" id="wk-progress-card">
+        <div class="wk-ring-wrap">
+          <svg class="wk-ring" viewBox="0 0 80 80" aria-hidden="true">
+            <circle class="wk-ring-bg" cx="40" cy="40" r="33"></circle>
+            <circle id="wk-ring-fill" class="wk-ring-fill" cx="40" cy="40" r="33"></circle>
+          </svg>
+          <span id="wk-progress-text"></span>
+        </div>
+        <div class="wk-progress-body">
+          <span class="wk-eyebrow">이번 주 진행</span>
+          <strong id="wk-phase-name"></strong>
+          <p id="wk-phase-tip" class="wk-note"></p>
+        </div>
+      </div>
+      <section id="wk-today"></section>
+    </div>
+
+    <!-- 탭 2) 이번 주: 계획 짜기 또는 요일 줄 + 그날 운동 -->
+    <div class="wk-tab" data-in="week">
     <!-- 1) 이번 주 계획이 없을 때: 며칠 할지 고르기 -->
     <section id="wk-setup" class="wk-card" hidden>
       <h2>이번 주 어떻게 짤까요?</h2>
@@ -76,36 +94,15 @@
 
     <!-- 2) 계획이 있을 때: 요일 줄 + 선택한 날의 운동 -->
     <section id="wk-plan" hidden>
-      <div class="wk-card wk-progress-card">
-        <div class="wk-ring-wrap">
-          <svg class="wk-ring" viewBox="0 0 80 80" aria-hidden="true">
-            <circle class="wk-ring-bg" cx="40" cy="40" r="33"></circle>
-            <circle id="wk-ring-fill" class="wk-ring-fill" cx="40" cy="40" r="33"></circle>
-          </svg>
-          <span id="wk-progress-text"></span>
-        </div>
-        <div class="wk-progress-body">
-          <span class="wk-eyebrow">이번 주 진행</span>
-          <strong id="wk-phase-name"></strong>
-          <p id="wk-phase-tip" class="wk-note"></p>
-        </div>
-      </div>
-
       <div id="wk-strip" class="wk-strip"></div>
       <div id="wk-session"></div>
-
-      <div class="wk-card">
-        <h2>지난 기록</h2>
-        <ul id="wk-history" class="wk-history"></ul>
-        <div id="wk-lifts-wrap" hidden>
-          <h3>무게 기록 (누르면 그래프)</h3>
-          <ul id="wk-lifts" class="wk-history"></ul>
-        </div>
-        <button type="button" id="wk-reset" class="wk-ghost">이번 주 다시 짜기</button>
-      </div>
+      <button type="button" id="wk-reset" class="wk-ghost">이번 주 다시 짜기</button>
     </section>
+    </div>
 
-    <!-- 3) 월 달력: 이번 달부터 운동한 날 체크 (항상 보임) -->
+    <!-- 탭 3) 기록: 달력 + 무게 그래프 + 주간 기록 -->
+    <div class="wk-tab" data-in="log">
+    <!-- 월 달력: 운동한 날 체크 -->
     <section id="wk-cal" class="wk-card">
       <div class="wk-cal-head">
         <button type="button" id="wk-cal-prev" aria-label="이전 달">‹</button>
@@ -118,9 +115,36 @@
       <p class="wk-note">날짜를 누르면 "운동함" 체크 / 다시 누르면 취소. 계획에 없던 날도 체크할 수 있어요.</p>
     </section>
 
-    <!-- 4) 기록 백업·복원 (workout-backup.js가 채움) -->
-    <section id="wk-backup" class="wk-card"></section>
+    <section class="wk-card" id="wk-lifts-wrap" hidden>
+      <h2>무게 기록</h2>
+      <p class="wk-note">누르면 그래프로 볼 수 있어요.</p>
+      <ul id="wk-lifts" class="wk-history"></ul>
+    </section>
+    <section class="wk-card">
+      <h2>주간 기록</h2>
+      <ul id="wk-history" class="wk-history"></ul>
+    </section>
+    </div>
+
+    <!-- 탭 4) 설정: 내 설정 + 백업 -->
+    <div class="wk-tab" data-in="more">
+      <section id="wk-profile" class="wk-card"></section>
+      <!-- 기록 백업·복원 (workout-backup.js가 채움) -->
+      <section id="wk-backup" class="wk-card"></section>
+      <p class="wk-note wk-legal">이 앱의 프로그램은 일반적인 운동 안내예요. 통증·질환이 있으면 전문가와 먼저 상의하고, 운동 중 아프면 바로 멈추세요.</p>
+    </div>
   </main>
+
+  <!-- 아래 탭 바 -->
+  <nav id="wk-tabbar" class="wk-tabbar" aria-label="메뉴">
+    <button type="button" data-tab="today"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="40 60" stroke-linecap="round" transform="rotate(-90 12 12)"/><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="3" opacity=".25"/></svg>오늘</button>
+    <button type="button" data-tab="week"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="8" cy="14" r="1.4" fill="currentColor"/><circle cx="12" cy="14" r="1.4" fill="currentColor"/><circle cx="16" cy="14" r="1.4" fill="currentColor"/></svg>이번 주</button>
+    <button type="button" data-tab="log"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12M12 20V5M19 20v-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>기록</button>
+    <button type="button" data-tab="more"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="15" cy="7" r="2.3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="17" r="2.3" fill="none" stroke="currentColor" stroke-width="2"/></svg>설정</button>
+  </nav>
+
+  <!-- 운동 모드: 동작 하나씩 전체 화면 (workout-run.js) -->
+  <div id="wk-run" class="wk-run" hidden role="dialog" aria-modal="true" aria-label="운동 모드"></div>
 
   <!-- 동작 보기 창: 운동 이름(▶)을 누르면 열림, 막대 사람이 동작을 반복 -->
   <div id="wk-sheet" class="wk-sheet" hidden>
@@ -147,15 +171,16 @@
     <button type="button" id="wk-timer-stop">끝</button>
   </div>
 
-  <footer>
-    <p>앱 버전 v18 · 기록은 이 기기에만 저장돼요</p>
+  <footer class="wk-tab" data-in="more">
+    <p>앱 버전 v19 · 기록은 이 기기에만 저장돼요</p>
   </footer>
 
-  <script src="workout-data.js?v=18"></script>
-  <script src="workout-motion.js?v=18"></script>
-  <script src="workout-3d.js?v=18"></script>
-  <script src="workout-rigs.js?v=18"></script>
-  <script src="workout.js?v=18"></script>
-  <script src="workout-backup.js?v=18"></script>
+  <script src="workout-data.js?v=19"></script>
+  <script src="workout-motion.js?v=19"></script>
+  <script src="workout-3d.js?v=19"></script>
+  <script src="workout-rigs.js?v=19"></script>
+  <script src="workout-run.js?v=19"></script>
+  <script src="workout.js?v=19"></script>
+  <script src="workout-backup.js?v=19"></script>
 </body>
 </html>

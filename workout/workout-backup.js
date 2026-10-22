@@ -214,6 +214,7 @@ function wkRenderBackupNag() {
 }
 
 document.getElementById("wk-backup-nag-btn").addEventListener("click", () => {
+  wkSetTab("more");
   document.getElementById("wk-backup").scrollIntoView({ behavior: "smooth" });
 });
 wkRenderBackup();
