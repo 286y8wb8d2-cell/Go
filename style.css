@@ -1282,7 +1282,7 @@ body {
 
 /* 맨 아래 주의 문구 */
 .disclaimer {
-  margin: 14px 0 0;
+  margin: 16px 0 0;
   padding: 10px 12px;
   border-radius: 8px;
   background: var(--bg);
@@ -3107,4 +3107,9 @@ body {
   padding: 0;
   background: none;
   box-shadow: none;
+}
+
+/* 가계부 맨 위 "자산은 ~ 그대로 써요": 위 칸들과 카드 아래 끝 사이 가운데에 */
+.budget-hero .section-desc {
+  margin: 16px 0 0;
 }
