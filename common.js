@@ -90,9 +90,9 @@ document.addEventListener("click", function (event) {
 });
 
 // 금액 입력칸 아래에 "= 3억원"처럼 읽기 쉬운 금액을 보여 줌 (숫자를 0 몇 개 넣었는지 헷갈리지 않게)
-// 대상: 소수까지 받는 숫자 키패드 칸 (type=number, inputmode=numeric, step=any)
+// 대상: 소수까지 받는 숫자 키패드 칸 (type=number, inputmode=numeric, step=any). 원이 아닌 칸(달러·사토시)은 data-no-hint로 뺌
 function setupMoneyHints() {
-  document.querySelectorAll('input[type="number"][inputmode="numeric"][step="any"]').forEach(function (input) {
+  document.querySelectorAll('input[type="number"][inputmode="numeric"][step="any"]:not([data-no-hint])').forEach(function (input) {
     const hint = document.createElement("p");
     hint.className = "money-hint";
     hint.setAttribute("aria-live", "polite");

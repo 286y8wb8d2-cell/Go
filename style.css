@@ -3113,3 +3113,50 @@ body {
 .budget-hero .section-desc {
   margin: 16px 0 0;
 }
+
+/* 비트코인 탭: 접는 칸 (btc.js) — 제목 줄 전체를 누르면 펼침/접기 */
+.btc-fold-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 오른쪽 꺾쇠: 펼치면 위(︿), 접으면 아래(﹀) */
+.btc-fold-btn::after {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+  border-right: 2px solid var(--text-light);
+  border-bottom: 2px solid var(--text-light);
+  transform: translateY(2px) rotate(225deg);
+  transition: transform 0.2s ease;
+}
+
+.btc-folded .btc-fold-btn::after {
+  transform: translateY(-2px) rotate(45deg);
+}
+
+/* 접힌 칸은 제목만 */
+.btc-folded > :not(h2) {
+  display: none !important;
+}
+
+.btc-folded > h2 {
+  margin-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btc-fold-btn::after { transition: none; }
+}

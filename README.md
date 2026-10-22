@@ -204,6 +204,7 @@ backup.js     데이터 백업 (내보내기/불러오기)
 | `household-crypto-price-updated` | 마지막 시세 갱신 시각 |
 | `household-btc-settings` | 비트코인 설정: 국내 거래소 선택, 스택 목표 (백업에 포함) |
 | `household-btc-view` | 마지막으로 본 비트코인 작은 탭 |
+| `household-btc-open` | 비트코인 탭에서 펼치거나 접어 둔 칸 (화면 설정, 백업 안 함) |
 | `household-market-settings` | 시세 자동 갱신 켜고 끄기 (백업에 포함) |
 | `household-goal` | 예전 홈 목표 금액 (지금은 `household-budget`의 goal을 씀, 옛 백업 호환용) |
 | `household-budget` | 가계부: 월급·지출 항목·대출·직접 넣은 일·계산 설정 (백업에 포함) |

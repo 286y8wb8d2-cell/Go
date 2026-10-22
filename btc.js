@@ -216,6 +216,63 @@ function getMyBtcHolding() {
 }
 
 // =============================================
+// 접는 칸: 자주 안 보는 칸은 제목만 보이게 접어 둠 (제목을 누르면 펼침/접기, 이 휴대폰에 기억)
+// =============================================
+
+const BTC_OPEN_KEY = "household-btc-open"; // { "칸 제목": true/false } — 화면 설정이라 백업하지 않음
+
+// 처음부터 접어 둘 칸 (나머지는 펼친 채로 시작)
+const BTC_FOLDED_TITLES = [
+  "매수 vs 매도", "시장 지표",
+  "반감기 사이클 비교", "월별 등락률",
+  "해시레이트", "블록 · 거래 · 주소 검색",
+  "적립식 시뮬레이터", "솔로 채굴 확률", "이 금액은 몇 BTC?", "BIP39 단어 목록",
+  "현물 ETF", "M2와 비트코인", "출금 수수료", "거래소 사고 연표",
+];
+
+function loadBtcOpenState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(BTC_OPEN_KEY));
+    if (saved && typeof saved === "object") return saved;
+  } catch (error) {
+    // 깨져 있으면 처음 상태
+  }
+  return {};
+}
+
+function setupBtcFolding() {
+  const state = loadBtcOpenState();
+  // 제목(h2)이 칸 바로 아래에 있는 칸만 (실시간 시세처럼 제목 옆에 버튼이 있는 칸은 늘 펼침)
+  document.querySelectorAll("#tab-crypto section > h2").forEach(function (heading) {
+    const section = heading.parentElement;
+    const title = heading.textContent.trim();
+    if (BTC_FOLDED_TITLES.indexOf(title) === -1 && state[title] === undefined) return;
+    // 제목을 버튼으로 감싸서 누를 수 있게 (화면 읽기 도구도 펼침 상태를 알 수 있게)
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btc-fold-btn";
+    while (heading.firstChild) button.appendChild(heading.firstChild);
+    heading.appendChild(button);
+    section.classList.add("btc-foldable");
+    function apply(open) {
+      section.classList.toggle("btc-folded", !open);
+      button.setAttribute("aria-expanded", String(open));
+    }
+    apply(state[title] !== undefined ? state[title] : BTC_FOLDED_TITLES.indexOf(title) === -1);
+    button.addEventListener("click", function () {
+      const open = section.classList.contains("btc-folded");
+      apply(open);
+      state[title] = open;
+      try {
+        localStorage.setItem(BTC_OPEN_KEY, JSON.stringify(state));
+      } catch (error) {
+        // 저장이 막혀도 이번에는 동작
+      }
+    });
+  });
+}
+
+// =============================================
 // 6. 이벤트 처리
 // =============================================
 
@@ -224,7 +281,8 @@ function getMyBtcHolding() {
 document.addEventListener("tab-shown", updateBtcTimer);
 document.addEventListener("visibilitychange", updateBtcTimer);
 
-// 시작: 지난번에 보던 작은 탭 (없으면 시세)
+// 시작: 접는 칸 준비, 지난번에 보던 작은 탭 (없으면 시세)
+setupBtcFolding();
 (function () {
   let saved = null;
   try {
