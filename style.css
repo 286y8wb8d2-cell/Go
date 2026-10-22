@@ -2919,3 +2919,9 @@ footer {
   .market-tick-up,
   .market-tick-down { animation: none; }
 }
+
+/* 내 비트코인 지금 가치: 손익은 둘째 줄에 통째로 */
+.btc-live-mine-profit {
+  display: block;
+  white-space: nowrap;
+}

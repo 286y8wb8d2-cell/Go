@@ -257,11 +257,16 @@ function renderBtcLive() {
     const value = mine.quantity * krw.price;
     const profit = value - mine.cost;
     btcLiveMineValue.textContent = formatMoney(value);
-    btcLiveMineSub.textContent = formatNumber(mine.quantity) + " BTC · 손익 ";
+    // 첫 줄: 수량, 둘째 줄: 손익 (금액과 %가 줄 중간에서 끊기지 않게)
+    btcLiveMineSub.textContent = formatNumber(mine.quantity) + " BTC";
+    const profitLine = document.createElement("span");
+    profitLine.className = "btc-live-mine-profit";
+    profitLine.textContent = "손익 ";
     const profitText = document.createElement("strong");
     profitText.className = getProfitClass(profit);
     profitText.textContent = formatSignedMoney(profit) + (mine.cost > 0 ? " (" + formatPercent((profit / mine.cost) * 100) + ")" : "");
-    btcLiveMineSub.appendChild(profitText);
+    profitLine.appendChild(profitText);
+    btcLiveMineSub.appendChild(profitLine);
   }
 
   renderBtcSocketStatus();
