@@ -256,7 +256,7 @@ function renderBtcLive() {
   if (krw && mine.quantity > 0) {
     const value = mine.quantity * krw.price;
     const profit = value - mine.cost;
-    btcLiveMineValue.textContent = formatMoney(value);
+    setShortMoney(btcLiveMineValue, value); // 만원 단위, 누르면 원 단위 (common.js)
     // 첫 줄: 수량, 둘째 줄: 손익 (금액과 %가 줄 중간에서 끊기지 않게)
     btcLiveMineSub.textContent = formatNumber(mine.quantity) + " BTC";
     const profitLine = document.createElement("span");

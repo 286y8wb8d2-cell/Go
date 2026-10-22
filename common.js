@@ -63,6 +63,58 @@ function formatKoreanUnit(amount) {
   return formatMoney(amount);
 }
 
+// 큰 금액을 "억 · 만원"으로 읽기 쉽게 (예: 58,668,388 → "5,867만원", 158,668,388 → "1억 5,867만원")
+// 1만 원 미만은 원 단위 그대로
+function formatManwon(amount) {
+  const sign = amount < 0 ? "-" : "";
+  const man = Math.round(Math.abs(amount) / 10000);
+  if (man < 1) return formatMoney(amount);
+  const eok = Math.floor(man / 10000);
+  const rest = man % 10000;
+  if (eok === 0) return sign + rest.toLocaleString("ko-KR") + "만원";
+  return sign + eok.toLocaleString("ko-KR") + "억" + (rest > 0 ? " " + rest.toLocaleString("ko-KR") + "만" : "") + "원";
+}
+
+// 큰 금액 칸: 평소에는 만원 단위, 누르면 원 단위까지 (한 번 더 누르면 돌아옴)
+function setShortMoney(element, amount) {
+  element.dataset.won = String(Math.round(amount));
+  element.classList.add("short-money");
+  element.textContent = element.classList.contains("show-full") ? formatMoney(amount) : formatManwon(amount);
+}
+
+document.addEventListener("click", function (event) {
+  const element = event.target.closest(".short-money");
+  if (!element) return;
+  element.classList.toggle("show-full");
+  setShortMoney(element, Number(element.dataset.won));
+});
+
+// 금액 입력칸 아래에 "= 3억원"처럼 읽기 쉬운 금액을 보여 줌 (숫자를 0 몇 개 넣었는지 헷갈리지 않게)
+// 대상: 소수까지 받는 숫자 키패드 칸 (type=number, inputmode=numeric, step=any)
+function setupMoneyHints() {
+  document.querySelectorAll('input[type="number"][inputmode="numeric"][step="any"]').forEach(function (input) {
+    const hint = document.createElement("p");
+    hint.className = "money-hint";
+    hint.setAttribute("aria-live", "polite");
+    // 버튼과 한 줄에 있는 칸이면 그 줄 아래에
+    const anchor = input.parentElement.classList.contains("inline-row") ? input.parentElement : input;
+    anchor.after(hint);
+    function update() {
+      const value = Number(input.value);
+      hint.textContent = input.value !== "" && Math.abs(value) >= 10000 ? "= " + formatManwon(value) : "";
+    }
+    input.addEventListener("input", update);
+    input.addEventListener("change", update);
+    // 다른 코드가 값을 채워 넣는 경우(저장된 목표, 수정 버튼 등): 화면을 다 그린 뒤와 저장할 때마다 다시
+    input.addEventListener("focus", update);
+    window.addEventListener("load", update);
+    document.addEventListener("data-saved", function () {
+      setTimeout(update, 0);
+    });
+  });
+}
+setupMoneyHints();
+
 // 금액 앞에 +/- 부호를 붙여 줌 (예: "+50,000원", "-3,000원", 0이면 "0원")
 function formatSignedMoney(amount) {
   const rounded = Math.round(amount);

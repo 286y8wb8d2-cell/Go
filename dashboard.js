@@ -20,6 +20,8 @@ const DASH_SPARK = { width: 300, height: 56, pad: 6 };
 // =============================================
 
 const dashTotalText = document.getElementById("dash-total");
+const dashLabelText = document.getElementById("dash-label");
+const dashBreakdownText = document.getElementById("dash-breakdown");
 const dashChangeText = document.getElementById("dash-change");
 const dashSpark = document.getElementById("dash-spark");
 const dashSparkNote = document.getElementById("dash-spark-note");
@@ -47,6 +49,19 @@ function formatDashMoney(amount) {
   return Math.abs(amount) < 1000000 ? formatMoney(amount) : formatKoreanUnit(amount);
 }
 
+// 가계부에 넣은 대출 잔액 합계 (가계부 파일보다 먼저 불러오므로 저장된 값을 직접 읽음)
+function getDashDebt() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("household-budget"));
+    if (!saved || !Array.isArray(saved.debts)) return 0;
+    return saved.debts.reduce(function (sum, debt) {
+      return sum + (Number.isFinite(debt.balance) ? debt.balance : 0);
+    }, 0);
+  } catch (error) {
+    return 0;
+  }
+}
+
 // 금융자산과 비트코인을 한 목록으로 모아 평가금액이 큰 순서로
 // 결과: [{ name, group: "국내주식", value }]
 function getDashHoldings() {
@@ -72,8 +87,13 @@ function getDashHoldings() {
 
 // 맨 위 큰 숫자 + 직전 기록 대비 변화 + 작은 추이선
 function renderDashHero(networth) {
-  dashTotalText.textContent = formatMoney(networth.value);
-  flashMarketValue(dashTotalText, "dash-total", networth.value); // market.js
+  // 큰 숫자 = 순자산 (자산 - 가계부의 대출). 대출이 없으면 그냥 총 자산
+  const debt = getDashDebt();
+  const net = networth.value - debt;
+  dashLabelText.textContent = debt > 0 ? "순자산 (자산 − 부채)" : "총 자산";
+  setShortMoney(dashTotalText, net); // 만원 단위, 누르면 원 단위 (common.js)
+  flashMarketValue(dashTotalText, "dash-total", net); // market.js
+  dashBreakdownText.textContent = debt > 0 ? "총 자산 " + formatManwon(networth.value) + " · 부채 " + formatManwon(debt) : "";
 
   // 직전 달 기록과 비교 (이번 달 기록은 지금 값과 같으므로 그 앞 기록과 비교)
   const thisMonth = getToday().slice(0, 7);
@@ -84,7 +104,7 @@ function renderDashHero(networth) {
   if (last) {
     const diff = networth.value - last.total;
     dashChangeText.textContent =
-      formatHistoryMonth(last.month) + " 대비 " + formatSignedMoney(diff) +
+      (debt > 0 ? "총 자산 " : "") + formatHistoryMonth(last.month) + " 대비 " + formatSignedMoney(diff) +
       (last.total > 0 ? " (" + formatPercent((diff / last.total) * 100) + ")" : "");
     dashChangeText.className = "dash-change " + getProfitClass(diff);
   } else {

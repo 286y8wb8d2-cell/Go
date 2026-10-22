@@ -327,7 +327,7 @@ function createAssetItem(asset, totalValue) {
 
 // 포트폴리오 요약(합계 카드 + 종류별 비중 막대)을 그림
 function renderAssetSummary(portfolio) {
-  assetTotalValueText.textContent = formatMoney(portfolio.value);
+  setShortMoney(assetTotalValueText, portfolio.value); // 만원 단위, 누르면 원 단위 (common.js)
 
   assetTotalProfitText.textContent = formatSignedMoney(portfolio.profit);
   assetTotalProfitText.className = getProfitClass(portfolio.profit);

@@ -1,5 +1,5 @@
 // =============================================
-// 데이터 백업 — 페이지 맨 아래 (모든 탭에서 보임)
+// 데이터 백업 — 오른쪽 위 ⚙ 설정 창 (모든 탭에서 열 수 있음)
 // 내보내기: 모든 데이터를 .json 파일 하나로 저장
 // 불러오기: 그 파일을 골라 데이터를 되살림
 // ※ 이름은 모두 backup~ / BACKUP~ 으로 시작
@@ -96,6 +96,10 @@ const backupExportBtn = document.getElementById("backup-export-btn");
 const backupImportBtn = document.getElementById("backup-import-btn");
 const backupFileInput = document.getElementById("backup-file-input");
 const backupStatusText = document.getElementById("backup-status");
+const backupSettingsBtn = document.getElementById("settings-btn");
+const backupSettingsDot = document.getElementById("settings-dot");
+const backupSettingsDialog = document.getElementById("settings-dialog");
+const backupSettingsClose = document.getElementById("settings-close");
 
 // =============================================
 // 3. 내보내기
@@ -281,6 +285,7 @@ function renderBackupStatus() {
   if (!last) {
     backupStatusText.textContent = "아직 백업한 적이 없어요. 데이터를 지키려면 가끔 내보내기를 해 두세요.";
     backupStatusText.className = "backup-status backup-warning";
+    backupSettingsDot.hidden = false;
     return;
   }
   // 오늘과 며칠 차이인지 (날짜 글자를 그날 0시로 바꿔서 뺌)
@@ -289,7 +294,21 @@ function renderBackupStatus() {
   backupStatusText.textContent = "마지막 내보내기: " + last + " (" + ago + ")";
   // 30일 넘게 백업하지 않았으면 눈에 띄게
   backupStatusText.className = "backup-status" + (days > 30 ? " backup-warning" : "");
+  // 톱니바퀴 옆 빨간 점: 30일 넘게 백업하지 않았을 때만
+  backupSettingsDot.hidden = days <= 30;
 }
+
+// 설정 창 열고 닫기 (톱니바퀴 버튼, ✕, 바깥 어두운 곳 누르기)
+backupSettingsBtn.addEventListener("click", function () {
+  renderBackupStatus();
+  backupSettingsDialog.showModal();
+});
+backupSettingsClose.addEventListener("click", function () {
+  backupSettingsDialog.close();
+});
+backupSettingsDialog.addEventListener("click", function (event) {
+  if (event.target === backupSettingsDialog) backupSettingsDialog.close();
+});
 
 // =============================================
 // 시작

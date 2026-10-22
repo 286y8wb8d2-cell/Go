@@ -18,7 +18,7 @@ const DASH_MARKET_TILES = [
   { symbol: "BTC-USD", name: "비트코인", unit: "$" },
 ];
 
-const DASH_GOAL_KEY = "household-goal"; // { amount: 목표 총 자산(원) } — 백업에 포함
+const DASH_GOAL_KEY = "household-goal"; // 예전 홈 목표 { amount } — 지금은 가계부 목표(household-budget.goal)를 씀, 옛 백업용
 
 // =============================================
 // 2. 화면 요소
@@ -37,8 +37,12 @@ const dashGoalSub = document.getElementById("dash-goal-sub");
 // 3. 계산
 // =============================================
 
+// 목표는 하나: 가계부의 "순자산 목표"와 같은 값 (household-budget.goal)
+// 가계부를 아직 저장한 적 없으면 예전 홈 목표(household-goal)를 씀
 function loadDashGoal() {
   try {
+    const budgetSaved = JSON.parse(localStorage.getItem("household-budget"));
+    if (budgetSaved && Number.isFinite(budgetSaved.goal)) return budgetSaved.goal > 0 ? budgetSaved.goal : 0;
     const saved = JSON.parse(localStorage.getItem(DASH_GOAL_KEY));
     if (saved && Number.isFinite(saved.amount) && saved.amount > 0) return saved.amount;
   } catch (error) {
@@ -131,16 +135,16 @@ function renderDashMarket() {
 function renderDashGoal() {
   const goal = loadDashGoal();
   if (document.activeElement !== dashGoalInput) dashGoalInput.value = goal > 0 ? goal : "";
-  const total = calculateNetworth().value; // networth.js
+  const total = calculateNetworth().value - getDashDebt(); // 순자산 (networth.js, dashboard.js)
   if (!(goal > 0)) {
     dashGoalBar.style.width = "0%";
-    dashGoalText.textContent = "목표 자산을 정하면 얼마나 왔는지 보여 줘요.";
+    dashGoalText.textContent = "목표를 정하면 얼마나 왔는지 보여 줘요. (가계부의 순자산 목표와 같은 값)";
     dashGoalSub.textContent = "";
     return;
   }
-  const progress = Math.min(total / goal, 1) * 100;
+  const progress = Math.max(0, Math.min(total / goal, 1)) * 100;
   dashGoalBar.style.width = progress.toFixed(1) + "%";
-  dashGoalText.textContent = formatKoreanUnit(goal) + " 중 " + formatKoreanUnit(total) + " (" + progress.toFixed(1) + "%)";
+  dashGoalText.textContent = formatManwon(goal) + " 중 " + formatManwon(total) + " (" + progress.toFixed(1) + "%)";
   if (total >= goal) {
     dashGoalSub.textContent = "목표 달성! 🎉";
     return;
@@ -178,11 +182,11 @@ dashGoalForm.addEventListener("submit", function (event) {
     alert("목표는 0 이상의 금액으로 넣어 주세요. (0이나 빈칸이면 목표 없음)");
     return;
   }
-  try {
-    localStorage.setItem(DASH_GOAL_KEY, JSON.stringify({ amount: value }));
-  } catch (error) {
-    // 저장이 막혀도 화면은 동작
-  }
+  // 가계부 목표에 저장 → 가계부 탭의 고리·미래 계산도 같은 목표를 씀 (budget.js)
+  budget.goal = value;
+  saveBudget();
+  fillBudgetSettings();
+  renderBudget();
   dashGoalInput.blur();
   renderDashGoal();
 });
