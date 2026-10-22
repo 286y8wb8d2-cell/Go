@@ -1,6 +1,6 @@
 // =============================================
 // 비트코인 탭 — 공통 도구
-// - 작은 탭(시세 · 차트 · 블록 · 도구 · 내 코인) 바꾸기
+// - 작은 탭(한눈에 · 차트 · 네트워크 · 더보기) 바꾸기
 // - 자동 갱신: 비트코인 탭을 보고 있을 때만 정해진 간격으로 새 정보를 받아 옴
 //   (다른 탭에 있거나 앱을 내려 두면 멈춰서 데이터·배터리를 아낌)
 // - 비트코인 설정(국내 거래소 선택, 스택 목표) 저장
@@ -113,7 +113,7 @@ function isBtcActive() {
 }
 
 // =============================================
-// 4. 작은 탭 (시세 · 차트 · 블록 · 도구 · 내 코인)
+// 4. 작은 탭 (한눈에 · 차트 · 네트워크 · 더보기)
 // =============================================
 
 const btcViewButtons = document.querySelectorAll("[data-btc-view]");
@@ -149,12 +149,40 @@ btcViewButtons.forEach(function (button) {
   });
 });
 
-// 다른 곳에서 "이 작은 탭으로 가기" 버튼 (data-btc-goto="tools" 등)
+// 다른 곳에서 "이 작은 탭으로 가기" 버튼 (data-btc-goto="chain" 등, data-btc-scroll="칸 id"면 그 칸까지)
 document.querySelectorAll("[data-btc-goto]").forEach(function (button) {
   button.addEventListener("click", function () {
-    showBtcView(button.dataset.btcGoto, true);
+    if (button.dataset.btcScroll) {
+      // 탭이 바뀌는 그림이 끝난 뒤에 스크롤
+      setTimeout(function () {
+        openBtcSection(button.dataset.btcScroll, button.dataset.btcGoto);
+      }, 50);
+    } else {
+      showBtcView(button.dataset.btcGoto, true);
+    }
   });
 });
+
+// 칸 하나를 보여 주기: 그 칸이 있는 작은 탭으로 바꾸고, 접혀 있으면 펼친 뒤 그 칸까지 스크롤
+function openBtcSection(id, view) {
+  const section = document.getElementById(id);
+  if (!section) return;
+  if (view && view !== btcView) showBtcView(view, false);
+  if (section.classList.contains("btc-folded")) section.querySelector(".btc-fold-btn").click();
+  section.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// =============================================
+// 4-1. 한눈에 4칸에 보여 줄 값 (각 파일이 값을 넣으면 btc-summary.js가 그림)
+// =============================================
+
+// kimp: 김치 프리미엄 %, fng: { value, name, color }, halving: { days, date }, fee: { normal, fast }
+const btcSummary = { kimp: null, fng: null, halving: null, fee: null };
+
+function setBtcSummary(key, value) {
+  btcSummary[key] = value;
+  document.dispatchEvent(new CustomEvent("btc-summary-updated", { detail: { key: key } }));
+}
 
 // =============================================
 // 5. 작은 도구들
@@ -223,7 +251,7 @@ const BTC_OPEN_KEY = "household-btc-open"; // { "칸 제목": true/false } — �
 
 // 처음부터 접어 둘 칸 (나머지는 펼친 채로 시작)
 const BTC_FOLDED_TITLES = [
-  "매수 vs 매도", "시장 지표",
+  "거래소 · 24시간 정보", "김치 프리미엄", "매수 vs 매도", "시장 지표", "공포·탐욕 지수 (F&G)", "코인 입력",
   "반감기 사이클 비교", "월별 등락률",
   "해시레이트", "블록 · 거래 · 주소 검색",
   "적립식 시뮬레이터", "솔로 채굴 확률", "이 금액은 몇 BTC?", "BIP39 단어 목록",
@@ -290,6 +318,8 @@ setupBtcFolding();
   } catch (error) {
     // 무시
   }
+  // 예전 작은 탭 이름(도구·정보·내 코인)은 새 묶음으로
+  saved = { tools: "more", info: "more", mine: "market" }[saved] || saved;
   const exists = Array.from(btcViewButtons).some(function (button) {
     return button.dataset.btcView === saved;
   });

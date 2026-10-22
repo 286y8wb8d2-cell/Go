@@ -3160,3 +3160,135 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .btc-fold-btn::after { transition: none; }
 }
+
+/* =============================================
+   비트코인 "한눈에" (btc-summary.js)
+   ============================================= */
+
+/* 가격 아래 30일 추이선 */
+.btc-sum-spark {
+  display: block;
+  width: 100%;
+  height: 48px;
+  margin: 8px 0 2px;
+}
+
+.btc-sum-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.btc-sum-line-up { stroke: var(--up); }
+.btc-sum-line-down { stroke: var(--down); }
+.btc-sum-area-up { fill: var(--up); opacity: 0.08; }
+.btc-sum-area-down { fill: var(--down); opacity: 0.08; }
+
+.btc-sum-spark-note {
+  margin: 0 0 8px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.btc-sum-spark-note:empty {
+  display: none;
+}
+
+/* 지표 4칸: 카드 하나에 2×2 */
+.btc-sum-section {
+  padding: 12px;
+}
+
+.btc-sum-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.btc-sum-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btc-sum-tile:active {
+  transform: scale(0.98);
+}
+
+.btc-sum-value {
+  font-size: 1.3rem;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 묶음 제목 ("내 코인", "도구", "정보") */
+.btc-group-title {
+  margin: 24px 4px 8px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--text-light);
+}
+
+/* 휴대폰을 가로로 돌렸을 때 차트를 화면 가득 (btc-chart.js가 body에 btc-chart-full을 붙임) */
+body.btc-chart-full {
+  padding-bottom: 0;
+}
+
+body.btc-chart-full .app-header,
+body.btc-chart-full #tabs,
+body.btc-chart-full .btc-subtabs,
+body.btc-chart-full .update-banner,
+body.btc-chart-full .swipe-hint {
+  display: none !important;
+}
+
+body.btc-chart-full main {
+  max-width: none;
+  padding: 0 max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
+}
+
+body.btc-chart-full [data-btc-view-panel="chart"] > section:not(:first-of-type),
+body.btc-chart-full [data-btc-view-panel="chart"] > section:first-of-type > h2,
+body.btc-chart-full #btc-chart-status,
+body.btc-chart-full [data-btc-view-panel="chart"] .section-desc,
+body.btc-chart-full .btc-check {
+  display: none;
+}
+
+body.btc-chart-full [data-btc-view-panel="chart"] > section:first-of-type {
+  margin: 0;
+  padding: 6px 0 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--bg);
+}
+
+body.btc-chart-full .btc-chip-group {
+  flex-wrap: nowrap;
+}
+
+body.btc-chart-full .btc-chip-row {
+  margin-bottom: 2px;
+}
+
+body.btc-chart-full .btc-chart-change {
+  margin: 0;
+}
+
+body.btc-chart-full #btc-chart {
+  height: calc(100vh - 92px);
+}

@@ -313,6 +313,7 @@ function renderBtcKimp(krw, usd, fx) {
 
   if (krw && globalKrw) {
     const rate = (krw.price / globalKrw - 1) * 100;
+    setBtcSummary("kimp", rate); // 한눈에 4칸 (btc.js)
     btcKimpRate.textContent = formatPercent(rate);
     btcKimpRate.className = "btc-big " + getProfitClass(rate);
     btcKimpDiff.textContent =

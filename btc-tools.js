@@ -578,7 +578,7 @@ btcWorthPresets.forEach(function (button) {
 });
 btcBip39Search.addEventListener("input", renderBtcBip39);
 document.addEventListener("btc-view-shown", function (event) {
-  if (event.detail.view === "tools") loadBtcBip39();
+  if (event.detail.view === "more") loadBtcBip39();
 });
 
 // 가격이 바뀌면 (btc-live.js가 알림) — 너무 자주 다시 계산하지 않게 2초에 한 번
@@ -611,5 +611,5 @@ document.addEventListener("data-saved", function (event) {
   renderBtcSolo();
   renderBtcGoal();
   renderBtcWorth();
-  if (btcView === "tools") loadBtcBip39(); // btc.js (지난번에 도구 탭을 보던 중이면)
+  if (btcView === "more") loadBtcBip39(); // btc.js (지난번에 더보기 탭을 보던 중이면)
 })();

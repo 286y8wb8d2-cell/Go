@@ -316,7 +316,7 @@ function startCryptoEdit(crypto) {
   cryptoCancelBtn.hidden = false;
 
   renderCryptos();
-  cryptoForm.scrollIntoView({ behavior: "smooth" });
+  openBtcSection("btc-coin-input"); // btc.js: 접혀 있는 "코인 입력" 칸을 펼치고 그 칸으로
 }
 
 cryptoCancelBtn.addEventListener("click", function () {

@@ -208,6 +208,7 @@ async function refreshBtcFng() {
   btcFngMiniValue.textContent = today.value;
   btcFngMiniValue.style.color = zone.color;
   btcFngMiniSub.textContent = zone.name;
+  setBtcSummary("fng", { value: today.value, name: zone.name, color: zone.color }); // 한눈에 4칸 (btc.js)
   renderBtcFngCompare(days);
   renderBtcFngBars(days);
 

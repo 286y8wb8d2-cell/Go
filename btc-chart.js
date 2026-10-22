@@ -21,7 +21,7 @@ const BTC_CANDLE_FALLBACK_URL =
 const BTC_CHART_EVERY_MS = 10 * 60 * 1000;
 
 // 그래프 크기 (viewBox 기준, 실제로는 화면 폭에 맞춰 늘어남)
-const BTC_CHART = { width: 340, height: 220, left: 46, right: 8, top: 10, bottom: 24 };
+const BTC_CHART = { width: 340, height: 220, left: 46, right: 8, top: 10, bottom: 24 }; // width는 가로 화면에서 넓어짐
 
 
 // 기간 버튼 → 며칠
@@ -300,7 +300,26 @@ function renderBtcChartButtons() {
   });
 }
 
+// 휴대폰을 가로로 돌리면 차트를 화면 가득 (차트 탭을 보고 있을 때만)
+const BTC_CHART_FULL_QUERY = window.matchMedia("(orientation: landscape) and (max-height: 520px)");
+
+// 가로 화면이면 차트 그림판(viewBox)의 폭을 화면 모양에 맞게 넓힘 → 봉이 작아지지 않고 옆으로 길게
+function fitBtcChartLayout() {
+  const full = BTC_CHART_FULL_QUERY.matches && currentTab === "crypto" && btcView === "chart"; // common.js, btc.js
+  document.body.classList.toggle("btc-chart-full", full);
+  let width = 340;
+  if (full) {
+    const rect = btcChart.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) width = Math.max(340, Math.round((BTC_CHART.height * rect.width) / rect.height));
+  }
+  if (width !== BTC_CHART.width) {
+    BTC_CHART.width = width;
+    btcChart.setAttribute("viewBox", "0 0 " + width + " " + BTC_CHART.height);
+  }
+}
+
 function renderBtcChart() {
+  fitBtcChartLayout();
   renderBtcChartButtons();
   btcChart.innerHTML = "";
   btcShownCandles = getBtcShownCandles();
@@ -371,7 +390,7 @@ function renderBtcChart() {
       marks.push(index);
     }
   });
-  const every = Math.ceil(marks.length / 5);
+  const every = Math.ceil(marks.length / Math.round((5 * c.width) / 340)); // 가로로 넓으면 글자를 더 많이
   marks.forEach(function (index, order) {
     if (order % every !== 0) return;
     const date = new Date(candles[index].time);
@@ -580,6 +599,20 @@ btcChart.addEventListener("keydown", function (event) {
     selectBtcCandle(Math.min(Math.max(btcSelectedIndex + step, 0), btcShownCandles.length - 1));
   }
 });
+
+// 화면을 돌리거나 탭을 바꾸면 차트 크기를 다시 맞춤
+let btcChartFitWidth = BTC_CHART.width;
+function refitBtcChart() {
+  const before = document.body.classList.contains("btc-chart-full");
+  fitBtcChartLayout();
+  if (BTC_CHART.width !== btcChartFitWidth || before !== document.body.classList.contains("btc-chart-full")) {
+    btcChartFitWidth = BTC_CHART.width;
+    renderBtcChart();
+  }
+}
+window.addEventListener("resize", refitBtcChart);
+document.addEventListener("btc-view-shown", refitBtcChart);
+document.addEventListener("tab-shown", refitBtcChart);
 
 // 시작: 과거 기록으로 바로 그려 두고, 최근 일봉은 비트코인 탭을 열 때 받아서 덮어씀
 btcHistoryCandles = buildBtcHistoryCandles();

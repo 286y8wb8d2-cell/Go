@@ -160,6 +160,7 @@ function renderBtcHalving() {
   const days = Math.ceil((halving.eta - Date.now()) / BTC_DAY_MS); // BTC_DAY_MS: btc.js
   btcHalvingDday.textContent = "D-" + days.toLocaleString("ko-KR");
   const eta = new Date(halving.eta);
+  setBtcSummary("halving", { days: days, date: eta.getFullYear() + "년 " + (eta.getMonth() + 1) + "월쯤", progress: halving.progress }); // 한눈에 4칸 (btc.js)
   btcHalvingDate.textContent =
     eta.getFullYear() + "년 " + (eta.getMonth() + 1) + "월 " + eta.getDate() + "일쯤 · 블록 " + formatAmount(halving.nextHeight);
 
@@ -326,6 +327,7 @@ function centerBtcBlocks() {
 
 // 추천 수수료 4칸 (+ 보통 송금 1건이면 원화로 얼마쯤인지)
 function renderBtcFees(fees) {
+  setBtcSummary("fee", { normal: Number(fees.halfHourFee), fast: Number(fees.fastestFee) }); // 한눈에 4칸 (btc.js)
   btcFeeBox.innerHTML = "";
   [
     ["빠름", "다음 블록", fees.fastestFee],
