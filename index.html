@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" data-version="43">
+<html lang="ko" data-version="44">
 <head>
   <!-- 한글이 깨지지 않게 문자 인코딩을 지정 -->
   <meta charset="UTF-8">
@@ -18,7 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <!-- 디자인 파일 연결
        (?v=숫자: 파일을 고칠 때마다 숫자를 올리면 브라우저가 예전 파일 대신 새 파일을 받아 옴) -->
-  <link rel="stylesheet" href="style.css?v=43">
+  <link rel="stylesheet" href="style.css?v=44">
 </head>
 <body>
   <header class="app-header">
@@ -90,6 +90,22 @@
       </section>
 
       <div id="dash-content">
+        <!-- 이번 달 할 일 (dash-report.js): 지금 숫자로 고른 구체적인 제안 -->
+        <section id="dash-todo-section">
+          <h2>이번 달 할 일</h2>
+          <ul id="dash-todo-list" class="dash-todo-list"></ul>
+        </section>
+
+        <!-- 월간 리포트 (dash-report.js) -->
+        <section id="dash-report-section">
+          <div class="btc-section-head">
+            <h2>월간 리포트</h2>
+            <div id="dash-report-chips" class="chip-row card-month-chips" role="group" aria-label="달 고르기"></div>
+          </div>
+          <p id="dash-report-headline" class="dash-report-headline"></p>
+          <ul id="dash-report-list" class="dash-report-list"></ul>
+        </section>
+
         <!-- 순자산 목표 (dashboard-market.js) — 가계부의 순자산 목표와 같은 값 -->
         <section>
           <h2>순자산 목표</h2>
@@ -166,6 +182,7 @@
       <nav class="btc-subtabs" role="tablist" aria-label="가계부 메뉴">
         <button type="button" class="btc-subtab" data-subtab="budget:now" role="tab">현황</button>
         <button type="button" class="btc-subtab" data-subtab="budget:flow" role="tab">수입·지출</button>
+        <button type="button" class="btc-subtab" data-subtab="budget:card" role="tab">실제 지출</button>
         <button type="button" class="btc-subtab" data-subtab="budget:debt" role="tab">부채</button>
         <button type="button" class="btc-subtab" data-subtab="budget:future" role="tab">미래</button>
         <button type="button" class="btc-subtab" data-subtab="budget:events" role="tab">이벤트</button>
@@ -415,6 +432,70 @@
       </div>
 
       <!-- ===== 이벤트 ===== -->
+      <!-- ===== 실제 지출: 카드 명세서 불러오기 → 분류 → 계획과 비교 (budget-card.js) ===== -->
+      <div data-subtab-panel="budget:card" hidden>
+        <section>
+          <h2>카드 명세서 불러오기</h2>
+          <p class="section-desc">
+            카드사 앱·홈페이지에서 받은 이용내역 파일(엑셀 .xls/.xlsx 또는 .csv)을 고르면 날짜·가맹점·금액을 읽어 자동으로 분류해요.
+            파일은 이 휴대폰 안에서만 읽고 어디에도 보내지 않아요.
+          </p>
+          <div class="backup-buttons">
+            <button type="button" id="card-import-btn" class="btn-primary">명세서 파일 고르기</button>
+          </div>
+          <input type="file" id="card-file-input" accept=".xls,.xlsx,.csv,.txt,.html,.htm" hidden>
+          <p id="card-import-status" class="price-refresh-status" aria-live="polite"></p>
+        </section>
+
+        <div id="card-empty" class="empty-message card-empty">아직 불러온 카드 내역이 없어요.</div>
+
+        <div id="card-content" hidden>
+          <section>
+            <div class="btc-section-head">
+              <h2 id="card-month-title">이번 달 실제 지출</h2>
+              <div id="card-month-chips" class="chip-row card-month-chips" role="group" aria-label="달 고르기"></div>
+            </div>
+            <div class="summary-grid">
+              <div class="summary-card">
+                <p>카드로 쓴 돈 (할부 제외)</p>
+                <p id="card-total">0원</p>
+              </div>
+              <div class="summary-card">
+                <p>카드 예산</p>
+                <p id="card-budget-value">0원</p>
+              </div>
+              <div class="summary-card">
+                <p>지난달 대비</p>
+                <p id="card-vs-prev">-</p>
+              </div>
+            </div>
+            <div class="btc-progress card-budget-progress" aria-hidden="true">
+              <div id="card-budget-bar" class="btc-progress-fill"></div>
+            </div>
+            <p id="card-budget-note" class="budget-note"></p>
+            <form id="card-budget-form" class="card-form inline-row card-budget-form">
+              <input type="number" id="card-budget-input" min="0" step="any" inputmode="numeric" placeholder="카드 예산(원/월)" aria-label="한 달 카드 예산(원)">
+              <button type="submit" class="btn-secondary">예산 저장</button>
+            </form>
+          </section>
+
+          <section>
+            <h2>어디에 썼나</h2>
+            <div id="card-cat-bar" class="budget-flow-bar" role="img" aria-label="분류별 지출 비중"></div>
+            <ul id="card-cat-legend" class="alloc-legend"></ul>
+            <h3 class="btc-subtitle">많이 쓴 곳</h3>
+            <ul id="card-top-list" class="card-top-list"></ul>
+          </section>
+
+          <section>
+            <h2>이용 내역</h2>
+            <p class="section-desc">분류가 틀렸으면 오른쪽에서 바꿔 주세요. 같은 가맹점은 다음부터 그 분류로 들어가요.</p>
+            <ul id="card-tx-list" class="card-tx-list"></ul>
+            <button type="button" id="card-delete-month" class="btn-secondary card-delete-month">이 달 내역 지우기</button>
+          </section>
+        </div>
+      </div>
+
       <div data-subtab-panel="budget:events" hidden>
         <section>
           <h2>다가오는 일</h2>
@@ -1457,46 +1538,50 @@
       <input type="file" id="backup-file-input" accept=".json,application/json" hidden>
     </section>
     <!-- 앱 버전: 휴대폰이 최신 파일을 쓰고 있는지 확인용 (파일을 고칠 때 ?v= 숫자와 같이 올림) -->
-    <p class="app-version">앱 버전 v43</p>
+    <p class="app-version">앱 버전 v44</p>
   </dialog>
 
   <!-- 동작 파일 연결: HTML을 다 읽은 뒤 실행되도록 body 맨 끝에 둠
        common.js(공통 도구)를 먼저 불러와야 다른 파일에서 쓸 수 있음 -->
-  <script src="common.js?v=43"></script>
+  <script src="common.js?v=44"></script>
   <!-- 주식·ETF·지수 시세 (금융자산·홈에서 씀, assets.js보다 먼저) -->
-  <script src="market.js?v=43"></script>
-  <script src="assets.js?v=43"></script>
-  <script src="assets-market.js?v=43"></script>
-  <script src="crypto.js?v=43"></script>
+  <script src="market.js?v=44"></script>
+  <script src="assets.js?v=44"></script>
+  <script src="assets-market.js?v=44"></script>
+  <script src="crypto.js?v=44"></script>
   <!-- 전체 자산 요약: 위 파일들의 계산 함수를 쓰므로 맨 마지막에 -->
-  <script src="networth.js?v=43"></script>
+  <script src="networth.js?v=44"></script>
   <!-- 자산 추이: 전체 자산 계산을 씀 -->
-  <script src="history.js?v=43"></script>
+  <script src="history.js?v=44"></script>
   <!-- 홈(대시보드): 모든 계산 함수를 씀 -->
-  <script src="dashboard.js?v=43"></script>
-  <script src="dashboard-market.js?v=43"></script>
+  <script src="dashboard.js?v=44"></script>
+  <script src="dashboard-market.js?v=44"></script>
   <!-- 시나리오: 위 모든 파일의 계산 함수를 씀 -->
-  <script src="scenario.js?v=43"></script>
+  <script src="scenario.js?v=44"></script>
   <!-- 미래 적립 시뮬레이션: 전체 자산 값을 불러옴 -->
-  <script src="simulate.js?v=43"></script>
+  <script src="simulate.js?v=44"></script>
   <!-- 비트코인: 공통 → 시세 → 매수/매도 → 공포·탐욕 → 과거 가격 → 차트 → 사이클·월별 → 도구 → 정보 → 사고 연표 → 블록 (마지막 파일이 자동 갱신을 시작) -->
-  <script src="btc.js?v=43"></script>
-  <script src="btc-live.js?v=43"></script>
-  <script src="btc-flow.js?v=43"></script>
-  <script src="btc-fng.js?v=43"></script>
+  <script src="btc.js?v=44"></script>
+  <script src="btc-live.js?v=44"></script>
+  <script src="btc-flow.js?v=44"></script>
+  <script src="btc-fng.js?v=44"></script>
   <!-- 2010년부터의 비트코인 과거 가격 (차트용 고정 데이터, 약 50KB) -->
-  <script src="btc-history.js?v=43"></script>
-  <script src="btc-chart.js?v=43"></script>
-  <script src="btc-cycle.js?v=43"></script>
-  <script src="btc-tools.js?v=43"></script>
-  <script src="btc-info.js?v=43"></script>
-  <script src="btc-incidents.js?v=43"></script>
-  <script src="btc-chain.js?v=43"></script>
+  <script src="btc-history.js?v=44"></script>
+  <script src="btc-chart.js?v=44"></script>
+  <script src="btc-cycle.js?v=44"></script>
+  <script src="btc-tools.js?v=44"></script>
+  <script src="btc-info.js?v=44"></script>
+  <script src="btc-incidents.js?v=44"></script>
+  <script src="btc-chain.js?v=44"></script>
   <!-- 비트코인 "한눈에" 4칸·추이선 (위 파일들이 넣은 값을 그림) -->
-  <script src="btc-summary.js?v=43"></script>
+  <script src="btc-summary.js?v=44"></script>
   <!-- 가계부 (자산·비트코인 값을 쓰므로 그 뒤에) -->
-  <script src="budget.js?v=43"></script>
+  <script src="budget.js?v=44"></script>
+  <!-- 카드 명세서 → 실제 지출 (가계부 계획과 비교) -->
+  <script src="budget-card.js?v=44"></script>
+  <!-- 홈: 이번 달 할 일, 월간 리포트 (가계부·카드·자산 값을 모두 씀) -->
+  <script src="dash-report.js?v=44"></script>
   <!-- 데이터 백업 -->
-  <script src="backup.js?v=43"></script>
+  <script src="backup.js?v=44"></script>
 </body>
 </html>

@@ -3292,3 +3292,191 @@ body.btc-chart-full .btc-chart-change {
 body.btc-chart-full #btc-chart {
   height: calc(100vh - 92px);
 }
+
+/* =============================================
+   가계부 "실제 지출" (budget-card.js)
+   ============================================= */
+.card-empty {
+  margin: 0 0 16px;
+}
+
+.card-month-chips {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin: 0;
+}
+
+.card-budget-progress {
+  margin-top: 12px;
+}
+
+.btc-progress-fill.card-over {
+  background: var(--up);
+}
+
+.card-budget-form {
+  margin-top: 12px;
+}
+
+.card-top-list,
+.card-tx-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.card-top-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 0.9rem;
+}
+
+.card-top-rank {
+  width: 20px;
+  color: var(--text-light);
+  font-weight: bold;
+  text-align: center;
+}
+
+.card-top-name {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-top-name small {
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+.card-top-list strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.card-tx {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-cat-select {
+  width: auto;
+  height: 32px;
+  margin: 0;
+  padding: 0 6px;
+  font-size: 0.8rem;
+}
+
+.card-delete-month {
+  margin-top: 12px;
+}
+
+/* =============================================
+   홈: 이번 달 할 일 · 월간 리포트 (dash-report.js)
+   ============================================= */
+.dash-todo-list,
+.dash-report-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dash-todo-list li + li {
+  margin-top: 8px;
+}
+
+.dash-todo {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 왼쪽 동그라미: 주의 = 주황, 좋은 소식 = 초록, 그 외 = 파랑 */
+.dash-todo-mark {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.dash-todo.warn .dash-todo-mark { background: #eb6834; }
+.dash-todo.good .dash-todo-mark { background: var(--good); }
+
+.dash-todo-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dash-todo-text strong {
+  font-size: 0.95rem;
+}
+
+.dash-todo-text small {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  word-break: keep-all;
+}
+
+.dash-report-headline {
+  margin: 4px 0 12px;
+  font-size: 1rem;
+  word-break: keep-all;
+}
+
+.dash-report-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.dash-report-row:last-child {
+  border-bottom: none;
+}
+
+.dash-report-name,
+.dash-report-value {
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-report-value {
+  align-items: flex-end;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dash-report-name small,
+.dash-report-value small {
+  font-size: 0.75rem;
+  font-weight: normal;
+  color: var(--text-light);
+}
+
+.dash-report-value small.profit-up { color: var(--up); }
+.dash-report-value small.profit-down { color: var(--down); }

@@ -24,8 +24,8 @@ const BACKUP_ITEMS = [
   { key: "household-history", label: "자산 기록", unit: "개월", check: isValidHistory },
 ];
 
-// 목록이 아닌 설정값 (시뮬레이션 입력값, 비트코인 설정: 거래소·스택 목표, 시세 자동 갱신 설정, 자산 목표, 가계부)
-const BACKUP_SETTINGS_KEYS = ["household-sim-settings", "household-btc-settings", "household-market-settings", "household-goal", "household-budget"];
+// 목록이 아닌 설정값 (시뮬레이션 입력값, 비트코인 설정: 거래소·스택 목표, 시세 자동 갱신 설정, 자산 목표, 가계부, 카드 내역)
+const BACKUP_SETTINGS_KEYS = ["household-sim-settings", "household-btc-settings", "household-market-settings", "household-goal", "household-budget", "household-card"];
 
 // =============================================
 // 2. 데이터 모양 검사
@@ -208,6 +208,8 @@ function describeBackup(backup) {
     const debts = Array.isArray(budgetData.debts) ? budgetData.debts.length : 0;
     parts.push("가계부 (지출 " + items + "개 · 대출 " + debts + "건)");
   }
+  const cardData = backup.data["household-card"];
+  if (cardData && Array.isArray(cardData.tx)) parts.push("카드 내역 " + cardData.tx.length + "건");
   return parts.join(" · ");
 }
 
