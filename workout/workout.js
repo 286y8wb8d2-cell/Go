@@ -1199,6 +1199,68 @@ function wkSetTab(t) {
   wkApplyTab();
   window.scrollTo(0, 0);
 }
+// 옆으로 밀어서 탭 넘기기: 손가락을 따라 화면이 움직이고, 충분히 밀면 옆 탭으로
+const WK_TAB_ORDER = ["today", "week", "log", "more"];
+let wkSwipe = null;
+function wkSwipeBlocked(el) {
+  return document.body.classList.contains("wk-first") || wkRunActive() || !document.getElementById("wk-sheet").hidden ||
+    !!el.closest("input, textarea, select, canvas, .wk-chart, #wk-tabbar");
+}
+document.addEventListener("touchstart", (e) => {
+  wkSwipe = null;
+  if (e.touches.length !== 1 || wkSwipeBlocked(e.target)) return;
+  const t = e.touches[0];
+  wkSwipe = { x: t.clientX, y: t.clientY, t: Date.now(), dx: 0, on: false };
+}, { passive: true });
+document.addEventListener("touchmove", (e) => {
+  if (!wkSwipe) return;
+  const t = e.touches[0];
+  const dx = t.clientX - wkSwipe.x;
+  const dy = t.clientY - wkSwipe.y;
+  if (!wkSwipe.on) {
+    if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) return (wkSwipe = null); // 위아래 스크롤
+    if (Math.abs(dx) < 12) return;
+    wkSwipe.on = true;
+  }
+  const i = WK_TAB_ORDER.indexOf(wkTab);
+  const edge = (dx > 0 && i === 0) || (dx < 0 && i === WK_TAB_ORDER.length - 1);
+  wkSwipe.dx = dx;
+  const main = document.querySelector("main");
+  main.style.transition = "none";
+  main.style.transform = `translateX(${edge ? dx * 0.25 : dx}px)`; // 끝 탭이면 살짝만
+}, { passive: true });
+document.addEventListener("touchend", () => {
+  const sw = wkSwipe;
+  wkSwipe = null;
+  if (!sw || !sw.on) return;
+  const main = document.querySelector("main");
+  const i = WK_TAB_ORDER.indexOf(wkTab);
+  const fast = Math.abs(sw.dx) / Math.max(1, Date.now() - sw.t) > 0.45;
+  const j = Math.abs(sw.dx) > window.innerWidth * 0.28 || (fast && Math.abs(sw.dx) > 40) ? i + (sw.dx < 0 ? 1 : -1) : i;
+  if (j === i || j < 0 || j >= WK_TAB_ORDER.length) {
+    main.style.transition = "transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)";
+    main.style.transform = "";
+    return;
+  }
+  // 밀던 쪽으로 빠져나가고, 새 탭은 반대쪽에서 들어옴
+  const dir = sw.dx < 0 ? -1 : 1;
+  main.style.transition = "transform 0.16s ease-in";
+  main.style.transform = `translateX(${dir * window.innerWidth}px)`;
+  setTimeout(() => {
+    wkSetTab(WK_TAB_ORDER[j]);
+    main.style.transition = "none";
+    main.style.transform = `translateX(${-dir * window.innerWidth * 0.35}px)`;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      main.style.transition = "transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)";
+      main.style.transform = "";
+    }));
+  }, 160);
+});
+document.addEventListener("touchcancel", () => {
+  if (wkSwipe && wkSwipe.on) document.querySelector("main").style.transform = "";
+  wkSwipe = null;
+});
+
 document.querySelectorAll("#wk-tabbar [data-tab]").forEach((b) => b.addEventListener("click", () => {
   if (wkTab === b.dataset.tab) return window.scrollTo({ top: 0, behavior: "smooth" });
   wkSetTab(b.dataset.tab);
