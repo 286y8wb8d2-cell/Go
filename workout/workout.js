@@ -405,10 +405,14 @@ function wkRenderSession(week) {
   const slot = wkSlotOf(week, d);
   const dayLabel = (d === wkTodayIdx ? "오늘 · " : "") + WK_DAY_NAMES[d] + "요일";
 
-  // 이 날 종류 바꾸기 (러닝·홈트·헬스장·휴식)
-  const changeRow = `<div class="wk-change"><span>이 날 바꾸기</span><div class="wk-chips">` + WK_KINDS.map(([k, label]) =>
-    `<button type="button" class="wk-chip wk-chip-sm${wkKindOf(slot) === k ? " on" : ""}" data-kind="${k}">${label}</button>`).join("") + `</div></div>`;
-  const bindChange = (root) => root.querySelectorAll(".wk-change [data-kind]").forEach((b) => b.addEventListener("click", () => {
+  // 요일 줄 바로 아래: 이 날 종류 바꾸기 (휴식·러닝·홈트·헬스장) — 끝낸 날은 못 바꿈
+  const done = !!(slot && week.done[d]);
+  document.getElementById("wk-daytools-label").textContent = done ? `${WK_DAY_NAMES[d]}요일 운동 완료 ✓` : `${WK_DAY_NAMES[d]}요일 바꾸기`;
+  const seg = document.getElementById("wk-daytools-seg");
+  seg.hidden = done;
+  seg.innerHTML = WK_KINDS.map(([k, label]) =>
+    `<button type="button" class="${wkKindOf(slot) === k ? "on" : ""}" data-kind="${k}">${label}</button>`).join("");
+  seg.querySelectorAll("[data-kind]").forEach((b) => b.addEventListener("click", () => {
     if (wkKindOf(wkSlotOf(week, d)) === b.dataset.kind) return;
     wkChangeDay(week, d, b.dataset.kind);
     wkRenderPlan();
@@ -419,8 +423,7 @@ function wkRenderSession(week) {
     const todaySlot = wkSlotOf(week, wkTodayIdx);
     box.innerHTML = `<div class="wk-card"><p class="wk-day-label">${dayLabel}</p><h2>쉬는 날</h2>
       <p class="wk-note">가벼운 걷기나 스트레칭 정도면 충분해요. 근육은 쉬는 동안 자라요.</p>
-      ${d === wkTodayIdx && !todaySlot ? "<p class='wk-note'>오늘 운동하고 싶으면 아래에서 종류를 고르거나, 다른 요일 운동을 눌러 '오늘로 옮기기'를 하세요.</p>" : ""}${changeRow}</div>`;
-    bindChange(box);
+      ${d === wkTodayIdx && !todaySlot ? "<p class='wk-note'>오늘 운동하고 싶으면 위에서 종류를 고르거나, 다른 요일 운동을 눌러 '오늘로 옮기기'를 하세요.</p>" : ""}</div>`;
     return;
   }
 
@@ -501,12 +504,10 @@ function wkRenderSession(week) {
   });
 
   html += `<button type="button" class="wk-primary" data-finish>${week.done[d] ? "✓ 완료한 운동 (다시 누르면 취소)" : "운동 완료!"}</button>`;
-  if (!week.done[d]) html += changeRow;
   if (d !== wkTodayIdx && !wkSlotOf(week, wkTodayIdx) && !week.done[d]) {
     html += `<button type="button" class="wk-ghost" data-move>오늘로 옮기기</button>`;
   }
   card.innerHTML = html;
-  bindChange(card);
   card.querySelector("[data-eq-row]").innerHTML = wkEqTags(Object.keys(WK_EQ).filter((e) => allEq[e]));
   box.innerHTML = "";
   box.appendChild(card);

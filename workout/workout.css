@@ -477,3 +477,11 @@ body.wk-first .wk-tab, body.wk-first header, body.wk-first #wk-tabbar, body.wk-f
 .wk-run-stats div { flex: 1; background: var(--card); box-shadow: var(--shadow); border-radius: 16px; padding: 12px 6px; }
 .wk-run-stats b { display: block; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; }
 .wk-run-stats span { font-size: 0.75rem; color: var(--text-light); font-weight: 600; }
+
+/* 이번 주: 고른 날 바꾸기 (요일 줄 아래) */
+.wk-daytools { padding: 12px 14px 14px; }
+.wk-daytools-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+.wk-daytools-head span { font-size: 0.9rem; font-weight: 700; }
+.wk-link-sm { flex: none; border: 0; background: none; padding: 4px 0; color: var(--blue); font-size: 0.85rem; font-weight: 600; }
+.wk-daytools-seg button { padding: 9px 4px; font-size: 0.92rem; }
+.wk-daytools-seg button.on { color: var(--primary-dark); font-weight: 700; }

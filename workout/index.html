@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" data-version="20">
+<html lang="ko" data-version="21">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -16,7 +16,7 @@
   <meta name="apple-mobile-web-app-title" content="워크아웃">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <!-- ?v=숫자: 파일을 고칠 때마다 올림 (휴대폰 캐시 때문) -->
-  <link rel="stylesheet" href="workout.css?v=20">
+  <link rel="stylesheet" href="workout.css?v=21">
 </head>
 <body>
   <header>
@@ -95,8 +95,15 @@
     <!-- 2) 계획이 있을 때: 요일 줄 + 선택한 날의 운동 -->
     <section id="wk-plan" hidden>
       <div id="wk-strip" class="wk-strip"></div>
+      <!-- 고른 날 바꾸기 + 이번 주 다시 짜기 (요일 줄과 그날 운동 사이) -->
+      <div class="wk-card wk-daytools">
+        <div class="wk-daytools-head">
+          <span id="wk-daytools-label">이 날 바꾸기</span>
+          <button type="button" id="wk-reset" class="wk-link-sm">↺ 이번 주 다시 짜기</button>
+        </div>
+        <div id="wk-daytools-seg" class="wk-seg wk-daytools-seg"></div>
+      </div>
       <div id="wk-session"></div>
-      <button type="button" id="wk-reset" class="wk-ghost">이번 주 다시 짜기</button>
     </section>
     </div>
 
@@ -172,15 +179,15 @@
   </div>
 
   <footer class="wk-tab" data-in="more">
-    <p>앱 버전 v20 · 기록은 이 기기에만 저장돼요</p>
+    <p>앱 버전 v21 · 기록은 이 기기에만 저장돼요</p>
   </footer>
 
-  <script src="workout-data.js?v=20"></script>
-  <script src="workout-motion.js?v=20"></script>
-  <script src="workout-3d.js?v=20"></script>
-  <script src="workout-rigs.js?v=20"></script>
-  <script src="workout-run.js?v=20"></script>
-  <script src="workout.js?v=20"></script>
-  <script src="workout-backup.js?v=20"></script>
+  <script src="workout-data.js?v=21"></script>
+  <script src="workout-motion.js?v=21"></script>
+  <script src="workout-3d.js?v=21"></script>
+  <script src="workout-rigs.js?v=21"></script>
+  <script src="workout-run.js?v=21"></script>
+  <script src="workout.js?v=21"></script>
+  <script src="workout-backup.js?v=21"></script>
 </body>
 </html>
