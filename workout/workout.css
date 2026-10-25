@@ -485,3 +485,48 @@ body.wk-first .wk-tab, body.wk-first header, body.wk-first #wk-tabbar, body.wk-f
 .wk-link-sm { flex: none; border: 0; background: none; padding: 4px 0; color: var(--blue); font-size: 0.85rem; font-weight: 600; }
 .wk-daytools-seg button { padding: 9px 4px; font-size: 0.92rem; }
 .wk-daytools-seg button.on { color: var(--primary-dark); font-weight: 700; }
+
+/* 러닝 기록 입력 */
+.wk-km { background: var(--card); border-radius: 12px; padding: 10px 12px; margin: 8px 0 4px; font-size: 0.85rem; }
+.wk-run-text .wk-km { background: var(--card2); margin-top: 12px; }
+.wk-km-hint { margin: 0 0 8px; color: var(--text-light); }
+.wk-km-in { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.wk-km-in label { display: flex; align-items: center; gap: 4px; }
+.wk-km-in .wk-input { width: 62px; text-align: right; padding: 8px; }
+.wk-km-in [data-km-dist] { width: 70px; }
+.wk-km-in .wk-lift-save { margin-left: auto; }
+.wk-km-pace { margin: 6px 0 0; font-weight: 700; color: var(--primary-dark); min-height: 1.2em; }
+.wk-plates { margin: 6px 0 0; font-size: 0.82rem; font-weight: 600; color: var(--blue); }
+.wk-lift-row em { display: block; font-style: normal; font-size: 0.75rem; color: var(--text-light); }
+
+/* 잠깐 뜨는 알림 */
+.wk-toast { position: fixed; left: 50%; top: calc(12px + env(safe-area-inset-top)); z-index: 40; transform: translate(-50%, -140%); max-width: calc(100% - 32px); background: rgba(28, 28, 30, 0.9); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); color: #fff; font-weight: 700; font-size: 0.92rem; padding: 12px 18px; border-radius: 999px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); transition: transform 0.4s var(--ease); pointer-events: none; text-align: center; }
+.wk-toast.show { transform: translate(-50%, 0); }
+
+/* 캘린더에 넣기 */
+.wk-ics-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.wk-ics-row .wk-note { margin: 2px 0 0; }
+.wk-ics-time { flex: none; display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; color: var(--text-light); }
+.wk-ics-time .wk-input { width: 96px; padding: 8px; }
+
+/* 기록 탭 숫자 요약 */
+.wk-stats { display: flex; gap: 8px; margin-bottom: 14px; }
+.wk-stat { flex: 1; min-width: 0; background: var(--card); box-shadow: var(--shadow); border-radius: 18px; padding: 12px 12px 10px; }
+.wk-stat b { display: block; font-size: 1.6rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.wk-stat b small { font-size: 0.85rem; font-weight: 700; color: var(--text-light); margin-left: 1px; }
+.wk-stat span { font-size: 0.72rem; font-weight: 600; color: var(--text-light); }
+.wk-km-bar { fill: color-mix(in srgb, #1baf7a 45%, transparent); }
+.wk-km-bar.cur { fill: #1baf7a; }
+.wk-km-best { display: flex; flex-direction: column; gap: 2px; font-size: 0.85rem; color: var(--text-light); margin: 6px 0 4px; }
+.wk-km-best b { color: var(--text); }
+
+/* 운동 끝나고 어땠어요? */
+.wk-feel { margin: 22px 0 6px; }
+.wk-feel > p:first-child { margin: 0 0 10px; font-weight: 700; }
+.wk-feel > div { display: flex; gap: 8px; }
+.wk-feel button { flex: 1; border: 0; background: var(--card); box-shadow: var(--shadow); border-radius: 16px; padding: 10px 4px; font-size: 0.85rem; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.wk-feel button span { font-size: 1.5rem; }
+.wk-feel button.on { box-shadow: 0 0 0 2px var(--primary), var(--shadow); color: var(--primary-dark); }
+.wk-feel-sm { margin: 14px 0 0; }
+.wk-feel-sm button { background: var(--card2); box-shadow: none; }
+.wk-feel-sm button.on { box-shadow: 0 0 0 2px var(--primary); }

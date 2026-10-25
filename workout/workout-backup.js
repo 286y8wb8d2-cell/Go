@@ -118,6 +118,7 @@ function wkBkMerge(cur, inc) {
     if (!a || doneN(b) > doneN(a)) out.weeks[k] = b;
   });
   out.log = Object.assign({}, inc.log || {}, out.log || {});
+  out.runs = Object.assign({}, inc.runs || {}, out.runs || {});
   out.lifts = out.lifts || {};
   Object.keys(inc.lifts || {}).forEach((name) => {
     const have = {};

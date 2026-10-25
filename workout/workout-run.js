@@ -29,7 +29,7 @@ function wkRunMoves(week, slot, ses) {
       const key = `${d}-${bi}-${ii}`;
       const pool = wkPool(it.pool);
       const ex = pool[(it.idx + (week.swaps[key] || 0)) % pool.length];
-      return { it: it, key: key, ex: ex, reps: wkRepsText(ex, week.p) };
+      return { it: it, key: key, ex: ex, reps: wkRepsText(ex, week.p, week.adj) };
     });
     if (blk.text) moves.push({ t: "text", blk: blk, bi: bi, key: blk.run || blk.cardio ? `${d}-${bi}-t` : null });
     if (!items.length) return;
@@ -143,6 +143,7 @@ function wkRunComplete() {
   }
   if (m.t === "emom") ch[m.key] = 1;
   if (m.t === "text" && m.key) ch[m.key] = true;
+  if (m.t === "text" && m.blk.run) wkKmSaveBox(document.querySelector("#wk-run-body .wk-km"));
   wkRunVibe(30);
   wkRunGo(wkRun.i + 1, m.rest || 0);
 }
@@ -283,14 +284,22 @@ function wkRunRender(force) {
     wkRunShowAnim(null);
     const doneN = r.week.slots.filter((s) => r.week.done[s.day]).length;
     const mins = Math.max(1, Math.round((Date.now() - r.started) / 60000));
+    const feel = (r.week.feel || {})[r.d] || 0;
+    const jog = (wkState.runs || {})[wkDateKey(wkAddDays(wkMon, r.d))];
     body.innerHTML = `<div class="wk-run-done">
         <svg class="wk-run-done-ring" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="50" class="bg"/><circle cx="60" cy="60" r="50" class="fg"/></svg>
         <h2>운동 완료! 🎉</h2>
         <p class="wk-note">${r.ses.title}</p>
         <div class="wk-run-stats">
           <div><b>${mins}분</b><span>이번 운동</span></div>
-          <div><b>${r.sets}</b><span>끝낸 세트</span></div>
+          ${r.sets || !jog ? `<div><b>${r.sets}</b><span>끝낸 세트</span></div>` : `<div><b>${jog.km}km</b><span>${jog.sec ? wkKmPace(jog.km, jog.sec) : "달린 거리"}</span></div>`}
           <div><b>${doneN}/${r.week.slots.length}</b><span>이번 주</span></div>
+        </div>
+        <div class="wk-feel">
+          <p>오늘 운동 어땠어요?</p>
+          <div>${[[1, "😌", "쉬웠어요"], [2, "🙂", "적당했어요"], [3, "😮‍💨", "힘들었어요"]].map(([v, e, t]) =>
+            `<button type="button" class="${feel === v ? "on" : ""}" data-run="feel" data-v="${v}"><span>${e}</span>${t}</button>`).join("")}</div>
+          <p class="wk-note">${feel ? "고마워요! 다음 주 프로그램 횟수에 반영할게요." : "답에 맞춰 다음 주 횟수를 조금 늘리거나 줄여요."}</p>
         </div>
         <button type="button" class="wk-primary" data-run="close">닫기</button>
       </div>`;
@@ -336,6 +345,7 @@ function wkRunRender(force) {
         <h2>${m.blk.name}</h2>
         <ul>${m.blk.text.map((t) => `<li>${t}</li>`).join("")}</ul>
         ${m.blk.tip ? `<p class="wk-tip">💡 ${m.blk.tip}</p>` : ""}
+        ${m.blk.run ? wkKmBox(wkDateKey(wkAddDays(wkMon, r.d)), r.slot.type, false) : ""}
       </div>
       <button type="button" class="wk-primary wk-run-go" data-run="done">${m.blk.run ? "러닝 다 했어요 ✓" : "다 했어요 · 다음"}</button>${nav}`;
   } else if (m.t === "emom") {
@@ -351,6 +361,10 @@ function wkRunRender(force) {
            <button type="button" class="wk-ghost" data-run="done">타이머 없이 했어요</button>`}${nav}`;
   }
   body.innerHTML = html;
+  wkBindKm(body);
+  const kgIn = document.getElementById("wk-run-kg");
+  const plates = document.getElementById("wk-run-plates");
+  if (kgIn && plates) kgIn.addEventListener("input", () => (plates.textContent = wkPlates(parseFloat(kgIn.value) || parseFloat(kgIn.placeholder) || 0)));
   if (r.phase === "rest") wkRunTick();
   if (r.emomStart) wkRunTick();
 }
@@ -361,11 +375,12 @@ function wkRunLiftBox(m) {
   if (!wkTracksWeight(ex)) return "";
   const date = wkDateKey(wkAddDays(wkMon, wkRun.d));
   const today = wkLiftHistory(ex.n).find((x) => x.d === date);
-  const goal = wkLiftGoal(m.x.it.pool, ex, date, wkRun.week.p);
+  const goal = wkLiftGoal(m.x.it.pool, ex, date, wkRun.week.p, wkRun.week.adj);
   return `<div class="wk-run-lift">
       <p>${goal ? `오늘 목표 <b>${goal.kg}kg</b> · 지난번 ${goal.prev.kg}kg${goal.prev.reps ? "×" + goal.prev.reps : ""}` : "처음이면 가벼운 무게로 시작해 적어 두세요"}</p>
       <div><input type="number" inputmode="decimal" step="0.5" min="0" class="wk-input" id="wk-run-kg" placeholder="${goal ? goal.kg : "kg"}" value="${today ? today.kg : ""}"> kg ×
         <input type="number" inputmode="numeric" min="0" class="wk-input" id="wk-run-reps" placeholder="횟수" value="${today && today.reps ? today.reps : ""}"> 회</div>
+      ${ex.wt === "bb" ? `<p class="wk-plates" id="wk-run-plates">${wkPlates(today ? today.kg : goal ? goal.kg : 0)}</p>` : ""}
     </div>`;
 }
 
@@ -375,6 +390,12 @@ document.getElementById("wk-run").addEventListener("click", (e) => {
   const k = b.dataset.run;
   const m = wkRun.moves[wkRun.i];
   if (k === "close") return wkRunClose();
+  if (k === "feel") {
+    wkRun.week.feel = wkRun.week.feel || {};
+    wkRun.week.feel[wkRun.d] = Number(b.dataset.v);
+    wkSave();
+    return wkRunRender();
+  }
   if (k === "done") return wkRunComplete();
   if (k === "prev") return wkRunGo(wkRun.i - 1, 0);
   if (k === "skip") return wkRunSkipBlock();

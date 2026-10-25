@@ -305,6 +305,7 @@ function wkMakePlan() {
     swaps: {},
     checks: {},
     done: {},
+    adj: wkFeelAdj(),
   };
   // 달력에 이미 체크한 날이면 계획에도 완료로
   const week = wkState.weeks[wkWeekKey];
@@ -314,6 +315,21 @@ function wkMakePlan() {
   wkSave();
   wkViewDay = wkTodayIdx;
   wkRender();
+}
+
+// 지난주 "어땠어요?" 답으로 이번 주 횟수 조정: 대부분 쉬웠으면 +1칸, 힘들었으면 -1칸 (한 칸 = 2회)
+function wkFeelAdj() {
+  const prev = wkState.weeks[wkDateKey(wkAddDays(wkMon, -7))];
+  const base = prev && prev.adj ? prev.adj : 0;
+  const feels = prev && prev.feel ? Object.values(prev.feel) : [];
+  if (!feels.length) return base;
+  const avg = feels.reduce((a, b) => a + b, 0) / feels.length;
+  const step = avg <= 1.5 ? 1 : avg >= 2.5 ? -1 : 0;
+  return Math.max(-2, Math.min(2, base + step));
+}
+function wkAdjText(adj) {
+  if (!adj) return "";
+  return adj > 0 ? `지난주가 쉬웠다고 해서 횟수를 ${adj * 2}회씩 늘렸어요` : `지난주가 힘들었다고 해서 횟수를 ${-adj * 2}회씩 줄였어요`;
 }
 
 // ---------- 계획 화면 ----------
@@ -348,6 +364,7 @@ function wkRenderPlan() {
   }
 
   wkRenderSession(week);
+  wkRenderIcsCard();
   wkRenderHistory();
   wkRenderToday();
 }
@@ -459,6 +476,7 @@ function wkRenderSession(week) {
       if (blk.run || blk.cardio) {
         if (blk.run) allEq.run = true;
         html += `<button type="button" class="wk-check ${ok}" data-check="${key}">${ok ? "✓ 했어요" : "다 했으면 누르기"}</button>`;
+        if (blk.run) html += wkKmBox(wkDateKey(wkAddDays(wkMon, d)), slot.type, true);
       }
     }
     if (blk.tip && !blk.text) html += `<p class="wk-tip wk-main-tip">💡 ${blk.tip}</p>`;
@@ -475,7 +493,7 @@ function wkRenderSession(week) {
       const ex = pool[(it.idx + (week.swaps[key] || 0)) % pool.length];
       exByKey[key] = ex;
       ex.eq.forEach((e) => (allEq[e] = true));
-      const reps = wkRepsText(ex, week.p);
+      const reps = wkRepsText(ex, week.p, week.adj);
       const got = week.checks[key] || 0;
       html += `<div class="wk-ex"><div class="wk-ex-top"><div><button type="button" class="wk-ex-name" data-show="${key}" data-reps="${blk.circuit || blk.emom ? reps : `${it.sets}세트 × ${reps}`}"><span class="wk-play">▶</span>${ex.n}</button>
         <div class="wk-ex-meta">${blk.circuit || blk.emom ? reps : `${it.sets}세트 × ${reps}`}</div></div>
@@ -484,12 +502,13 @@ function wkRenderSession(week) {
       if (wkTracksWeight(ex)) {
         const date = wkDateKey(wkAddDays(wkMon, d));
         const today = wkLiftHistory(ex.n).find((r) => r.d === date);
-        const goal = wkLiftGoal(it.pool, ex, date, week.p);
+        const goal = wkLiftGoal(it.pool, ex, date, week.p, week.adj);
         html += `<div class="wk-lift" data-lift="${key}" data-pool="${it.pool}">
           <div class="wk-lift-info">${goal ? `지난번 <b>${goal.prev.kg}kg${goal.prev.reps ? " × " + goal.prev.reps + "회" : ""}</b> (${wkShortDate(goal.prev.d)}) → 오늘 목표 <b>${goal.kg}kg</b><br><span>${goal.why}</span>` : "처음 기록해요. 가벼운 무게로 시작해 적어 두면 다음부터 목표를 알려 드려요"}</div>
           <div class="wk-lift-in"><input type="number" inputmode="decimal" step="0.5" min="0" class="wk-input wk-kg" data-lkg placeholder="${goal ? goal.kg : "kg"}" value="${today ? today.kg : ""}"> kg ×
             <input type="number" inputmode="numeric" min="0" class="wk-input wk-kg" data-lreps placeholder="횟수" value="${today && today.reps ? today.reps : ""}"> 회
             <button type="button" class="wk-lift-save${today ? " saved" : ""}">${today ? "✓ 저장됨" : "저장"}</button></div>
+          ${ex.wt === "bb" ? `<p class="wk-plates" data-plates>${wkPlates(today ? today.kg : goal ? goal.kg : 0)}</p>` : ""}
           <p class="wk-lift-hint">횟수는 마지막 세트에 한 횟수를 적어요</p>
         </div>`;
       }
@@ -504,6 +523,11 @@ function wkRenderSession(week) {
   });
 
   html += `<button type="button" class="wk-primary" data-finish>${week.done[d] ? "✓ 완료한 운동 (다시 누르면 취소)" : "운동 완료!"}</button>`;
+  if (week.done[d]) {
+    const fv = (week.feel || {})[d] || 0;
+    html += `<div class="wk-feel wk-feel-sm"><p>어땠어요?</p><div>${[[1, "😌", "쉬웠어요"], [2, "🙂", "적당"], [3, "😮‍💨", "힘들었어요"]].map(([v, e, t]) =>
+      `<button type="button" class="${fv === v ? "on" : ""}" data-feel="${v}"><span>${e}</span>${t}</button>`).join("")}</div></div>`;
+  }
   if (d !== wkTodayIdx && !wkSlotOf(week, wkTodayIdx) && !week.done[d]) {
     html += `<button type="button" class="wk-ghost" data-move>오늘로 옮기기</button>`;
   }
@@ -521,6 +545,14 @@ function wkRenderSession(week) {
     wkSave();
     wkRenderSession(week);
   }));
+  wkBindKm(card);
+  card.querySelectorAll("[data-feel]").forEach((b) => b.addEventListener("click", () => {
+    week.feel = week.feel || {};
+    week.feel[d] = Number(b.dataset.feel);
+    wkSave();
+    wkRenderSession(week);
+    wkRenderHistory();
+  }));
   card.querySelectorAll("[data-check]").forEach((b) => b.addEventListener("click", () => {
     week.checks[b.dataset.check] = !week.checks[b.dataset.check];
     wkSave();
@@ -537,7 +569,12 @@ function wkRenderSession(week) {
     const btn = box.querySelector(".wk-lift-save");
     const kgIn = box.querySelector("[data-lkg]");
     const repIn = box.querySelector("[data-lreps]");
-    const dirty = () => { btn.classList.remove("saved"); btn.textContent = "저장"; };
+    const plates = box.querySelector("[data-plates]");
+    const dirty = () => {
+      btn.classList.remove("saved");
+      btn.textContent = "저장";
+      if (plates) plates.textContent = wkPlates(parseFloat(kgIn.value) || parseFloat(kgIn.placeholder) || 0);
+    };
     kgIn.addEventListener("input", dirty);
     repIn.addEventListener("input", dirty);
     btn.addEventListener("click", () => {
@@ -600,6 +637,8 @@ function wkRenderSession(week) {
 }
 
 function wkRenderHistory() {
+  wkRenderStats();
+  wkRenderRunLog();
   const ul = document.getElementById("wk-history");
   ul.innerHTML = "";
   const keys = Object.keys(wkState.weeks).sort().reverse().slice(0, 8);
@@ -608,7 +647,9 @@ function wkRenderHistory() {
     const done = w.slots.filter((s) => w.done[s.day]).length;
     const [y, m, dd] = k.split("-").map(Number);
     const li = document.createElement("li");
-    li.innerHTML = `<span>${m}/${dd} 주${k === wkWeekKey ? " (이번 주)" : ""} · ${WK_PHASES[w.p].name.split(" · ")[1]}</span><b>${done}/${w.slots.length}</b>`;
+    const feels = Object.values(w.feel || {});
+    const feel = feels.length ? ["", " 😌", " 🙂", " 😮‍💨"][Math.round(feels.reduce((a, b) => a + b, 0) / feels.length)] : "";
+    li.innerHTML = `<span>${m}/${dd} 주${k === wkWeekKey ? " (이번 주)" : ""} · ${WK_PHASES[w.p].name.split(" · ")[1]}${feel}</span><b>${done}/${w.slots.length}</b>`;
     ul.appendChild(li);
   });
   // 무게 기록: 동작마다 최근 무게와 처음보다 얼마나 늘었는지 (누르면 그래프)
@@ -618,7 +659,8 @@ function wkRenderHistory() {
   lifts.innerHTML = names.map((n) => {
     const h = wkLiftHistory(n);
     const diff = Math.round((h[h.length - 1].kg - h[0].kg) * 10) / 10;
-    return `<li><button type="button" class="wk-lift-row" data-liftname="${n}"><span>${n}</span><b>${h[h.length - 1].kg}kg${diff ? ` <small>(${diff > 0 ? "+" : ""}${diff})</small>` : ""}</b></button></li>`;
+    const best = h.reduce((m, r) => Math.max(m, r.kg), 0);
+    return `<li><button type="button" class="wk-lift-row" data-liftname="${n}"><span>${n}<em>최고 ${best}kg</em></span><b>${h[h.length - 1].kg}kg${diff ? ` <small>(${diff > 0 ? "+" : ""}${diff})</small>` : ""}</b></button></li>`;
   }).join("");
   lifts.querySelectorAll("[data-liftname]").forEach((b) => b.addEventListener("click", () => {
     const n = b.dataset.liftname;
@@ -639,6 +681,9 @@ function wkLiftHistory(name) {
 function wkLiftSave(name, date, kg, reps) {
   if (!wkState.lifts) wkState.lifts = {};
   const list = wkLiftHistory(name).filter((r) => r.d !== date);
+  // 예전 기록보다 무거우면 축하
+  const best = list.reduce((m, r) => Math.max(m, r.kg), 0);
+  if (best > 0 && kg > best) wkToast(`🎉 최고 기록! ${name} ${kg}kg`);
   if (kg > 0) list.push({ d: date, kg: kg, reps: reps > 0 ? reps : null });
   list.sort((a, b) => (a.d < b.d ? -1 : 1));
   wkState.lifts[name] = list.slice(-40);
@@ -646,10 +691,10 @@ function wkLiftSave(name, date, kg, reps) {
   wkSave();
 }
 // 오늘 목표: 지난번에 목표 횟수(범위 위쪽)를 채웠으면 무게 올리기, 아니면 같은 무게로 횟수 늘리기
-function wkLiftGoal(pool, ex, date, p) {
+function wkLiftGoal(pool, ex, date, p, adj) {
   const prev = wkLiftHistory(ex.n).filter((r) => r.d < date).pop();
   if (!prev) return null;
-  const nums = wkRepsText(ex, p).match(/\d+/g);
+  const nums = wkRepsText(ex, p, adj).match(/\d+/g);
   const top = nums ? Number(nums[nums.length - 1]) : 0;
   const inc = ex.wt === "db" ? 2 : ["gSquat", "gHinge", "gLegAcc"].indexOf(pool) >= 0 ? 5 : 2.5;
   if (prev.reps && top && prev.reps >= top) return { prev: prev, kg: prev.kg + inc, why: `지난번 ${top}회를 채워서 +${inc}kg` };
@@ -700,6 +745,255 @@ function wkLiftChart(box, name) {
     .map((r) => `<tr><td>${wkShortDate(r.d)}</td><td>${r.kg}kg</td><td>${r.reps ? r.reps + "회" : "-"}</td></tr>`).join("");
   wrap.appendChild(table);
   box.appendChild(wrap);
+}
+
+// ---------- 러닝 기록 ----------
+// wkState.runs["YYYY-MM-DD"] = { km, sec, type } (하루에 하나, 다시 적으면 바뀜)
+const WK_RUN_NAMES = { runQ: "포인트", easy: "이지런", lsd: "LSD", combo: "런+근력", recovery: "회복", free: "러닝" };
+
+function wkKmList() {
+  const runs = wkState.runs || {};
+  return Object.keys(runs).sort().map((d) => Object.assign({ d: d }, runs[d]));
+}
+function wkKmSave(date, km, sec, type) {
+  if (!wkState.runs) wkState.runs = {};
+  if (km > 0) {
+    const best = wkKmList().filter((r) => r.d !== date).reduce((m, r) => Math.max(m, r.km), 0);
+    wkState.runs[date] = { km: Math.round(km * 100) / 100, sec: sec > 0 ? sec : null, type: type };
+    if (best > 0 && km > best) wkToast(`🎉 가장 긴 거리! ${km}km`);
+  } else delete wkState.runs[date];
+  wkSave();
+}
+// 페이스 "6:12/km"
+function wkKmPace(km, sec) {
+  if (!km || !sec) return "";
+  const p = Math.round(sec / km);
+  return Math.floor(p / 60) + ":" + String(p % 60).padStart(2, "0") + "/km";
+}
+function wkKmTime(sec) {
+  if (!sec) return "";
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s2 = sec % 60;
+  return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(s2).padStart(2, "0");
+}
+// 지난 기록을 보고 오늘 목표 한 줄
+function wkKmHint(type, date, p) {
+  const same = wkKmList().filter((r) => r.d < date && r.type === type);
+  const last = same.pop();
+  if (!last) return "달린 거리와 시간을 적으면 페이스를 계산하고, 다음엔 목표 거리를 알려 드려요.";
+  const pace = wkKmPace(last.km, last.sec);
+  const prev = `지난 ${WK_RUN_NAMES[type] || "러닝"} ${last.km}km${pace ? " (" + pace + ")" : ""}`;
+  if (type === "lsd") {
+    // 회복 주는 줄이고, 나머지는 10% 이내로 늘리기
+    const goal = p === 3 ? last.km * 0.8 : Math.min(last.km * 1.1, last.km + 2);
+    return `${prev} → 오늘은 ${Math.round(goal * 2) / 2}km 안팎 (${p === 3 ? "회복 주라 짧게" : "한 번에 10% 넘게 늘리지 않기"})`;
+  }
+  if (type === "easy" || type === "recovery") return `${prev} → 오늘도 그만큼 편하게. 페이스는 신경 쓰지 않아도 돼요`;
+  return `${prev} → 오늘도 기록해서 비교해 봐요`;
+}
+// 입력칸 (이번 주 탭·운동 모드에서 같이 씀)
+function wkKmBox(date, type, withSave) {
+  const r = (wkState.runs || {})[date];
+  const p = (wkState.weeks[wkWeekKey] || {}).p || 0;
+  const sec = r && r.sec ? r.sec : 0;
+  return `<div class="wk-km" data-km-date="${date}" data-km-type="${type}">
+      <p class="wk-km-hint">${wkKmHint(type, date, p)}</p>
+      <div class="wk-km-in">
+        <label><input type="number" inputmode="decimal" step="0.1" min="0" class="wk-input" data-km-dist value="${r ? r.km : ""}" placeholder="0.0"> km</label>
+        <label><input type="number" inputmode="numeric" min="0" class="wk-input" data-km-min value="${sec ? Math.floor(sec / 60) : ""}" placeholder="분"> 분</label>
+        <label><input type="number" inputmode="numeric" min="0" max="59" class="wk-input" data-km-sec value="${sec ? sec % 60 : ""}" placeholder="초"> 초</label>
+        ${withSave ? `<button type="button" class="wk-lift-save${r ? " saved" : ""}" data-km-save>${r ? "✓ 저장됨" : "저장"}</button>` : ""}
+      </div>
+      <p class="wk-km-pace" data-km-pace>${r ? wkKmPace(r.km, r.sec) : ""}</p>
+    </div>`;
+}
+function wkKmRead(box) {
+  const km = parseFloat(box.querySelector("[data-km-dist]").value) || 0;
+  const sec = (parseInt(box.querySelector("[data-km-min]").value, 10) || 0) * 60 + (parseInt(box.querySelector("[data-km-sec]").value, 10) || 0);
+  return { km: km, sec: sec };
+}
+// 운동 모드에서 "러닝 다 했어요"를 누를 때
+function wkKmSaveBox(box) {
+  if (!box) return;
+  const v = wkKmRead(box);
+  if (v.km > 0) wkKmSave(box.dataset.kmDate, v.km, v.sec, box.dataset.kmType);
+}
+function wkBindKm(root) {
+  root.querySelectorAll(".wk-km").forEach((box) => {
+    const btn = box.querySelector("[data-km-save]");
+    const pace = box.querySelector("[data-km-pace]");
+    box.querySelectorAll("input").forEach((inp) => inp.addEventListener("input", () => {
+      const v = wkKmRead(box);
+      pace.textContent = v.km && v.sec ? "페이스 " + wkKmPace(v.km, v.sec) : "";
+      if (btn) {
+        btn.classList.remove("saved");
+        btn.textContent = "저장";
+      }
+    }));
+    if (btn) btn.addEventListener("click", () => {
+      const v = wkKmRead(box);
+      if (!v.km) return box.querySelector("[data-km-dist]").focus();
+      wkKmSave(box.dataset.kmDate, v.km, v.sec, box.dataset.kmType);
+      btn.classList.add("saved");
+      btn.textContent = "✓ 저장됨";
+      wkRenderHistory();
+    });
+  });
+}
+
+// ---------- 바벨 원판 ----------
+// 봉 20kg + 양쪽에 끼울 원판 (큰 것부터)
+function wkPlates(kg) {
+  if (!kg) return "";
+  if (kg <= 20) return "빈 봉(20kg)만";
+  let side = (kg - 20) / 2;
+  const used = [];
+  [25, 20, 15, 10, 5, 2.5, 1.25].forEach((w) => {
+    while (side >= w - 0.001) {
+      used.push(w);
+      side -= w;
+    }
+  });
+  return `봉 20kg + 양쪽에 ${used.join(" + ")}kg${side > 0.01 ? " (딱 맞는 원판이 없으면 가까운 무게로)" : ""}`;
+}
+
+// ---------- 알림 (잠깐 떴다 사라지는 글) ----------
+let wkToastId = null;
+function wkToast(msg) {
+  let el = document.getElementById("wk-toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "wk-toast";
+    el.className = "wk-toast";
+    el.setAttribute("role", "status");
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.remove("show");
+  void el.offsetWidth; // 다시 나타나는 효과
+  el.classList.add("show");
+  clearTimeout(wkToastId);
+  wkToastId = setTimeout(() => el.classList.remove("show"), 3200);
+}
+
+// ---------- 캘린더에 넣기 (.ics) ----------
+// 이번 주 남은 운동을 아이폰 캘린더 일정으로 (10분 전 알림) — 웹앱은 알림을 직접 못 보내서
+function wkIcs(week) {
+  const at = (wkState.remindAt || "19:00").split(":").map(Number);
+  const pad = (n) => String(n).padStart(2, "0");
+  const stamp = (dt) => `${dt.getFullYear()}${pad(dt.getMonth() + 1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+  const esc = (t) => String(t).replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//daily-workout//KO", "CALSCALE:GREGORIAN"];
+  let n = 0;
+  week.slots.forEach((slot) => {
+    if (slot.day < wkTodayIdx || week.done[slot.day]) return;
+    const ses = wkSessionFor(week, slot);
+    const day = wkAddDays(wkMon, slot.day);
+    const start = new Date(day.getFullYear(), day.getMonth(), day.getDate(), at[0], at[1] || 0);
+    const end = new Date(start.getTime() + ses.min * 60000);
+    const rows = wkSessionRows(week, slot, ses).map((r) => (r.text ? "· " + r.name : "· " + r.ex.n + " " + r.meta));
+    lines.push("BEGIN:VEVENT", `UID:wk-${wkDateKey(day)}@daily-workout`, `DTSTAMP:${stamp(new Date())}`,
+      `DTSTART:${stamp(start)}`, `DTEND:${stamp(end)}`, `SUMMARY:${esc("💪 " + ses.title)}`,
+      `DESCRIPTION:${esc("약 " + ses.min + "분\n" + rows.join("\n"))}`,
+      "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${esc(ses.title)}`, "TRIGGER:-PT10M", "END:VALARM", "END:VEVENT");
+    n++;
+  });
+  lines.push("END:VCALENDAR");
+  return { text: lines.join("\r\n"), count: n };
+}
+function wkExportIcs() {
+  const week = wkState.weeks[wkWeekKey];
+  if (!week) return;
+  const ics = wkIcs(week);
+  if (!ics.count) return wkToast("이번 주에 남은 운동이 없어요");
+  const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (ios) {
+    // 아이폰: 캘린더 파일을 바로 열면 "모두 추가" 화면이 뜸
+    location.href = "data:text/calendar;charset=utf-8," + encodeURIComponent(ics.text);
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([ics.text], { type: "text/calendar" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "workout-" + wkWeekKey + ".ics";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  wkToast(`운동 ${ics.count}개를 캘린더 파일로 내보냈어요`);
+}
+function wkRenderIcsCard() {
+  const box = document.getElementById("wk-ics");
+  if (!box) return;
+  box.innerHTML = `<div class="wk-ics-row"><div><b>📅 캘린더에 넣기</b><p class="wk-note">남은 운동을 캘린더 일정으로 넣고 10분 전에 알려 줘요</p></div>
+    <label class="wk-ics-time">시간 <input type="time" class="wk-input" id="wk-remind-at" value="${wkState.remindAt || "19:00"}"></label></div>
+    <button type="button" class="wk-ghost" id="wk-ics-btn">이번 주 운동 캘린더에 넣기</button>`;
+  document.getElementById("wk-remind-at").addEventListener("change", (e) => {
+    wkState.remindAt = e.target.value || "19:00";
+    wkSave();
+  });
+  document.getElementById("wk-ics-btn").addEventListener("click", wkExportIcs);
+}
+
+// ---------- 기록 탭: 숫자 요약 · 러닝 ----------
+function wkRenderStats() {
+  const box = document.getElementById("wk-stats");
+  const log = wkState.log || {};
+  const ym = wkDateKey(wkNow).slice(0, 7);
+  const month = Object.keys(log).filter((k) => k.slice(0, 7) === ym).length;
+  // 연속 주: 계획한 운동을 다 한 주가 몇 주째 이어지는지 (이번 주는 다 했을 때만 셈)
+  let streak = 0;
+  for (let i = 0; i < 52; i++) {
+    const w = wkState.weeks[wkDateKey(wkAddDays(wkMon, -7 * i))];
+    const full = w && w.slots.length && w.slots.every((sl) => w.done[sl.day]);
+    if (full) streak++;
+    else if (i === 0) continue; // 이번 주는 아직 하는 중
+    else break;
+  }
+  const km = wkKmList().filter((r) => r.d.slice(0, 7) === ym).reduce((a, r) => a + r.km, 0);
+  box.innerHTML = `<div class="wk-stat"><b>${month}</b><span>이번 달 운동</span></div>
+    <div class="wk-stat"><b>${streak}<small>주</small></b><span>연속 목표 달성</span></div>
+    <div class="wk-stat"><b>${Math.round(km * 10) / 10}<small>km</small></b><span>이번 달 러닝</span></div>`;
+}
+
+function wkRenderRunLog() {
+  const card = document.getElementById("wk-runlog");
+  const list = wkKmList();
+  card.hidden = !list.length;
+  if (!list.length) return;
+  // 최근 8주 주간 거리 (막대)
+  const weeks = [];
+  for (let i = 7; i >= 0; i--) {
+    const mon = wkAddDays(wkMon, -7 * i);
+    const a = wkDateKey(mon);
+    const b = wkDateKey(wkAddDays(mon, 7));
+    weeks.push({ label: wkShortDate(a), km: list.filter((r) => r.d >= a && r.d < b).reduce((s2, r) => s2 + r.km, 0) });
+  }
+  const max = Math.max(5, ...weeks.map((w) => w.km));
+  const W = 320;
+  const H = 150;
+  const top = 18;
+  const bot = 22;
+  const bw = W / weeks.length;
+  const bars = weeks.map((w, i) => {
+    const h = ((H - top - bot) * w.km) / max;
+    const x = i * bw + bw * 0.2;
+    const y = H - bot - h;
+    const cur = i === weeks.length - 1;
+    return `<rect x="${x}" y="${y}" width="${bw * 0.6}" height="${Math.max(h, w.km ? 2 : 0)}" rx="4" class="wk-km-bar${cur ? " cur" : ""}"/>` +
+      (w.km ? `<text x="${x + bw * 0.3}" y="${y - 5}" class="wk-chart-label" text-anchor="middle">${Math.round(w.km * 10) / 10}</text>` : "") +
+      `<text x="${x + bw * 0.3}" y="${H - 6}" class="wk-chart-ax" text-anchor="middle">${w.label}</text>`;
+  }).join("");
+  const longest = list.reduce((m, r) => (r.km > m.km ? r : m), list[0]);
+  const paced = list.filter((r) => r.sec && r.km >= 3);
+  const fastest = paced.reduce((m, r) => (!m || r.sec / r.km < m.sec / m.km ? r : m), null);
+  const recent = list.slice(-6).reverse();
+  card.innerHTML = `<h2>러닝 기록</h2>
+    <p class="wk-note">주마다 달린 거리 (km)</p>
+    <svg class="wk-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="최근 8주 주간 러닝 거리">${bars}</svg>
+    <div class="wk-km-best"><span>가장 긴 거리 <b>${longest.km}km</b> (${wkShortDate(longest.d)})</span>${fastest ? `<span>가장 빠른 페이스 <b>${wkKmPace(fastest.km, fastest.sec)}</b> (${fastest.km}km)</span>` : ""}</div>
+    <ul class="wk-history">${recent.map((r) => `<li><span>${wkShortDate(r.d)} ${WK_RUN_NAMES[r.type] || "러닝"}</span><b>${r.km}km${r.sec ? ` · ${wkKmTime(r.sec)} · ${wkKmPace(r.km, r.sec)}` : ""}</b></li>`).join("")}</ul>`;
 }
 
 // ---------- 월 달력 ----------
@@ -1277,7 +1571,7 @@ function wkSessionRows(week, slot, ses) {
       const key = `${slot.day}-${bi}-${ii}`;
       const pool = wkPool(it.pool);
       const ex = pool[(it.idx + (week.swaps[key] || 0)) % pool.length];
-      const reps = wkRepsText(ex, week.p);
+      const reps = wkRepsText(ex, week.p, week.adj);
       rows.push({ ex: ex, meta: blk.circuit || blk.emom ? reps : `${it.sets}×${reps}`, opt: blk.opt, group: blk.circuit ? "서킷" : blk.emom ? "EMOM" : "" });
     });
   });
@@ -1301,7 +1595,7 @@ function wkRenderToday() {
   const ph = WK_PHASES[week.p];
   const doneCount = week.slots.filter((s) => week.done[s.day]).length;
   document.getElementById("wk-phase-name").textContent = ph.name;
-  document.getElementById("wk-phase-tip").textContent = ph.tip;
+  document.getElementById("wk-phase-tip").textContent = ph.tip + (week.adj ? " · " + wkAdjText(week.adj) : "");
   document.getElementById("wk-progress-text").innerHTML = `<b>${doneCount}</b><small>/${week.slots.length}</small>`;
   const ring = document.getElementById("wk-ring-fill");
   const pct = (doneCount / week.slots.length) * 100;
@@ -1435,3 +1729,11 @@ wkRender();
     }
   } catch (e) { /* 오프라인이면 무시 */ }
 })();
+
+// 인터넷이 없어도 열리게 (sw.js): 지금 화면에 쓰인 파일들도 저장해 달라고 알려 줌
+if ("serviceWorker" in navigator && location.protocol !== "file:") {
+  navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready).then((reg) => {
+    const urls = Array.from(document.querySelectorAll("script[src], link[rel=stylesheet], link[rel=manifest]")).map((el) => el.src || el.href);
+    if (reg.active) reg.active.postMessage({ cache: urls });
+  }).catch(() => { /* 안 되는 브라우저는 그냥 */ });
+}

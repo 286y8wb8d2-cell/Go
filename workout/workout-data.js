@@ -692,9 +692,10 @@ function wkAdapt(base, p, w) {
 }
 
 // 단계에 맞춰 횟수 글자 만들기 ("10~12회")
-function wkRepsText(ex, p) {
+// adj: 지난주 "어땠어요?" 답으로 정한 조정 (-2~2, 한 칸에 2회씩)
+function wkRepsText(ex, p, adj) {
   if (typeof ex.r === "string") return ex.r;
-  const add = WK_PHASES[p].add + (wkProfile.exp === "beg" ? -2 : wkProfile.exp === "adv" ? 2 : 0);
+  const add = WK_PHASES[p].add + (wkProfile.exp === "beg" ? -2 : wkProfile.exp === "adv" ? 2 : 0) + (adj || 0) * 2;
   const isSec = ex.u.indexOf("초") === 0;
   const isDist = ex.u.indexOf("m") === 0;
   const plus = isSec || isDist ? add * 5 : add;

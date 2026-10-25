@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" data-version="21">
+<html lang="ko" data-version="22">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -16,7 +16,7 @@
   <meta name="apple-mobile-web-app-title" content="워크아웃">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <!-- ?v=숫자: 파일을 고칠 때마다 올림 (휴대폰 캐시 때문) -->
-  <link rel="stylesheet" href="workout.css?v=21">
+  <link rel="stylesheet" href="workout.css?v=22">
 </head>
 <body>
   <header>
@@ -104,11 +104,15 @@
         <div id="wk-daytools-seg" class="wk-seg wk-daytools-seg"></div>
       </div>
       <div id="wk-session"></div>
+      <!-- 이번 주 남은 운동을 캘린더 일정으로 -->
+      <section id="wk-ics" class="wk-card"></section>
     </section>
     </div>
 
     <!-- 탭 3) 기록: 달력 + 무게 그래프 + 주간 기록 -->
     <div class="wk-tab" data-in="log">
+    <!-- 숫자 요약: 이번 달 운동 · 연속 주 · 이번 달 러닝 -->
+    <section id="wk-stats" class="wk-stats"></section>
     <!-- 월 달력: 운동한 날 체크 -->
     <section id="wk-cal" class="wk-card">
       <div class="wk-cal-head">
@@ -122,6 +126,7 @@
       <p class="wk-note">날짜를 누르면 "운동함" 체크 / 다시 누르면 취소. 계획에 없던 날도 체크할 수 있어요.</p>
     </section>
 
+    <section class="wk-card" id="wk-runlog" hidden></section>
     <section class="wk-card" id="wk-lifts-wrap" hidden>
       <h2>무게 기록</h2>
       <p class="wk-note">누르면 그래프로 볼 수 있어요.</p>
@@ -179,15 +184,15 @@
   </div>
 
   <footer class="wk-tab" data-in="more">
-    <p>앱 버전 v21 · 기록은 이 기기에만 저장돼요</p>
+    <p>앱 버전 v22 · 기록은 이 기기에만 저장돼요</p>
   </footer>
 
-  <script src="workout-data.js?v=21"></script>
-  <script src="workout-motion.js?v=21"></script>
-  <script src="workout-3d.js?v=21"></script>
-  <script src="workout-rigs.js?v=21"></script>
-  <script src="workout-run.js?v=21"></script>
-  <script src="workout.js?v=21"></script>
-  <script src="workout-backup.js?v=21"></script>
+  <script src="workout-data.js?v=22"></script>
+  <script src="workout-motion.js?v=22"></script>
+  <script src="workout-3d.js?v=22"></script>
+  <script src="workout-rigs.js?v=22"></script>
+  <script src="workout-run.js?v=22"></script>
+  <script src="workout.js?v=22"></script>
+  <script src="workout-backup.js?v=22"></script>
 </body>
 </html>
