@@ -3480,3 +3480,238 @@ body.btc-chart-full #btc-chart {
 
 .dash-report-value small.profit-up { color: var(--up); }
 .dash-report-value small.profit-down { color: var(--down); }
+
+/* 비트코인 매수 기록 (btc-trades.js) */
+.btc-trade-summary {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+  word-break: keep-all;
+}
+
+#btc-trade-start-btn {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.btc-trade-now {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.btc-trade-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.btc-trade-badge {
+  flex: none;
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.btc-trade-badge.buy { background: var(--up); }
+.btc-trade-badge.sell { background: var(--down); }
+
+/* 차트 위 사고판 날 표시 */
+.btc-trade-mark {
+  stroke: var(--card);
+  stroke-width: 1;
+}
+
+.btc-trade-mark.buy { fill: var(--up); }
+.btc-trade-mark.sell { fill: var(--down); }
+
+/* 가계부 일정 → 캘린더 */
+.budget-cal-buttons {
+  margin-top: 16px;
+}
+
+.budget-cal-note {
+  margin: 8px 0 0;
+}
+
+/* 시나리오: 목표 비중 · 세금 (scenario-tools.js) */
+.rebal-sum {
+  margin: -6px 0 12px;
+  font-size: 0.85rem;
+  color: var(--good);
+}
+
+.rebal-sum.warn {
+  color: var(--tint-orange-text);
+}
+
+.rebal-bar-label {
+  margin: 10px 0 4px;
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.rebal-table {
+  margin-top: 12px;
+}
+
+.rebal-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.tax-grid {
+  margin: 12px 0;
+}
+
+.tax-holdings {
+  margin-top: 8px;
+}
+
+/* =============================================
+   앱 잠금 · 금액 숨기기 (app-lock.js)
+   ============================================= */
+.header-spacer {
+  flex: 1;
+}
+
+.privacy-btn .privacy-slash {
+  display: none;
+}
+
+html.privacy-on .privacy-btn {
+  color: var(--primary);
+}
+
+html.privacy-on .privacy-btn .privacy-slash {
+  display: inline;
+}
+
+/* 잠겨 있는 동안: 잠금 화면 말고는 아무것도 안 보이게 */
+html.app-locked body > :not(.lock-screen) {
+  visibility: hidden;
+}
+
+.lock-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+  background: var(--bg);
+}
+
+.lock-box {
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+}
+
+.lock-title {
+  margin: 0 0 20px;
+  font-size: 1.05rem;
+  font-weight: bold;
+}
+
+.lock-dots {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.lock-dots span {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--text-light);
+  border-radius: 50%;
+}
+
+.lock-dots span.filled {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+@keyframes lock-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+
+.lock-shake {
+  animation: lock-shake 0.4s ease;
+}
+
+.lock-message {
+  min-height: 1.4em;
+  margin: 0 0 16px;
+  font-size: 0.85rem;
+  color: var(--up);
+  word-break: keep-all;
+}
+
+.lock-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.lock-pad button {
+  height: 64px;
+  border: none;
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--text);
+  font-size: 1.5rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lock-pad button:active {
+  background: var(--border);
+}
+
+.lock-pad .lock-small {
+  background: transparent;
+  font-size: 1rem;
+}
+
+.lock-forgot {
+  margin-top: 20px;
+  border: none;
+  background: none;
+  color: var(--text-light);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* 금액 숨기기: 내 금액만 흐리게 (시세·지수 같은 공개 숫자는 그대로) */
+html.privacy-on :is(
+  .dash-total, .dash-breakdown, .dash-change, .dash-today, .dash-spark-note, .dash-kpi-value, .dash-kpi-sub, .dash-top-value,
+  #dash-goal-text, #dash-goal-sub, .dash-report-headline, .dash-report-value, .dash-todo-text small,
+  .alloc-amount, .asset-value, .asset-profit, .asset-detail, .summary-card p:not(:first-child), .summary-sub,
+  .budget-net, .budget-kpi-value, .budget-step-value, .budget-edit-amount, .budget-pj-row strong, .budget-ladder-track em,
+  .btc-live-mine-value, .btc-live-mine .btc-hero-sub, .btc-trade-summary, .btc-goal-text,
+  .history-table td, .scenario-table td, #budget-flow-legend, #budget-flow-note, #budget-btc-goal,
+  .history-readout, #budget-net-readout, .card-top-list strong
+) {
+  filter: blur(7px);
+  user-select: none;
+}
+
+/* 비트코인 탭의 거래소·김프 칸은 공개 시세라 흐리지 않음 */
+html.privacy-on #tab-crypto .btc-pair .summary-card p {
+  filter: none;
+}
+
+.lock-pad [data-lock-key="back"] {
+  font-size: 1.6rem;
+}

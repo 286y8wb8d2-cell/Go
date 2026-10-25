@@ -115,6 +115,42 @@ function setupMoneyHints() {
 }
 setupMoneyHints();
 
+// ---------------------------------------------
+// 파일로 내보내기 (백업, 캘린더)
+// ---------------------------------------------
+
+// 글자를 파일로 내려받게 함
+function downloadFile(fileName, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type: type }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName; // 이 이름으로 저장됨
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  // 잠시 뒤 임시 주소를 정리 (바로 지우면 일부 브라우저에서 저장이 안 될 수 있음)
+  setTimeout(function () {
+    URL.revokeObjectURL(url);
+  }, 1000);
+}
+
+// 아이폰이면 공유 창(파일에 저장 → iCloud Drive, 메일, 카톡 등), 안 되면 내려받기
+// → "shared" | "downloaded" | "cancelled"
+async function shareFile(fileName, text, type) {
+  const file = new File([text], fileName, { type: type });
+  if (navigator.canShare && navigator.share && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: fileName });
+      return "shared";
+    } catch (error) {
+      if (error.name === "AbortError") return "cancelled"; // 공유 창을 닫음
+      // 그 밖의 오류는 내려받기로
+    }
+  }
+  downloadFile(fileName, text, type);
+  return "downloaded";
+}
+
 // 금액 앞에 +/- 부호를 붙여 줌 (예: "+50,000원", "-3,000원", 0이면 "0원")
 function formatSignedMoney(amount) {
   const rounded = Math.round(amount);
@@ -460,6 +496,16 @@ checkAppUpdate();
 document.addEventListener("visibilitychange", function () {
   if (!document.hidden) checkAppUpdate();
 });
+
+// 인터넷 없이도 열리게: 앱 파일을 휴대폰에 저장해 두는 서비스 워커 (sw.js)
+// 버전을 주소에 붙여서 새 버전이 나오면 새로 설치되고 지난 저장분은 지워짐
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js?v=" + APP_VERSION).catch(function () {
+      // 등록이 안 돼도 앱은 그대로 동작 (인터넷이 있어야 열릴 뿐)
+    });
+  });
+}
 
 // ---------------------------------------------
 // 작은 탭 (탭 안의 묶음 나누기) — 금융자산·시나리오에서 씀

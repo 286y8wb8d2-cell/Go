@@ -450,7 +450,35 @@ function renderBtcChart() {
     }
   }
 
-  // ⑤ 고른 봉 표시용 세로선 (위치는 selectBtcCandle에서 옮김)
+  // ⑤ 내가 사고판 날: 봉 아래 ▲(매수, 빨강) / 봉 위 ▼(매도, 파랑) (btc-trades.js)
+  if (btcAvgToggle.checked && btcTrades.length > 0) {
+    const firstTime = candles[0].time;
+    const lastTime = candles[candles.length - 1].time + (candles.length > 1 ? candles[1].time - candles[0].time : BTC_DAY_MS);
+    btcTrades.forEach(function (trade) {
+      const time = new Date(trade.date + "T12:00:00").getTime();
+      if (time < firstTime || time >= lastTime) return;
+      // 그날이 들어 있는 봉 (주봉·월봉이면 그 주·그 달)
+      let index = candles.length - 1;
+      for (let i = 1; i < candles.length; i++) {
+        if (candles[i].time > time) {
+          index = i - 1;
+          break;
+        }
+      }
+      const cx = x(index);
+      const size = 5;
+      const d = trade.type === "buy"
+        ? (function (top) { return "M" + cx + "," + top + " l" + -size + "," + size * 1.6 + " h" + size * 2 + " z"; })(Math.min(y(candles[index].low) + 4, c.top + plotHeight - size * 1.6))
+        : (function (bottom) { return "M" + cx + "," + bottom + " l" + -size + "," + -size * 1.6 + " h" + size * 2 + " z"; })(Math.max(y(candles[index].high) - 4, c.top + size * 1.6));
+      const mark = createSvg("path", { d: d, class: "btc-trade-mark " + trade.type });
+      const tip = createSvg("title", {});
+      tip.textContent = trade.date + " " + (trade.type === "buy" ? "매수" : "매도") + " " + formatBtcDecimal(trade.qty, 8) + " BTC · " + formatMoney(trade.price);
+      mark.appendChild(tip);
+      btcChart.appendChild(mark);
+    });
+  }
+
+  // ⑥ 고른 봉 표시용 세로선 (위치는 selectBtcCandle에서 옮김)
   btcChart.appendChild(createSvg("line", { id: "btc-crosshair", y1: c.top, y2: c.top + plotHeight, class: "chart-crosshair" }));
 
   // 기간 전체 변화: 첫 봉 시가 → 마지막 봉 종가
@@ -578,6 +606,7 @@ btcAvgToggle.addEventListener("change", renderBtcChart);
 
 // 내 코인을 고치면 평단선도 다시
 document.addEventListener("data-saved", function (event) {
+  if (event.detail.key === BTC_TRADES_KEY) renderBtcChart(); // 매수 기록이 바뀌면 차트 표시도 (btc-trades.js)
   if (event.detail.key === CRYPTO_STORAGE_KEY) renderBtcChart();
 });
 

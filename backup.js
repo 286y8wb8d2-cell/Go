@@ -22,10 +22,11 @@ const BACKUP_ITEMS = [
   { key: "household-crypto", label: "비트코인", unit: "개", check: isValidCrypto },
   { key: "household-scenarios", label: "시나리오", unit: "개", check: isValidScenario },
   { key: "household-history", label: "자산 기록", unit: "개월", check: isValidHistory },
+  { key: "household-btc-trades", label: "비트코인 매수 기록", unit: "건", check: isValidBtcTrade },
 ];
 
-// 목록이 아닌 설정값 (시뮬레이션 입력값, 비트코인 설정: 거래소·스택 목표, 시세 자동 갱신 설정, 자산 목표, 가계부, 카드 내역)
-const BACKUP_SETTINGS_KEYS = ["household-sim-settings", "household-btc-settings", "household-market-settings", "household-goal", "household-budget", "household-card"];
+// 목록이 아닌 설정값 (시뮬레이션 입력값, 비트코인 설정: 거래소·스택 목표, 시세 자동 갱신 설정, 자산 목표, 가계부, 카드 내역, 목표 비중, 세금 입력)
+const BACKUP_SETTINGS_KEYS = ["household-sim-settings", "household-btc-settings", "household-market-settings", "household-goal", "household-budget", "household-card", "household-rebalance", "household-tax"];
 
 // =============================================
 // 2. 데이터 모양 검사
@@ -80,6 +81,14 @@ function isValidScenario(item) {
   });
 }
 
+function isValidBtcTrade(item) {
+  return (
+    isText(item.id) && isText(item.date) && /^\d{4}-\d{2}-\d{2}$/.test(item.date) &&
+    (item.type === "buy" || item.type === "sell") && isNumber(item.qty) && item.qty > 0 && isNumber(item.price) && item.price > 0 &&
+    (item.memo === undefined || isText(item.memo))
+  );
+}
+
 function isValidHistory(item) {
   return (
     isText(item.month) && /^\d{4}-\d{2}$/.test(item.month) &&
@@ -129,27 +138,13 @@ function collectBackupData() {
   };
 }
 
-// 글자를 파일로 내려받게 함
-function downloadTextFile(fileName, text) {
-  const blob = new Blob([text], { type: "application/json" });
-  const url = URL.createObjectURL(blob); // 파일을 가리키는 임시 주소
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName; // 이 이름으로 저장됨
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  // 잠시 뒤 임시 주소를 정리 (바로 지우면 일부 브라우저에서 저장이 안 될 수 있음)
-  setTimeout(function () {
-    URL.revokeObjectURL(url);
-  }, 1000);
-}
-
-backupExportBtn.addEventListener("click", function () {
+backupExportBtn.addEventListener("click", async function () {
   const backup = collectBackupData();
   // JSON.stringify의 세 번째 값 2: 사람이 읽기 좋게 줄바꿈과 들여쓰기
   // 파일 이름은 영어로: 한글 이름은 일부 브라우저에서 "download" 같은 이름으로 바뀌어 버림
-  downloadTextFile("household-backup-" + getToday() + ".json", JSON.stringify(backup, null, 2));
+  // 아이폰은 공유 창이 떠서 "파일에 저장 → iCloud Drive"로 바로 보낼 수 있음 (common.js)
+  const result = await shareFile("household-backup-" + getToday() + ".json", JSON.stringify(backup, null, 2), "application/json");
+  if (result === "cancelled") return; // 공유 창을 그냥 닫았으면 백업한 것으로 치지 않음
 
   try {
     localStorage.setItem(BACKUP_LAST_KEY, getToday());
