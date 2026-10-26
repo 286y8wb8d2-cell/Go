@@ -16,7 +16,8 @@ self.addEventListener("install", (e) => {
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys()
-    .then((keys) => Promise.all(keys.filter((k) => k !== SW_CACHE).map((k) => caches.delete(k))))
+    // 지난 운동 앱 저장분만 지움 (같은 주소의 자산 앱 저장분 household-*은 건드리지 않음)
+    .then((keys) => Promise.all(keys.filter((k) => k.indexOf("workout-") === 0 && k !== SW_CACHE).map((k) => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 
