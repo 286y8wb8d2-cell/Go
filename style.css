@@ -3114,8 +3114,8 @@ body {
   margin: 16px 0 0;
 }
 
-/* 비트코인 탭: 접는 칸 (btc.js) — 제목 줄 전체를 누르면 펼침/접기 */
-.btc-fold-btn {
+/* 접는 칸 (common.js의 setupFolding) — 제목 줄 전체를 누르면 펼침/접기 */
+.fold-btn {
   display: flex;
   width: 100%;
   align-items: center;
@@ -3132,7 +3132,7 @@ body {
 }
 
 /* 오른쪽 꺾쇠: 펼치면 위(︿), 접으면 아래(﹀) */
-.btc-fold-btn::after {
+.fold-btn::after {
   content: "";
   flex: none;
   width: 8px;
@@ -3144,21 +3144,22 @@ body {
   transition: transform 0.2s ease;
 }
 
-.btc-folded .btc-fold-btn::after {
+.folded .fold-btn::after {
   transform: translateY(-2px) rotate(45deg);
 }
 
 /* 접힌 칸은 제목만 */
-.btc-folded > :not(h2) {
+.folded > :not(h2):not(.dash-section-head) {
   display: none !important;
 }
 
-.btc-folded > h2 {
+.folded > h2,
+.folded > .dash-section-head {
   margin-bottom: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .btc-fold-btn::after { transition: none; }
+  .fold-btn::after { transition: none; }
 }
 
 /* =============================================
@@ -3714,4 +3715,23 @@ html.privacy-on #tab-crypto .btc-pair .summary-card p {
 
 .lock-pad [data-lock-key="back"] {
   font-size: 1.6rem;
+}
+
+/* 매수 기록으로 계산되는 칸 (고칠 수 없음) */
+input[readonly] {
+  background: var(--bg);
+  color: var(--text-light);
+}
+
+/* "자세히" 버튼과 한 줄에 있는 접는 제목 */
+.dash-section-head .fold-btn {
+  flex: 1;
+  width: auto;
+}
+
+/* 설정: 탭 보이기 */
+.tab-toggles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
 }

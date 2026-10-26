@@ -270,9 +270,46 @@ function renderAllocation(bar, legend, items) {
 const tabButtons = document.querySelectorAll(".tab-btn");
 const tabPanels = document.querySelectorAll(".tab-panel");
 
-// 탭 순서 (버튼 순서 그대로): ["home", "assets", "crypto", "scenario"]
-const TAB_ORDER = Array.from(tabButtons).map(function (button) {
-  return button.dataset.tab;
+// 설정에서 숨긴 탭 (홈은 숨길 수 없음) — 화면 설정이라 백업하지 않음
+const TAB_HIDDEN_KEY = "household-tabs-hidden";
+let hiddenTabs = [];
+try {
+  const saved = JSON.parse(localStorage.getItem(TAB_HIDDEN_KEY));
+  if (Array.isArray(saved)) hiddenTabs = saved.filter(function (tab) {
+    return tab !== "home";
+  });
+} catch (error) {
+  // 깨져 있으면 모두 보임
+}
+
+// 탭 순서 (보이는 버튼 순서 그대로, 밀어서 넘기기에 씀): ["home", "budget", ...]
+const TAB_ORDER = [];
+function applyHiddenTabs() {
+  TAB_ORDER.length = 0;
+  tabButtons.forEach(function (button) {
+    button.hidden = hiddenTabs.indexOf(button.dataset.tab) !== -1;
+    if (!button.hidden) TAB_ORDER.push(button.dataset.tab);
+  });
+}
+applyHiddenTabs();
+
+// 설정 창의 "탭 보이기" 체크 상자 (data-tab-toggle="budget")
+document.querySelectorAll("[data-tab-toggle]").forEach(function (box) {
+  box.checked = hiddenTabs.indexOf(box.dataset.tabToggle) === -1;
+  box.addEventListener("change", function () {
+    const tab = box.dataset.tabToggle;
+    hiddenTabs = hiddenTabs.filter(function (name) {
+      return name !== tab;
+    });
+    if (!box.checked) hiddenTabs.push(tab);
+    try {
+      localStorage.setItem(TAB_HIDDEN_KEY, JSON.stringify(hiddenTabs));
+    } catch (error) {
+      // 저장이 막혀도 이번에는 적용
+    }
+    applyHiddenTabs();
+    if (!box.checked && currentTab === tab) showTab("home");
+  });
 });
 
 // 지금 보고 있는 탭 이름
@@ -447,10 +484,8 @@ function hideSwipeHint() {
 // 처음 열 때: 주소에 탭 이름(#assets 등)이 있으면 그 탭, 없으면 홈(대시보드)
 (function () {
   const hashTab = location.hash.slice(1); // "#assets" → "assets"
-  const exists = Array.from(tabButtons).some(function (button) {
-    return button.dataset.tab === hashTab;
-  });
-  showTab(exists ? hashTab : "home");
+  // 숨긴 탭이면 홈으로
+  showTab(TAB_ORDER.indexOf(hashTab) !== -1 ? hashTab : "home");
 })();
 
 // ---------------------------------------------
@@ -503,6 +538,49 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
   window.addEventListener("load", function () {
     navigator.serviceWorker.register("sw.js?v=" + APP_VERSION).catch(function () {
       // 등록이 안 돼도 앱은 그대로 동작 (인터넷이 있어야 열릴 뿐)
+    });
+  });
+}
+
+// ---------------------------------------------
+// 접는 칸: 자주 안 보는 칸은 제목만 보이게 (제목을 누르면 펼침/접기, 이 휴대폰에 기억)
+// rootSelector 안의 칸 중 제목이 foldedTitles에 있는 칸만 접을 수 있게 하고 처음엔 접어 둠
+// 제목: <section><h2> 또는 <section><div class="dash-section-head"><h2> (옆에 "자세히" 버튼이 있는 칸)
+// ---------------------------------------------
+
+function setupFolding(rootSelector, storageKey, foldedTitles) {
+  let state = {};
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey));
+    if (saved && typeof saved === "object") state = saved;
+  } catch (error) {
+    // 깨져 있으면 처음 상태
+  }
+  document.querySelectorAll(rootSelector + " section > h2, " + rootSelector + " section > .dash-section-head > h2").forEach(function (heading) {
+    const section = heading.closest("section");
+    const title = heading.textContent.trim();
+    if (foldedTitles.indexOf(title) === -1) return;
+    // 제목을 버튼으로 감싸서 누를 수 있게 (화면 읽기 도구도 펼침 상태를 알 수 있게)
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "fold-btn";
+    while (heading.firstChild) button.appendChild(heading.firstChild);
+    heading.appendChild(button);
+    section.classList.add("foldable");
+    function apply(open) {
+      section.classList.toggle("folded", !open);
+      button.setAttribute("aria-expanded", String(open));
+    }
+    apply(state[title] === true);
+    button.addEventListener("click", function () {
+      const open = section.classList.contains("folded");
+      apply(open);
+      state[title] = open;
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(state));
+      } catch (error) {
+        // 저장이 막혀도 이번에는 동작
+      }
     });
   });
 }

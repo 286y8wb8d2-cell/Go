@@ -168,7 +168,7 @@ function openBtcSection(id, view) {
   const section = document.getElementById(id);
   if (!section) return;
   if (view && view !== btcView) showBtcView(view, false);
-  if (section.classList.contains("btc-folded")) section.querySelector(".btc-fold-btn").click();
+  if (section.classList.contains("folded")) section.querySelector(".fold-btn").click();
   section.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -249,7 +249,7 @@ function getMyBtcHolding() {
 
 const BTC_OPEN_KEY = "household-btc-open"; // { "칸 제목": true/false } — 화면 설정이라 백업하지 않음
 
-// 처음부터 접어 둘 칸 (나머지는 펼친 채로 시작)
+// 접어 둘 수 있는 칸 (처음엔 접힘, 목록에 없는 칸은 늘 펼침)
 const BTC_FOLDED_TITLES = [
   "거래소 · 24시간 정보", "김치 프리미엄", "매수 vs 매도", "시장 지표", "공포·탐욕 지수 (F&G)", "코인 입력",
   "반감기 사이클 비교", "월별 등락률",
@@ -257,48 +257,6 @@ const BTC_FOLDED_TITLES = [
   "적립식 시뮬레이터", "솔로 채굴 확률", "이 금액은 몇 BTC?", "BIP39 단어 목록",
   "현물 ETF", "M2와 비트코인", "출금 수수료", "거래소 사고 연표",
 ];
-
-function loadBtcOpenState() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(BTC_OPEN_KEY));
-    if (saved && typeof saved === "object") return saved;
-  } catch (error) {
-    // 깨져 있으면 처음 상태
-  }
-  return {};
-}
-
-function setupBtcFolding() {
-  const state = loadBtcOpenState();
-  // 제목(h2)이 칸 바로 아래에 있는 칸만 (실시간 시세처럼 제목 옆에 버튼이 있는 칸은 늘 펼침)
-  document.querySelectorAll("#tab-crypto section > h2").forEach(function (heading) {
-    const section = heading.parentElement;
-    const title = heading.textContent.trim();
-    if (BTC_FOLDED_TITLES.indexOf(title) === -1 && state[title] === undefined) return;
-    // 제목을 버튼으로 감싸서 누를 수 있게 (화면 읽기 도구도 펼침 상태를 알 수 있게)
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "btc-fold-btn";
-    while (heading.firstChild) button.appendChild(heading.firstChild);
-    heading.appendChild(button);
-    section.classList.add("btc-foldable");
-    function apply(open) {
-      section.classList.toggle("btc-folded", !open);
-      button.setAttribute("aria-expanded", String(open));
-    }
-    apply(state[title] !== undefined ? state[title] : BTC_FOLDED_TITLES.indexOf(title) === -1);
-    button.addEventListener("click", function () {
-      const open = section.classList.contains("btc-folded");
-      apply(open);
-      state[title] = open;
-      try {
-        localStorage.setItem(BTC_OPEN_KEY, JSON.stringify(state));
-      } catch (error) {
-        // 저장이 막혀도 이번에는 동작
-      }
-    });
-  });
-}
 
 // =============================================
 // 6. 이벤트 처리
@@ -310,7 +268,7 @@ document.addEventListener("tab-shown", updateBtcTimer);
 document.addEventListener("visibilitychange", updateBtcTimer);
 
 // 시작: 접는 칸 준비, 지난번에 보던 작은 탭 (없으면 시세)
-setupBtcFolding();
+setupFolding("#tab-crypto", BTC_OPEN_KEY, BTC_FOLDED_TITLES); // common.js
 (function () {
   let saved = null;
   try {

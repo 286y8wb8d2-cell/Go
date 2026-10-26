@@ -65,6 +65,7 @@ const cryptoAvgPriceInput = document.getElementById("crypto-avg-price");
 const cryptoCurrentPriceInput = document.getElementById("crypto-current-price");
 const cryptoPlaceInput = document.getElementById("crypto-place");
 const cryptoMemoInput = document.getElementById("crypto-memo");
+const cryptoTradeHint = document.getElementById("crypto-trade-hint");
 const cryptoSubmitBtn = document.getElementById("crypto-submit-btn");
 const cryptoCancelBtn = document.getElementById("crypto-cancel-btn");
 const cryptoList = document.getElementById("crypto-list");
@@ -299,6 +300,19 @@ function resetCryptoForm() {
   cryptoEditingId = null;
   cryptoSubmitBtn.textContent = "추가";
   cryptoCancelBtn.hidden = true;
+  setCryptoTradeLock(false);
+}
+
+// 비트코인 매수 기록(btc-trades.js)을 쓰고 있으면 비트코인의 수량·평균 매입가는 기록에서만 계산
+// (여기서 고치면 다음 기록 때 덮어써지므로 아예 못 고치게)
+function isCryptoTradeLocked(crypto) {
+  return typeof btcTrades !== "undefined" && btcTrades.length > 0 && getCryptoSymbol(crypto) === "BTC";
+}
+
+function setCryptoTradeLock(locked) {
+  cryptoQuantityInput.readOnly = locked;
+  cryptoAvgPriceInput.readOnly = locked;
+  cryptoTradeHint.hidden = !locked;
 }
 
 function startCryptoEdit(crypto) {
@@ -314,6 +328,7 @@ function startCryptoEdit(crypto) {
 
   cryptoSubmitBtn.textContent = "수정 완료";
   cryptoCancelBtn.hidden = false;
+  setCryptoTradeLock(isCryptoTradeLocked(crypto));
 
   renderCryptos();
   openBtcSection("btc-coin-input"); // btc.js: 접혀 있는 "코인 입력" 칸을 펼치고 그 칸으로
@@ -344,6 +359,18 @@ cryptoForm.addEventListener("submit", function (event) {
     return;
   }
 
+  // 매수 기록으로 계산되는 비트코인: 수량·평균 매입가는 원래 값 그대로
+  const original = cryptos.find(function (item) {
+    return item.id === cryptoEditingId;
+  });
+  if (original && isCryptoTradeLocked(original)) {
+    crypto.quantity = original.quantity;
+    crypto.avgPrice = original.avgPrice;
+  } else if (!original && isCryptoTradeLocked(crypto) && cryptos.some(isCryptoTradeLocked)) {
+    alert("비트코인은 이미 매수 기록으로 계산되고 있어요. 새로 산 것은 '매수 기록'에 넣어 주세요.");
+    return;
+  }
+
   if (cryptoEditingId === null) {
     cryptos.push(crypto);
   } else {
@@ -358,6 +385,15 @@ cryptoForm.addEventListener("submit", function (event) {
 });
 
 function deleteCrypto(id) {
+  const target = cryptos.find(function (crypto) {
+    return crypto.id === id;
+  });
+  // 매수 기록으로 계산되는 비트코인을 지우면 기록이 남아 있어 다시 생기므로 함께 지울지 물어봄
+  if (target && isCryptoTradeLocked(target)) {
+    if (!confirm("이 비트코인은 매수 기록 " + btcTrades.length + "건으로 계산돼요.\n매수 기록도 모두 지울까요?\n(취소하면 아무것도 지우지 않아요)")) return;
+    btcTrades = []; // btc-trades.js
+    saveBtcTrades();
+  }
   cryptos = cryptos.filter(function (crypto) {
     return crypto.id !== id;
   });

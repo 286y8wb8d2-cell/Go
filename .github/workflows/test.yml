@@ -1,0 +1,33 @@
+# 자동 테스트: main에 올릴 때마다 앱을 진짜 브라우저로 열어 주요 기능을 점검 (tests/run.cjs)
+# 실패하면 GitHub의 Actions 탭에 빨간 X가 뜸 → 무엇이 망가졌는지 로그에 나옴
+# (운동 앱 workout/ 만 바뀐 경우는 건너뜀)
+name: test
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "workout/**"
+  pull_request:
+    paths-ignore:
+      - "workout/**"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: 테스트 도구 설치 (Playwright + 크로미움)
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: 앱 띄우고 테스트
+        run: |
+          python3 -m http.server 8765 >/dev/null 2>&1 &
+          sleep 1
+          node tests/run.cjs

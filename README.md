@@ -262,3 +262,9 @@ backup.js     데이터 백업 (내보내기/불러오기)
 맨 아래 "기록 백업"(workout-backup.js): 내보내기는 `wkState` 전체를 `workout-backup-날짜.json`으로(휴대폰은 공유 창), 불러오기는 파일을 골라 "합치기"(지금 기록 유지 + 파일에만 있는 기록 추가) 또는 "바꾸기". 마지막 백업 날짜는 `workout-last-backup`에 따로 두고, 기록이 있는데 14일 넘게 백업 안 하면 위에 알림.
 디자인은 iOS 느낌(회색 바탕 + 둥근 흰 카드, 큰 제목, 이번 주 진행은 활동 링)이고 폰 설정을 따라 다크 모드로 바뀜(색은 workout.css 맨 위 변수, 3D 무대 색은 `--stage`·`--floor`를 workout-3d.js가 읽음).
 파일: index.html, workout.css, workout-data.js(동작·세션 규칙), workout.js(화면·탭·처음 설정), workout-run.js(운동 모드), workout-backup.js(백업·복원), sw.js(인터넷 없이 열기). 고치면 workout/의 `?v=N`·data-version·푸터·version.json을 올림.
+
+## 자동 테스트
+- `python3 -m http.server 8765 &` 다음 `node tests/run.cjs` → 모든 탭(라이트/다크), 홈, 카드 명세서, 매수 기록, 앱 잠금, 빠른 시세, 가로 차트·캘린더·세금, 오프라인을 진짜 브라우저로 점검
+- main에 올릴 때마다 GitHub Actions(`test` 작업)가 자동으로 실행
+- 외부 시세는 `tests/mocks.cjs`의 가짜 응답을 씀. `tests/fixtures/`에는 공개 시세와 지어낸 카드 내역만 (개인 정보 없음)
+

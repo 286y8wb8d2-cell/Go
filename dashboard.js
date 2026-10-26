@@ -268,6 +268,9 @@ document.querySelectorAll("[data-goto]").forEach(function (button) {
 // 어느 탭에서든 데이터가 바뀌면 다시 그림
 document.addEventListener("data-saved", renderDashboard);
 
+// 홈은 "순자산 · 이번 달 할 일 · 월간 리포트"만 펼쳐 두고 나머지는 제목만 (누르면 펼침, 기억함)
+setupFolding("#tab-home", "household-home-open", ["순자산 목표", "자산 구성", "한눈에 보기", "큰 종목 TOP 5", "시장 한눈에"]); // common.js
+
 // =============================================
 // 시작
 // =============================================

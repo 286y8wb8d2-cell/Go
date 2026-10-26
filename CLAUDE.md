@@ -12,7 +12,7 @@
 - **개인 금융 정보(월급·대출·보유 수량·백업 파일)는 저장소에 절대 넣지 않는다.** 공개 저장소다.
   사용자 숫자가 필요하면 백업 형식 JSON을 임시 폴더에 만들어 파일로 전달하고, 앱의 "불러오기"로 넣게 한다.
   (형식: `{ "app": "household-ledger", "version": 1, "exportedAt": ..., "data": { "<localStorage 키>": ... } }` — 들어 있는 키만 덮어씀)
-- **파일을 고치면 버전을 올린다:** index.html의 모든 `?v=N`, `<html data-version="N">`, 푸터 "앱 버전 vN", version.json. (휴대폰 캐시 때문에 필수 — 지금 v45)
+- **파일을 고치면 버전을 올린다:** index.html의 모든 `?v=N`, `<html data-version="N">`, 푸터 "앱 버전 vN", version.json. (휴대폰 캐시 때문에 필수 — 지금 v46)
 - 모든 JS가 전역에서 이름을 같이 쓴다. 파일마다 접두어(asset~, crypto~, btc~, market~, budget~(budgetCard~, budgetCal~), dash~, history~, scenario~, sim~, backup~, lock~)를 지키고,
   커밋 전에 겹치는 이름이 없는지 확인한다:
   `for f in *.js; do grep -oE "^(function|const|let|var) [A-Za-z_$][A-Za-z0-9_$]*" "$f" | awk '{print $2}'; done | sort | uniq -d` (출력이 없어야 함)
@@ -31,5 +31,9 @@
 - 아이폰 홈 화면 앱은 사파리와 저장 공간이 따로다 (홈 화면에 다시 추가하면 데이터가 비어 보임 → 내보내기/불러오기).
 
 ## 확인 방법
-- `python3 -m http.server 8765` 후 Playwright(크로미움 설치돼 있음, 375×812 화면)로 각 탭을 열어 콘솔 오류와 가로 넘침을 확인.
-  외부 API는 `page.route`로 가짜 응답을 넣어 테스트한다.
+- **자동 테스트:** `python3 -m http.server 8765 &` 후 `node tests/run.cjs` (모두 통과해야 올림).
+  main에 올리면 GitHub Actions(`.github/workflows/test.yml`)가 같은 테스트를 자동으로 돌림.
+  - 외부 API·WebSocket 가짜 응답은 `tests/mocks.cjs`, 공개 시세·가짜 카드 명세서는 `tests/fixtures/` (개인 숫자 금지)
+  - 새 기능을 만들면 `tests/run.cjs`에 확인을 하나 이상 더한다.
+- 화면 확인이 필요하면 Playwright(크로미움 설치돼 있음, 390×844)로 캡처해서 직접 본다.
+- 서비스 워커(sw.js)가 있으므로 테스트 브라우저는 `serviceWorkers: "block"`으로 (오프라인 테스트만 예외).
